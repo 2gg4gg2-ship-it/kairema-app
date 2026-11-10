@@ -2,10 +2,12 @@ package com.kairema.app
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -21,6 +23,7 @@ class MainActivity : Activity() {
 
     private lateinit var web: WebView
     private var fileCallback: ValueCallback<Array<Uri>>? = null
+    private var cameraUri: Uri? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,12 +62,20 @@ class MainActivity : Activity() {
             ): Boolean {
                 fileCallback?.onReceiveValue(null)
                 fileCallback = callback
+                cameraUri = null
+                val camera = if (params.isCaptureEnabled) cameraIntent() else null
                 return try {
-                    startActivityForResult(params.createIntent(), REQ_FILE)
+                    startActivityForResult(camera ?: params.createIntent(), REQ_FILE)
                     true
                 } catch (_: Exception) {
-                    fileCallback = null
-                    false
+                    discardCamera()
+                    try {
+                        startActivityForResult(params.createIntent(), REQ_FILE)
+                        true
+                    } catch (_: Exception) {
+                        fileCallback = null
+                        false
+                    }
                 }
             }
         }
@@ -77,10 +88,44 @@ class MainActivity : Activity() {
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQ_FILE) {
-            fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data))
+            val cam = cameraUri
+            val result: Array<Uri>? = if (cam != null) {
+                if (resultCode == RESULT_OK) {
+                    arrayOf(cam)
+                } else {
+                    discardCamera()
+                    null
+                }
+            } else {
+                WebChromeClient.FileChooserParams.parseResult(resultCode, data)
+            }
+            cameraUri = null
+            fileCallback?.onReceiveValue(result)
             fileCallback = null
         } else {
             super.onActivityResult(requestCode, resultCode, data)
+        }
+    }
+
+    // Камера: снимок сохраняется в галерею и передаётся в интерфейс как файл.
+    private fun cameraIntent(): Intent? = try {
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "kairema_" + System.currentTimeMillis() + ".jpg")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+        }
+        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+        cameraUri = uri
+        if (uri == null) null else Intent(MediaStore.ACTION_IMAGE_CAPTURE).putExtra(MediaStore.EXTRA_OUTPUT, uri)
+    } catch (_: Exception) {
+        null
+    }
+
+    private fun discardCamera() {
+        val uri = cameraUri ?: return
+        cameraUri = null
+        try {
+            contentResolver.delete(uri, null, null)
+        } catch (_: Exception) {
         }
     }
 

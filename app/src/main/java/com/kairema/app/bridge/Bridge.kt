@@ -5,6 +5,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import com.kairema.app.data.SecureKeys
 import okhttp3.Call
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -99,6 +100,93 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                 done(reqId, netError(e))
             }
         }
+    }
+
+    /** Поиск в интернете: Tavily, Brave Search или Serper. Ответ приходит одним куском JSON. */
+    @JavascriptInterface
+    fun search(reqId: String, provider: String, query: String) {
+        pool.execute {
+            try {
+                val p = JSONObject(provider)
+                val key = SecureKeys.load(ctx, p.getString("id"))
+                    ?: throw IllegalStateException("ключ не найден на устройстве")
+                val url = p.getString("url").trim()
+                val call = http.newCall(buildSearchRequest(url, key, query))
+                calls[reqId] = call
+                call.execute().use { resp ->
+                    if (!resp.isSuccessful) {
+                        done(reqId, errorText(resp))
+                        return@use
+                    }
+                    push(reqId, parseSearch(url, resp.body!!.string()))
+                    done(reqId, null)
+                }
+            } catch (e: Exception) {
+                done(reqId, netError(e))
+            }
+        }
+    }
+
+    // Ключ уходит только на настоящие адреса поддерживаемых провайдеров, а не на введённый URL.
+    private fun buildSearchRequest(url: String, key: String, query: String): Request {
+        val json = "application/json".toMediaType()
+        return when {
+            url.contains("tavily.com") -> Request.Builder()
+                .url("https://api.tavily.com/search")
+                .header("Authorization", "Bearer $key")
+                .post(
+                    JSONObject().put("query", query).put("max_results", 5).put("search_depth", "basic")
+                        .toString().toRequestBody(json)
+                )
+                .build()
+            url.contains("brave.com") -> Request.Builder()
+                .url(
+                    "https://api.search.brave.com/res/v1/web/search".toHttpUrl().newBuilder()
+                        .addQueryParameter("q", query)
+                        .addQueryParameter("count", "5")
+                        .build()
+                )
+                .header("X-Subscription-Token", key)
+                .header("Accept", "application/json")
+                .build()
+            url.contains("serper.dev") -> Request.Builder()
+                .url("https://google.serper.dev/search")
+                .header("X-API-KEY", key)
+                .post(JSONObject().put("q", query).put("num", 5).toString().toRequestBody(json))
+                .build()
+            else -> throw IllegalStateException("поддерживаются Tavily, Brave Search и Serper")
+        }
+    }
+
+    private fun parseSearch(url: String, raw: String): String {
+        val out = JSONArray()
+        val j = JSONObject(raw)
+        fun add(title: String, link: String, snippet: String) {
+            if (link.isNotEmpty()) {
+                out.put(
+                    JSONObject()
+                        .put("title", title.ifEmpty { link })
+                        .put("url", link)
+                        .put("snippet", snippet.take(500))
+                )
+            }
+        }
+        val items: JSONArray? = when {
+            url.contains("tavily.com") -> j.optJSONArray("results")
+            url.contains("brave.com") -> j.optJSONObject("web")?.optJSONArray("results")
+            else -> j.optJSONArray("organic")
+        }
+        if (items != null) {
+            for (i in 0 until items.length()) {
+                val r = items.getJSONObject(i)
+                when {
+                    url.contains("tavily.com") -> add(r.optString("title"), r.optString("url"), r.optString("content"))
+                    url.contains("brave.com") -> add(r.optString("title"), r.optString("url"), r.optString("description"))
+                    else -> add(r.optString("title"), r.optString("link"), r.optString("snippet"))
+                }
+            }
+        }
+        return out.toString()
     }
 
     private fun open(reqId: String, p: JSONObject, msgs: JSONArray, maxTokens: Int?): Response {

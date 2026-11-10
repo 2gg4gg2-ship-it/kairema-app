@@ -55,11 +55,21 @@ const scr=b=>b.scrollTop=1e6;
 async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=msgEl(m,1);box.append(d);const bd=$('.bd',d);bd.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';scr(box);
  const pv=S.providers.find(x=>x.ok);
  if(Native.on&&pv){
-  const hist=msgs.filter(x=>x!==m&&!x.err&&x.t).map(x=>({role:x.r==='u'?'user':'assistant',content:x.t}));
+  const anth=/anthropic\.com/.test(pv.url),last=[...msgs].reverse().find(x=>x.r==='u');
+  let src=[],serr='';
+  if(S.web&&last){
+   const sp=S.sproviders.find(x=>x.ok);
+   if(!sp)serr='нет подключённого провайдера поиска';
+   else{bd.textContent='Ищу в интернете…';let raw='';
+    try{await Native.run('search',[JSON.stringify({id:sp.id,url:sp.url}),(last.q||last.t).slice(0,300)],t=>{raw+=t});src=JSON.parse(raw||'[]')}catch(e){serr=e.message}}}
+  const ctx=src.length?'Результаты поиска в интернете ('+new Date().toLocaleDateString('ru-RU')+'):\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+'\n'+s.url+'\n'+s.snippet).join('\n\n')+'\n\nОтветь на вопрос, опираясь на эти результаты, и ссылайся на источники номерами [1], [2]. Вопрос пользователя: ':'';
+  const hist=msgs.filter(x=>x!==m&&!x.err&&x.t).map(x=>({role:x.r==='u'?'user':'assistant',content:toContent(x,anth,x===last?ctx:'')}));
+  const tail=(src.length?'\n\nИсточники:\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+' — '+s.url).join('\n'):'')+(serr?'\n\n⚠ Поиск не сработал: '+serr:'');
   let got=false;
   try{
    await Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model}),JSON.stringify(hist)],t=>{if(!got){got=true;bd.textContent='';m.t=''}m.t+=t;bd.textContent=m.t;scr(box)});
    if(!got){m.err=1;m.t=bd.textContent='Пустой ответ от провайдера'}
+   else if(tail)bd.textContent=m.t+tail
   }catch(e){m.err=1;m.t=bd.textContent='Не удалось получить ответ: '+e.message}
   return}
  await wait(1000);
@@ -72,6 +82,38 @@ const NB=window.KairemaBridge,Native=(()=>{const pend={};let n=0;
   saveKey:(id,k)=>{if(NB)NB.saveKey(id,k)},
   deleteKey:id=>{if(NB)NB.deleteKey(id)},
   run(fn,args,on){return new Promise((res,rej)=>{const id='r'+(++n);pend[id]={res,rej,on};try{NB[fn](id,...args)}catch(e){delete pend[id];rej(e)}})}}})();
+const TXT_EXT=/\.(txt|md|markdown|json|jsonl|csv|tsv|xml|html?|css|js|mjs|ts|tsx|jsx|py|kt|kts|java|c|h|cpp|hpp|cs|go|rs|rb|php|sh|bat|ps1|ya?ml|toml|ini|cfg|conf|log|sql|swift|gradle|properties|gitignore|env|vue|svelte|lua|dart|tex|srt|svg)$/i;
+const b64=buf=>{let s='';const u=new Uint8Array(buf),n=0x8000;for(let i=0;i<u.length;i+=n)s+=String.fromCharCode.apply(null,u.subarray(i,i+n));return btoa(s)};
+async function imgPart(f){
+ const bm=await createImageBitmap(f),k=Math.min(1,1568/Math.max(bm.width,bm.height));
+ const c=document.createElement('canvas');c.width=Math.max(1,Math.round(bm.width*k));c.height=Math.max(1,Math.round(bm.height*k));
+ const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(bm,0,0,c.width,c.height);
+ return{k:'image',name:f.name,mime:'image/jpeg',data:c.toDataURL('image/jpeg',.85).split(',')[1]}}
+async function readFiles(list,anth){
+ const out=[];
+ for(const f of list){
+  try{
+   if(f.type.startsWith('image/'))out.push(await imgPart(f));
+   else if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){
+    if(!anth){toast('PDF поддерживается только провайдером Anthropic: '+f.name);continue}
+    if(f.size>8*1048576){toast('Файл больше 8 МБ: '+f.name);continue}
+    out.push({k:'pdf',name:f.name,data:b64(await f.arrayBuffer())})}
+   else if(f.type.startsWith('text/')||/^application\/(json|xml)/.test(f.type)||TXT_EXT.test(f.name)){
+    let t=await f.text();if(t.length>200000)t=t.slice(0,200000)+'\n[… файл обрезан]';
+    out.push({k:'text',name:f.name,text:t})}
+   else toast('Формат не поддерживается: '+f.name)
+  }catch(e){toast('Не удалось прочитать: '+f.name)}
+ }
+ return out}
+const toContent=(m,anth,pre)=>{
+ const parts=m.parts||[];let txt=(pre||'')+m.t;
+ if(!parts.length)return txt;
+ const blocks=[];
+ for(const p of parts){
+  if(p.k==='text')txt+='\n\n--- Файл «'+p.name+'» ---\n'+p.text+'\n--- конец файла ---';
+  else if(p.k==='image')blocks.push(anth?{type:'image',source:{type:'base64',media_type:p.mime,data:p.data}}:{type:'image_url',image_url:{url:'data:'+p.mime+';base64,'+p.data}});
+  else if(p.k==='pdf'&&anth)blocks.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:p.data}})}
+ return[...blocks,{type:'text',text:txt}]};
 const PKEY='kairema.providers.v1';
 const saveProviders=()=>st.set(PKEY,JSON.stringify({c:S.providers,s:S.sproviders}));
 const loadProviders=()=>{try{const o=JSON.parse(st.get(PKEY)||'{}');if(Array.isArray(o.c))S.providers=o.c;if(Array.isArray(o.s))S.sproviders=o.s}catch(e){}};
@@ -83,7 +125,7 @@ function composer(o){
  const upd=()=>sd.disabled=busy||(!ta.value.trim()&&!files.length);
  const grow=()=>{const p=ta.offsetHeight;ta.style.height='auto';const h=Math.min(ta.scrollHeight,110);ta.style.height=p+'px';ta.offsetHeight;ta.style.height=h+'px';upd()};
  ta.oninput=grow;ta.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&matchMedia('(hover:hover)').matches){e.preventDefault();send()}};
- const send=()=>{if(sd.disabled)return;const t=ta.value.trim(),f=files.map(x=>x.f.name);files.forEach(x=>x.u&&URL.revokeObjectURL(x.u));ta.value='';files=[];$('.att',w).innerHTML='';ta.style.height='22px';upd();o.onSend(t,f)};sd.onclick=send;
+ const send=()=>{if(sd.disabled)return;const t=ta.value.trim(),f=files.map(x=>x.f.name),fl=files.map(x=>x.f);files.forEach(x=>x.u&&URL.revokeObjectURL(x.u));ta.value='';files=[];$('.att',w).innerHTML='';ta.style.height='22px';upd();o.onSend(t,f,fl)};sd.onclick=send;
  const addF=list=>{[...list].forEach(f=>{const im=f.type.startsWith('image/'),o2={f,u:im?URL.createObjectURL(f):''};files.push(o2);const c=el(`<div class="ap ${im?'im':''}">${im?'<img alt="">':`${ic('file')}<span><b></b><small></small></span>`}<button class="rm" aria-label="Удалить вложение">${ic('x')}</button></div>`);if(im){$('img',c).src=o2.u}else{$('b',c).textContent=f.name;$('small',c).textContent=fmt(f.size)}$('.rm',c).onclick=()=>{files=files.filter(x=>x!==o2);if(o2.u)URL.revokeObjectURL(o2.u);c.remove();upd()};$('.att',w).append(c)});upd()};
  const ins={g:$('[data-ig]',w),f:$('[data-if]',w),c:$('[data-ic]',w)};Object.values(ins).forEach(i=>i.onchange=()=>{addF(i.files);i.value=''});
  $('[data-a]',w).onclick=()=>{const s=sheet(`<button class="pi2" data-k="g">${ic('img')}<span>Галерея</span></button><button class="pi2" data-k="f">${ic('file')}<span>Файлы</span></button><button class="pi2" data-k="c">${ic('cam')}<span>Камера</span></button><button class="btn ghost" data-x style="width:100%;margin-top:10px">Отмена</button>`);$$('[data-k]',s).forEach(b=>b.onclick=()=>{s.close();ins[b.dataset.k].click()});$('[data-x]',s).onclick=s.close};
@@ -99,7 +141,7 @@ function apiView(){const v=$('#v-api'),p=S.providers.find(x=>x.ok);v.innerHTML='
  const pn=$('.pn',v);pn.textContent=p.name;const sm=document.createElement('small');sm.textContent=p.model;pn.append(sm);
  $('#btn-provider-info',v).onclick=()=>{show('set');provPage()};
  const box=$('.msgs',v);paint(box,S.apiMsgs);
- const cmp=composer({ph:'Сообщение',chip:()=>'',onSend:async(t,f)=>{const m={r:'u',t:(f.length?f.join(', ')+'\n':'')+t};S.apiMsgs.push(m);autoFact(t,'');$('.empty',box)?.remove();box.append(msgEl(m,1));scr(box);cmp.busy(1);await respond(S.apiMsgs,box,'['+p.model+'] ');cmp.busy(0)}});
+ const cmp=composer({ph:'Сообщение',chip:()=>'',onSend:async(t,f,fl)=>{const m={r:'u',q:t,t:(f.length?f.join(', ')+'\n':'')+t};S.apiMsgs.push(m);autoFact(t,'');$('.empty',box)?.remove();box.append(msgEl(m,1));scr(box);cmp.busy(1);const pv0=S.providers.find(x=>x.ok);m.parts=await readFiles((fl||[]).slice(0,6),!!pv0&&/anthropic\.com/.test(pv0.url));await respond(S.apiMsgs,box,'['+p.model+'] ');cmp.busy(0)}});
  v.append(cmp);if(PEND){cmp.setText(PEND);PEND=''}}
 /* ===== СЕССИЯ: терминал ===== */
 let termRedraw=()=>{};
@@ -124,11 +166,11 @@ function provPage(){return page('providers','Мои провайдеры',(b,d)=
  b.insertAdjacentHTML('beforeend','<button class="btn big" data-a1>Добавить обычного провайдера</button><button class="btn ghost big" data-a2 style="margin-top:10px">Добавить провайдера поиска в сети</button>');
  $('[data-a1]',b).onclick=()=>provForm(-1,()=>d.r(),'chat');$('[data-a2]',b).onclick=()=>provForm(-1,()=>d.r(),'search')})}
 function provForm(i,done,kind='chat'){const ch=kind==='chat',arr=ch?S.providers:S.sproviders,e=arr[i]||{};const d=page('provider-form',i<0?(ch?'Новый провайдер':'Новый провайдер поиска'):'Провайдер',(b)=>{
- b.innerHTML=(ch?fld('Название','name',e.name,'Минимум 2 символа','text','Например, MyProvider')+fld('Модель','model',e.model,'Укажите модель','text','gpt-4o')+fld('API URL','url',e.url,'Адрес вида https://api.example.com/v1','url','https://api.example.com/v1'):fld('Название провайдера','name',e.name,'Минимум 2 символа','text','Например, MySearch')+fld('API URL для поиска','url',e.url,'Адрес вида https://search.example.com/v1','url','https://search.example.com/v1'))+fld('API Key','key','','Минимум 8 символов','password',i<0?'sk-…':'••••••••')+`<div class="stat"></div><button class="btn" data-s style="width:100%">Проверить и сохранить</button>`;
+ b.innerHTML=(ch?fld('Название','name',e.name,'Минимум 2 символа','text','Например, MyProvider')+fld('Модель','model',e.model,'Укажите модель','text','gpt-4o')+fld('API URL','url',e.url,'Адрес вида https://api.example.com/v1','url','https://api.example.com/v1'):fld('Название провайдера','name',e.name,'Минимум 2 символа','text','Например, Tavily')+fld('API URL для поиска','url',e.url,'Адрес вида https://api.tavily.com/search','url','https://api.tavily.com/search'))+fld('API Key','key','','Минимум 8 символов','password',i<0?'sk-…':'••••••••')+(ch?'':'<p style="font-size:12px;opacity:.65;margin:4px 2px 12px">Поддерживаются: Tavily (https://api.tavily.com/search), Brave Search (https://api.search.brave.com/res/v1/web/search), Serper (https://google.serper.dev/search).</p>')+`<div class="stat"></div><button class="btn" data-s style="width:100%">Проверить и сохранить</button>`;
  const sv=$('[data-s]',b),stt=$('.stat',b),R={name:v=>v.length>=2,url:v=>/^https?:\/\/[^\s.]+\.[^\s]+$/.test(v),key:v=>v.length>=8||(i>=0&&!v)};if(ch)R.model=v=>v.length>0;form(b,R,sv);
  sv.onclick=async()=>{const g=k=>$(`[data-k=${k}]`,b).value.trim();sv.disabled=true;sv.innerHTML='<span class="spin"></span>Проверяем…';stt.className='stat';stt.textContent='';const id=e.id||pid(),kv=g('key');if(kv)Native.saveKey(id,kv);let err='';
  if(!Native.on){await wait(1200);err=/bad|fail/i.test(kv)?'ошибка (ключ отклонён, 401)':''}
- else if(ch){try{await Native.run('verify',[JSON.stringify({id,url:g('url'),model:g('model')})])}catch(x){err=x.message}}
+ else{try{await(ch?Native.run('verify',[JSON.stringify({id,url:g('url'),model:g('model')})]):Native.run('search',[JSON.stringify({id,url:g('url')}),'test'],()=>{}))}catch(x){err=x.message}}
   const bad=!!err,p=ch?{id,name:g('name'),model:g('model'),url:g('url'),ok:!bad}:{id,name:g('name'),url:g('url'),ok:!bad};if(i<0)arr.push(p);else arr[i]=p;saveProviders();
   stt.className='stat '+(bad?'bad':'ok');stt.textContent=bad?'✗ '+err:'✓ Подключено';sv.innerHTML='Проверить и сохранить';sv.disabled=false;done();toast(bad?'Провайдер сохранён с ошибкой':'Провайдер подключён');if(!bad)setTimeout(()=>d.close(),900)}})}
 /* ===== ПАМЯТЬ ===== */
