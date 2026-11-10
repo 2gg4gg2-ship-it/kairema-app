@@ -28,8 +28,8 @@ const TPLS=[
 {n:'Проверить код',c:'Код',d:'Найти ошибки, риски и улучшения.',t:`Проведи code review этого фрагмента: [[КОД]]. Сначала назови критические проблемы, затем риски и улучшения. Для каждого замечания предложи конкретное исправление.`}];
 /* ===== СОСТОЯНИЕ (S) — единый источник данных; позже заполняется с сервера ===== */
 const S={userTpls:[],mem:true,auto:true,prof:'',profD:null,web:false,theme:'dark',apiMsgs:[],providers:[],sproviders:[],
-p:{name:'Алексей',user:'alex',email:'alex@kairema.app',lang:0},
-memos:[['Предпочитает краткие ответы с примерами',''],['Работает над мобильным приложением',''],['Не ест глютен','']],
+p:{name:'',user:'',email:'',lang:0},
+memos:[],
 tpls:TPLS
 };
 const T={st:'off',mark:'off',log:[]};let PEND='';let GQ='',FLT=0;
@@ -37,7 +37,7 @@ const copy=(t,m)=>{(navigator.clipboard?navigator.clipboard.writeText(t):Promise
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
 const rx=q=>new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
 const hl=(t,q)=>q?esc(t).replace(rx(q),m=>`<mark>${m}</mark>`):esc(t);
-const av=p=>`<span class="pic">${ic('user')}</span>`;const ini=(p,c='')=>`<span class="ini ${c}">${esc((p.name[0]||'К').toUpperCase())}</span>`;
+const av=p=>`<span class="pic">${ic('user')}</span>`;const ini=(p,c='')=>`<span class="ini ${c}">${esc(((p.name||'Гость')[0]).toUpperCase())}</span>`;
 function applyTheme(){const l=S.theme==='light'||(S.theme==='auto'&&matchMedia('(prefers-color-scheme:light)').matches),r=document.documentElement;r.dataset.theme=l?'light':'dark';r.dataset.pal=(location.hash.match(/p[123]/)||['p1'])[0];r.dataset.font=(location.hash.match(/f[123]/)||['f1'])[0]}
 /* ===== UI-ХЕЛПЕРЫ: подстраницы, шторки, меню, формы ===== */
 function sub(){const d=el('<div class="spg"></div>');app.append(d);raf(()=>d.classList.add('on'));d.close=()=>{d.classList.remove('on');setTimeout(()=>d.remove(),400)};return d}
@@ -115,6 +115,13 @@ const toContent=(m,anth,pre)=>{
   else if(p.k==='pdf'&&anth)blocks.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:p.data}})}
  return[...blocks,{type:'text',text:txt}]};
 const PKEY='kairema.providers.v1';
+const PRKEY='kairema.profile.v1';
+const saveProfile=()=>st.set(PRKEY,JSON.stringify(S.p));
+function loadProfile(){try{const d=JSON.parse(st.get(PRKEY)||'null');if(d&&typeof d==='object')Object.assign(S.p,{name:String(d.name||'').slice(0,60),user:String(d.user||'').slice(0,20),email:String(d.email||'').slice(0,100),lang:d.lang?1:0})}catch(e){}}
+function askName(){if(S.p.name||st.get('kna'))return;st.set('kna','1');
+ const s=sheet(`<h2 style="margin-bottom:6px">Как вас зовут?</h2><p class="sub" style="margin:0 0 14px">Имя можно изменить позже в настройках. Пока имени нет, показывается «Гость».</p><div class="fld"><input id="nm-in" maxlength="60" autocomplete="off" placeholder="Ваше имя"></div><div class="two"><button class="btn ghost" data-c>Пропустить</button><button class="btn" data-o>Сохранить</button></div>`);
+ $('[data-c]',s).onclick=s.close;
+ $('[data-o]',s).onclick=()=>{const v=$('#nm-in',s).value.trim();if(!v){toast('Введите имя');return}S.p.name=v.slice(0,60);saveProfile();s.close();if(CUR==='set')setView()}}
 const saveProviders=()=>st.set(PKEY,JSON.stringify({c:S.providers,s:S.sproviders}));
 const loadProviders=()=>{try{const o=JSON.parse(st.get(PKEY)||'{}');if(Array.isArray(o.c))S.providers=o.c;if(Array.isArray(o.s))S.sproviders=o.s}catch(e){}};
 const pid=()=>'p_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -145,14 +152,14 @@ function apiView(){Chx.load();const v=$('#v-api'),p=S.providers.find(x=>x.ok);v.
  v.append(cmp);if(PEND){cmp.setText(PEND);PEND=''}}
 /* ===== СЕССИЯ: терминал ===== */
 let termRedraw=()=>{};
-function activateSession(){T.st='on';T.mark='on';T.log.push(['o','● сессия запущена'],['','Введите help для списка команд']);termRedraw()} /* TODO(api): POST /sessions */
+function activateSession(){T.st='on';T.mark='on';T.log.push(['o','● демо-сессия (сервера нет)'],['','Введите help для списка команд']);termRedraw()} /* TODO(api): POST /sessions */
 function deactivateSession(){T.st='off';T.mark='off';T.log.push(['','— сессия остановлена']);termRedraw()} /* TODO(api): DELETE /sessions/:id */
 function clearSession(){const doit=()=>{T.log=[];if(T.st==='err')T.st='off';T.mark='clr';termRedraw();toast('Сессия очищена')};if(T.log.length)ask('Очистить сессию?','Вывод и история команд будут удалены.','Очистить',doit);else doit()}
 function termView(){const v=$('#v-term');
- v.innerHTML=`<div class="top"><h1>Терминал</h1></div><div class="scroll"><div class="ses"><div class="sbtns"><button class="sb" id="btn-session-activate" data-action="session:activate" data-a="on">${ic('play')}Активировать сессию</button><button class="sb" id="btn-session-deactivate" data-action="session:deactivate" data-a="off">${ic('stop')}Выключить сессию</button><button class="sb" id="btn-session-clear" data-action="session:clear" data-a="clr">${ic('trash')}Очистить сессию</button></div><div class="stt"><span class="sd"></span><b></b></div></div>
- <div class="tp"><div><div class="term"><div class="tout"></div><div class="tin"><span style="color:#9AA0A6">›</span><input autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="введите help" aria-label="Команда"><button class="send sm" aria-label="Enter">${ic('enter')}</button></div></div></div></div><p class="sub idle" style="margin-top:8px">Сессия не запущена. Нажмите «Активировать сессию», чтобы выполнять команды на сервере.</p></div>`;
+ v.innerHTML=`<div class="top"><h1>Терминал</h1></div><p class="sub" style="margin:0 16px 8px">Демо: терминал пока не подключён ни к какому серверу. Команды ничего не выполняют на телефоне.</p><div class="scroll"><div class="ses"><div class="sbtns"><button class="sb" id="btn-session-activate" data-action="session:activate" data-a="on">${ic('play')}Активировать сессию</button><button class="sb" id="btn-session-deactivate" data-action="session:deactivate" data-a="off">${ic('stop')}Выключить сессию</button><button class="sb" id="btn-session-clear" data-action="session:clear" data-a="clr">${ic('trash')}Очистить сессию</button></div><div class="stt"><span class="sd"></span><b></b></div></div>
+ <div class="tp"><div><div class="term"><div class="tout"></div><div class="tin"><span style="color:#9AA0A6">›</span><input autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="введите help" aria-label="Команда"><button class="send sm" aria-label="Enter">${ic('enter')}</button></div></div></div></div><p class="sub idle" style="margin-top:8px">Сессия не запущена. Нажмите «Активировать сессию», чтобы попробовать демо.</p></div>`;
  const out=$('.tout',v),inp=$('.tin input',v),draw=()=>{const s=T.st;$('.ses',v).dataset.mark=T.mark;$('.stt b',v).textContent=s==='err'?'Ошибка':{on:'Сессия активна',off:'Сессия выключена',clr:'Сессия очищена'}[T.mark];$('.tp',v).classList.toggle('open',s!=='off');$('.idle',v).style.display=s==='off'?'block':'none';$('[data-a=on]',v).disabled=T.mark==='on';$('[data-a=off]',v).disabled=T.mark==='off';$('[data-a=clr]',v).disabled=T.mark==='clr';inp.disabled=s!=='on';$('.tin .send',v).disabled=s!=='on';out.innerHTML='';T.log.forEach(([c,x])=>{const e=document.createElement('div');e.className=c;e.textContent=x;out.append(e)});scr(out)};
- const run=c=>{T.log.push(['c','› '+c]);const A={help:'Команды: status, whoami, date, fail, clear',status:'● сервер онлайн · задержка 42 мс',whoami:'alex@kairema.app',date:new Date().toLocaleString(LANG==='en'?'en-US':'ru-RU')};if(c==='clear')T.log=[];else if(c==='fail'){T.st='err';T.mark='off';T.log.push(['e','Ошибка: соединение с сервером потеряно'])}else T.log.push(A[c]?['o',A[c]]:['e','Неизвестная команда. Введите help']);if(T.st==='on')T.mark='on'};
+ const run=c=>{T.log.push(['c','› '+c]);const A={help:'Демо-терминал: сервера нет. Команды: help, date, clear',date:new Date().toLocaleString(LANG==='en'?'en-US':'ru-RU')};if(c==='clear')T.log=[];else T.log.push(A[c]?['o',A[c]]:['e','Неизвестная команда. Введите help']);if(T.st==='on')T.mark='on'};
  const go=()=>{const c=inp.value.trim();if(!c)return;inp.value='';run(c);draw()};$('.tin .send',v).onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go()};
  termRedraw=draw;
  $$('[data-a]',v).forEach(b=>b.onclick=()=>({on:activateSession,off:deactivateSession,clr:clearSession})[b.dataset.a]());draw()}
@@ -184,7 +191,7 @@ function memPage(){page('memory','',(b,d)=>{
  <div class="sh">Настройки памяти</div>
  <div>${opt('mem','Использовать память в ответах','Разрешить учитывать сохранённые факты и профиль при формировании ответов. Выключение не удаляет записи.')}${opt('auto','Автоматически находить новые факты','Включить локальное распознавание простых фраз о себе, например «меня зовут…» или «мне нравится…». Выключение останавливает только автоматическое добавление.')}</div>
  <div class="sh">Профиль памяти</div>
- <div class="mp"><div class="fld"><label>Что Kairema важно знать о вас?</label><small class="d">Краткое описание о вас, ваши цели и предпочтения.</small><textarea class="ta" placeholder="Например: меня зовут Алексей. Я создаю приложение Kairema и предпочитаю подробные, понятные ответы."></textarea><p class="hint">Не добавляйте пароли, ключи API и другую секретную информацию.</p></div><div class="two"><button class="btn" data-sv>Сохранить</button><button class="btn ghost" data-cn>Отмена</button></div></div>
+ <div class="mp"><div class="fld"><label>Что Kairema важно знать о вас?</label><small class="d">Краткое описание о вас, ваши цели и предпочтения.</small><textarea class="ta" placeholder="Например: я учусь на дизайнера и предпочитаю короткие ответы с примерами."></textarea><p class="hint">Не добавляйте пароли, ключи API и другую секретную информацию.</p></div><div class="two"><button class="btn" data-sv>Сохранить</button><button class="btn ghost" data-cn>Отмена</button></div></div>
  <div class="sh">Список сохранённых фактов:</div><div class="ml"></div><button class="addf" data-add>${ic('plus')}Добавить новый факт</button>`;
  [...b.children].forEach((c,k)=>c.style.setProperty('--i',k));
  const nEl=$('[data-n]',b),sEl=$('[data-s]',b),ml=$('.ml',b);
@@ -248,17 +255,17 @@ function templateSheet(t){
  setTimeout(()=>g('name').focus(),350)}
 function aboutPage(){page('about','О приложении',b=>{b.innerHTML=`<div class="ab"><h2>О Kairema AI</h2><p>Kairema AI — персональный ИИ-ассистент для общения, обучения, работы и решения повседневных задач.</p><p>Приложение помогает получать ответы на вопросы, разбираться в сложных темах, писать и редактировать тексты, работать с кодом и находить новые идеи.</p><p>Kairema AI объединяет возможности искусственного интеллекта в одном удобном интерфейсе. Пользователь может подключать собственных AI-провайдеров, вести диалоги и настраивать приложение под свои потребности.</p><p>Наша цель — создать удобного, быстрого и доступного ИИ-ассистента, который даёт пользователю больше возможностей и контроля.</p><p>Версия: 1.0.0</p><p>Разработчик: Kairema AI Team</p></div>`})}
 /* ===== ПРОФИЛЬ ===== */
-function profPage(){page('profile','Мой профиль',(b,d)=>{const p=S.p;b.innerHTML=`<div class="phd in">${ini(p,'big')}<span class="m"><b>${esc(p.name)}</b><small>${esc(p.email)}</small></span></div>
+function profPage(){page('profile','Мой профиль',(b,d)=>{const p=S.p;b.innerHTML=`<div class="phd in">${ini(p,'big')}<span class="m"><b>${esc(p.name||'Гость')}</b><small>${esc(p.email||'Почта не указана')}</small></span></div>
  <div class="sh">Данные профиля</div><div class="pfld">${fld('Имя','name',p.name,'Введите имя')}${fld('Username','user',p.user,'3–20 символов: латиница, цифры, _')}${fld('Email','email',p.email,'Введите корректный email','email')}</div>
  <div class="sh">Язык интерфейса</div><div id="lg" style="margin:14px 0 4px"></div><button class="btn big" id="btn-save-profile" data-action="profile:save" data-s>Сохранить</button>`;
- let lang=p.lang;$('#lg',b).replaceWith(seg(['Русский','English'],lang,i=>{lang=i;S.p.lang=i;applyLang(i)}));const sv=$('[data-s]',b);form(b,{name:v=>v.length>0,user:v=>/^[a-z0-9_]{3,20}$/i.test(v),email:v=>/^\S+@\S+\.\S+$/.test(v)},sv);
- sv.onclick=()=>{const g=k=>$(`[data-k=${k}]`,b).value.trim();Object.assign(S.p,{name:g('name'),user:g('user'),email:g('email'),lang});toast('Профиль сохранён');d.close();setView()}})}
+ let lang=p.lang;$('#lg',b).replaceWith(seg(['Русский','English'],lang,i=>{lang=i;S.p.lang=i;saveProfile();applyLang(i)}));const sv=$('[data-s]',b);form(b,{name:v=>v.length>0,user:v=>!v||/^[a-z0-9_]{3,20}$/i.test(v),email:v=>!v||/^\S+@\S+\.\S+$/.test(v)},sv);
+ sv.onclick=()=>{const g=k=>$(`[data-k=${k}]`,b).value.trim();Object.assign(S.p,{name:g('name'),user:g('user'),email:g('email'),lang});saveProfile();toast('Профиль сохранён');d.close();setView()}})}
 function logout(){ask('Выйти из аккаунта?','Чаты останутся на сервере. Войти можно в любой момент.','Выйти',()=>{const f=el(`<div class="full out"><svg class="logo" viewBox="0 0 96 96"><path class="ring" d="M70 22 A34 34 0 1 0 82 48"/><circle class="eye" cx="48" cy="48" r="9"/></svg><h1 style="margin:22px 0 6px">Вы вышли</h1><p class="sub" style="margin-bottom:24px">Войдите, чтобы продолжить</p><button class="btn" style="width:100%;max-width:320px">Войти</button></div>`);app.append(f);raf(()=>f.classList.remove('out'));$('.btn',f).onclick=()=>{f.classList.add('out');setTimeout(()=>f.remove(),500);$$('.spg').forEach(x=>x.remove());show('api')}})}
 /* ===== НАСТРОЙКИ ===== */
 function setView(){const v=$('#v-set'),p=S.p,TN=['Тёмная','Светлая','Авто'],TK=['dark','light','auto'],ok=[...S.providers,...S.sproviders].filter(x=>x.ok).length;let i=0;
  const row=(ic1,ttl,sb,att,circ,end)=>`<button class="sr" style="--i:${i++}" ${att}><span class="si ${circ?'c':''}">${ic(ic1)}</span><span class="m"><b>${ttl}</b><small>${sb}</small></span>${end===undefined?ic('chevR'):end}</button>`;
  v.innerHTML=`<div class="top"><h1>Настройки</h1></div><div class="scroll st">
- <button class="card pf" style="--i:0" data-go="prof">${ini(p)}<span class="m"><b>${esc(p.name)}</b><small>@${esc(p.user)}</small></span>${ic('chevR')}</button>
+ <button class="card pf" style="--i:0" data-go="prof">${ini(p)}<span class="m"><b>${esc(p.name||'Гость')}</b><small>${esc(p.user?'@'+p.user:'Нажмите, чтобы указать имя')}</small></span>${ic('chevR')}</button>
  <div class="sh">ИИ и персонализация</div>
  ${row('brain','Память ИИ','Ваши данные и контекст','data-go="mem"')}${row('doc','Шаблоны промтов','Быстрые команды для ИИ','data-go="tpl"')}
  <div class="sh">Провайдеры</div>
@@ -318,7 +325,7 @@ function onboarding(){let i=0,busy=0;const N=OB_SLIDES.length,lg=()=>LANG==='en'
   segs.forEach((e,j)=>{e.classList.toggle('on',j===i);e.classList.toggle('done',j<i)});
   o.style.setProperty('--gp',-i*40+'px');[['g1',s.g1],['g2',s.g2]].forEach(([c,v])=>{const g=$('.'+c,o);g.style.setProperty('--x',v[0]);g.style.setProperty('--y',v[1])});
   const last=i===N-1;nx.textContent=last?'Начать':'Далее';nx.classList.remove('nt');void nx.offsetWidth;nx.classList.add('nt');bk.classList.toggle('hid',i===0);sk.classList.toggle('hid',last)};
- const finish=()=>{if(ONBOARD_ONCE)st.set('ko','1');o.classList.add('out');setTimeout(()=>o.remove(),500)};
+ const finish=()=>{if(ONBOARD_ONCE)st.set('ko','1');o.classList.add('out');setTimeout(()=>o.remove(),500);setTimeout(askName,600)};
  const go=n=>{if(busy||n<0)return;if(n>=N){finish();return}const dir=n>i?1:-1;busy=1;sl.style.setProperty('--dx',dir*56+'px');sl.classList.add('lv');setTimeout(()=>{i=n;sl.classList.remove('lv');paint(dir);busy=0},300)};
  $('[data-ob=next]',o).onclick=()=>go(i+1);bk.onclick=()=>go(i-1);sk.onclick=finish;
  let x0=null;const stg=$('.stage',o);stg.addEventListener('touchstart',e=>x0=e.touches[0].clientX,{passive:true});stg.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>50)go(i+(dx<0?1:-1))});
@@ -390,7 +397,7 @@ const EN={
 "Подключите свой API-ключ — тогда заработает чат «Мой API».":"Connect your API key — then the “My API” chat will work.","API-провайдер не подключён":"API provider is not connected","Чтобы использовать этот чат, подключите собственный API-провайдер в настройках":"To use this chat, connect your own API provider in settings","Подключить провайдер":"Connect provider",
 "Имя":"Name","Введите имя":"Enter a name","3–20 символов: латиница, цифры, _":"3–20 characters: Latin letters, digits, _","Введите корректный email":"Enter a valid email","Язык интерфейса":"Interface language","Профиль сохранён":"Profile saved",
 "Активировать сессию":"Start session","Выключить сессию":"Stop session","Очистить сессию":"Clear session","Активна":"Active","Неактивна":"Inactive","Ошибка":"Error","Копировать вывод":"Copy output","Экспорт лога":"Export log","Команда":"Command","введите help":"type help",
-"Сессия не запущена. Нажмите «Активировать сессию», чтобы выполнять команды на сервере.":"The session is not running. Tap “Start session” to run commands on the server.",
+"Сессия не запущена. Нажмите «Активировать сессию», чтобы попробовать демо.":"The session is not running. Tap “Start session” to try the demo.",
 "● сервер онлайн · задержка 42 мс":"● server online · latency 42 ms","Ошибка: соединение с сервером потеряно":"Error: connection to server lost","Неизвестная команда. Введите help":"Unknown command. Type help","● сессия запущена":"● session started","Введите help для списка команд":"Type help for the list of commands","— сессия остановлена":"— session stopped",
 "Вывод скопирован":"Output copied","Лог скопирован в буфер":"Log copied to clipboard","Лог сессии":"Session log","Очистить активную сессию?":"Clear active session?","Вывод и история команд будут удалены.":"Output and command history will be deleted.","Сессия очищена":"Session cleared",
 "Выйти из аккаунта?":"Sign out?","Чаты останутся на сервере. Войти можно в любой момент.":"Chats will stay on the server. You can sign in at any time.","Выйти":"Sign out","Вы вышли":"You are signed out","Войдите, чтобы продолжить":"Sign in to continue","Войти":"Sign in",
@@ -399,10 +406,11 @@ const EN={
 "ПЕРСОНАЛИЗАЦИЯ":"PERSONALIZATION","Память":"Memory","Управляйте фактами и темами, которые Kairema может учитывать в дальнейших разговорах.":"Manage the facts and topics Kairema can take into account in future conversations.",
 "Использовать память в ответах":"Use memory in answers","Разрешить учитывать сохранённые факты и профиль при формировании ответов. Выключение не удаляет записи.":"Allow saved facts and profile to be taken into account when forming answers. Turning off does not delete entries.",
 "Автоматически находить новые факты":"Automatically find new facts","Включить локальное распознавание простых фраз о себе, например «меня зовут…» или «мне нравится…». Выключение останавливает только автоматическое добавление.":"Enable local recognition of simple phrases about yourself, for example “my name is…” or “I like…”. Turning off stops only automatic adding.",
-"Профиль памяти":"Memory profile","Краткое описание о вас, ваши цели и предпочтения.":"A short description of you, your goals and preferences.","Что Kairema важно знать о вас?":"What is important for Kairema to know about you?","Например: меня зовут Алексей. Я создаю приложение Kairema и предпочитаю подробные, понятные ответы.":"For example: my name is Alex. I am building the Kairema app and prefer detailed, clear answers.","Не добавляйте пароли, ключи API и другую секретную информацию.":"Do not add passwords, API keys or other secret information.","Список сохранённых фактов:":"Saved facts:","Добавить новый факт":"Add new fact","Сохранённых фактов пока нет.":"No saved facts yet.",
+"Профиль памяти":"Memory profile","Краткое описание о вас, ваши цели и предпочтения.":"A short description of you, your goals and preferences.","Что Kairema важно знать о вас?":"What is important for Kairema to know about you?","Например: я учусь на дизайнера и предпочитаю короткие ответы с примерами.":"For example: I am studying design and prefer short answers with examples.","Не добавляйте пароли, ключи API и другую секретную информацию.":"Do not add passwords, API keys or other secret information.","Список сохранённых фактов:":"Saved facts:","Добавить новый факт":"Add new fact","Сохранённых фактов пока нет.":"No saved facts yet.",
 "Новый факт":"New fact","Редактировать факт":"Edit fact","Введите факт":"Enter a fact","Факт добавлен":"Fact added","Факт обновлён":"Fact updated","Факт удалён":"Fact deleted","Факт добавлен в память":"Fact added to memory","Профиль памяти сохранён":"Memory profile saved","Память включена":"Memory on","Память выключена":"Memory off","Автоматическое добавление включено":"Automatic adding on","Автоматическое добавление выключено":"Automatic adding off",
 "О Kairema AI":"About Kairema AI","Kairema AI — персональный ИИ-ассистент для общения, обучения, работы и решения повседневных задач.":"Kairema AI is a personal AI assistant for communication, learning, work and everyday tasks.","Приложение помогает получать ответы на вопросы, разбираться в сложных темах, писать и редактировать тексты, работать с кодом и находить новые идеи.":"The app helps you get answers to questions, understand complex topics, write and edit texts, work with code and find new ideas.","Kairema AI объединяет возможности искусственного интеллекта в одном удобном интерфейсе. Пользователь может подключать собственных AI-провайдеров, вести диалоги и настраивать приложение под свои потребности.":"Kairema AI brings the capabilities of artificial intelligence together in one convenient interface. Users can connect their own AI providers, hold conversations and customize the app to their needs.","Наша цель — создать удобного, быстрого и доступного ИИ-ассистента, который даёт пользователю больше возможностей и контроля.":"Our goal is to create a convenient, fast and accessible AI assistant that gives users more possibilities and control.","Версия: 1.0.0":"Version: 1.0.0","Разработчик: Kairema AI Team":"Developer: Kairema AI Team"};
-Object.keys(CHATS_EN).forEach(k=>{if(EN[k]===undefined)EN[k]=CHATS_EN[k]});
+const EN2={"Гость":"Guest","Почта не указана":"Email not set","Нажмите, чтобы указать имя":"Tap to set your name","Как вас зовут?":"What is your name?","Имя можно изменить позже в настройках. Пока имени нет, показывается «Гость».":"You can change the name later in settings. Until then, “Guest” is shown.","Ваше имя":"Your name","Введите имя":"Enter your name","Демо-терминал: сервера нет. Команды: help, date, clear":"Demo terminal: there is no server. Commands: help, date, clear","● демо-сессия (сервера нет)":"● demo session (no server)","Демо: терминал пока не подключён ни к какому серверу. Команды ничего не выполняют на телефоне.":"Demo: the terminal is not connected to any server yet. Commands do nothing on the phone."};
+[CHATS_EN,EN2].forEach(D=>Object.keys(D).forEach(k=>{if(EN[k]===undefined)EN[k]=D[k]}));
 const PHK=Object.keys(EN).filter(k=>k.length>=12).sort((a,b)=>b.length-a.length);
 const RXS=[[/Шаблон «(.+?)» будет удалён без возможности восстановления\./g,(m,a)=>'Template “'+a+'” will be permanently deleted.'],[/Чат «(.+?)»( исчезнет навсегда\.)?/g,(m,a,b)=>b?'Chat “'+tr(a)+'” will be gone forever.':'Chat “'+tr(a)+'”'],[/(\d+) из (\d+) совпадений/g,'$1 of $2 matches'],[/^Подключено: /,'Connected: '],[/· выкл\./,'· off']];
 function tr(s){if(!/[А-Яа-яЁё]/.test(s))return s;const m=s.match(/^(\s*)([\s\S]*?)(\s*)$/);if(EN[m[2]]!==undefined)return m[1]+EN[m[2]]+m[3];let r=s;RXS.forEach(([a,b])=>r=r.replace(a,b));PHK.forEach(k=>{if(r.includes(k))r=r.split(k).join(EN[k])});return r}
@@ -414,7 +422,7 @@ function trTree(root){if(root.nodeType===3){trText(root);return}if(root.nodeType
 new MutationObserver(ms=>ms.forEach(m=>{if(m.type==='childList')m.addedNodes.forEach(trTree);else if(m.type==='characterData')trText(m.target);else trAttr(m.target,m.attributeName)})).observe(app,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:AT});
 function applyLang(i){LANG=i?'en':'ru';document.documentElement.lang=LANG;trTree(app)}
 /* ===== ИНИЦИАЛИЗАЦИЯ ===== */
-async function initApp(){loadProviders();
+async function initApp(){loadProviders();loadProfile();
  try{S.userTpls=await Api.templates.list()}catch(e){S.userTpls=[]}
  if(/en$/.test(location.hash))S.p.lang=1;
  applyTheme();apiView();applyLang(S.p.lang);
