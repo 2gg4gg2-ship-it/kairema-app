@@ -60,6 +60,19 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         }
     }
 
+    /** Проверка ключа и список моделей, доступных по нему. Ответ: JSON-массив id одним куском. */
+    @JavascriptInterface
+    fun models(reqId: String, provider: String) {
+        pool.execute {
+            try {
+                push(reqId, fetchModels(reqId, JSONObject(provider)))
+                done(reqId, null)
+            } catch (e: Exception) {
+                done(reqId, netError(e))
+            }
+        }
+    }
+
     /** Отправка сообщений провайдеру, ответ приходит в интерфейс кусками. */
     @JavascriptInterface
     fun chat(reqId: String, provider: String, messages: String) {
@@ -189,10 +202,58 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         return out.toString()
     }
 
+    // Адрес openrouter.ai без пути дополняем до настоящего адреса API.
+    private fun normBase(url: String): String {
+        val b = url.trim().trimEnd('/')
+        val rest = b.substringAfter("://")
+        return if (rest.substringBefore('/') == "openrouter.ai" && !rest.contains('/')) "$b/api/v1" else b
+    }
+
+    private fun fetchModels(reqId: String, p: JSONObject): String {
+        val key = SecureKeys.load(ctx, p.getString("id"))
+            ?: throw IllegalStateException("ключ не найден на устройстве")
+        val base = normBase(p.getString("url"))
+        val anthropic = base.contains("anthropic.com")
+        if (base.contains("openrouter.ai")) {
+            // Список моделей у OpenRouter открыт без ключа, поэтому ключ проверяем отдельным запросом.
+            val kc = http.newCall(
+                Request.Builder().url("$base/key").header("Authorization", "Bearer $key").build()
+            )
+            calls[reqId] = kc
+            kc.execute().use { r ->
+                if (r.code == 401 || r.code == 403) throw IllegalStateException(errorText(r))
+            }
+        }
+        val rb = Request.Builder()
+        val endpoint: String
+        if (anthropic) {
+            val b = if (base.contains("/v1")) base else "$base/v1"
+            endpoint = b.removeSuffix("/messages").trimEnd('/') + "/models?limit=1000"
+            rb.header("x-api-key", key).header("anthropic-version", "2023-06-01")
+        } else {
+            endpoint = base.removeSuffix("/chat/completions").trimEnd('/') + "/models"
+            rb.header("Authorization", "Bearer $key")
+        }
+        val call = http.newCall(rb.url(endpoint).build())
+        calls[reqId] = call
+        return call.execute().use { resp ->
+            if (!resp.isSuccessful) throw IllegalStateException(errorText(resp))
+            val arr = JSONObject(resp.body!!.string()).optJSONArray("data")
+                ?: throw IllegalStateException("провайдер не вернул список моделей")
+            val ids = mutableListOf<String>()
+            for (i in 0 until arr.length()) {
+                val id = arr.optJSONObject(i)?.optString("id").orEmpty()
+                if (id.isNotEmpty()) ids.add(id)
+            }
+            ids.sort()
+            JSONArray(ids).toString()
+        }
+    }
+
     private fun open(reqId: String, p: JSONObject, msgs: JSONArray, maxTokens: Int?): Response {
         val key = SecureKeys.load(ctx, p.getString("id"))
             ?: throw IllegalStateException("ключ не найден на устройстве")
-        var base = p.getString("url").trim().trimEnd('/')
+        var base = normBase(p.getString("url"))
         val anthropic = base.contains("anthropic.com")
         val body = JSONObject()
             .put("model", p.getString("model"))
