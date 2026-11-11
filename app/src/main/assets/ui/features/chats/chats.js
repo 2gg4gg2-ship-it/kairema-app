@@ -99,3 +99,4 @@ function chatsPage(){
  },`<button class="ib" data-chn aria-label="Новый чат">${ic('plus')}</button>`);
  $('[data-chn]',d).onclick=()=>{Chx.newChat();d.close();apiView()};
  return d}
+i18nAdd(CHATS_EN);

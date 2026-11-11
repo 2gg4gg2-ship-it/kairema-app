@@ -84,3 +84,4 @@ function mdLive(bd,m,after){
  bd._mt=m.t;
  if(bd._mr)return;
  bd._mr=requestAnimationFrame(()=>{bd._mr=0;mdRender(bd,bd._mt);if(after)after()})}
+i18nAdd({"Источники":"Sources"});

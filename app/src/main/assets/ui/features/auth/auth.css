@@ -1,0 +1,5 @@
+/* Стили модуля auth. */
+.ac-note{margin:0 2px 14px;color:var(--tx2);font-size:13px;line-height:1.5}
+.ac-me{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.ac-me b{display:block;overflow-wrap:anywhere}
+.ac-link{background:none;border:0;color:var(--tx2);font:inherit;font-size:13px;text-decoration:underline;padding:10px 2px;cursor:pointer}

@@ -108,3 +108,4 @@ function chatProvForm(i,done){
  d.close=()=>{if(i<0&&keyPut&&!saved)Native.deleteKey(id);oc()};
  $('[data-bk]',d).onclick=d.close;
  return d}
+i18nAdd(PROV_EN);
