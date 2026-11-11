@@ -49,11 +49,11 @@ function seg(items,idx,cb){const s=el(`<div class="segc">${items.map((x,i)=>`<bu
 function form(b,rules,btn){const chk=()=>{let ok=1;$$('[data-k]',b).forEach(i=>{const v=rules[i.dataset.k](i.value.trim());i.closest('.fld').classList.toggle('bad',!v&&i.dataset.t==='1');if(!v)ok=0});btn.disabled=!ok};$$('[data-k]',b).forEach(i=>i.addEventListener('input',()=>{i.dataset.t='1';chk()}));chk()}
 const fld=(l,k,v,er,type='text',ph='')=>`<div class="fld"><label>${l}</label><input data-k="${k}" type="${type}" value="${esc(v||'')}" placeholder="${ph}" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="er">${er}</div></div>`;
 /* ===== ЧАТЫ: сообщения и ответ ИИ ===== */
-function msgEl(m,isNew,q){const d=el(`<div class="msg ${m.r} ${isNew?'new':''}">${m.r==='a'?'<span class="mk"></span>':''}<span class="bd"></span></div>`);$('.bd',d).innerHTML=hl(m.t,q);return d}
+function msgEl(m,isNew,q){const d=el(`<div class="msg ${m.r} ${isNew?'new':''}">${m.r==='a'?'<span class="mk"></span>':''}<span class="bd"></span></div>`);const bd=$('.bd',d);if(m.r==='a'&&!m.err&&!q&&m.t)mdRender(bd,m.t,m);else bd.innerHTML=hl(m.t,q);return d}
 function paint(box,msgs,q){box.innerHTML='';if(!msgs.length)box.innerHTML='<div class="empty"><p>Диалог пуст. Напишите первое сообщение.</p></div>';msgs.forEach(m=>box.append(msgEl(m,0,q)))}
 const scr=b=>b.scrollTop=1e6;
 async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=msgEl(m,1);box.append(d);const bd=$('.bd',d);bd.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';scr(box);
- const pv=S.providers.find(x=>x.ok);
+ const pv=actProv();
  if(Native.on&&pv){
   const anth=/anthropic\.com/.test(pv.url),last=[...msgs].reverse().find(x=>x.r==='u');
   let src=[],serr='';
@@ -67,9 +67,9 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
   const tail=(src.length?'\n\nИсточники:\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+' — '+s.url).join('\n'):'')+(serr?'\n\n⚠ Поиск не сработал: '+serr:'');
   let got=false;
   try{
-   await Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model}),JSON.stringify(hist)],t=>{if(!got){got=true;bd.textContent='';m.t=''}m.t+=t;bd.textContent=m.t;scr(box)});
+   await Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()}),JSON.stringify(hist)],t=>{if(!got){got=true;bd.textContent='';m.t=''}m.t+=t;mdLive(bd,m,()=>scr(box))});
    if(!got){m.err=1;m.t=bd.textContent='Пустой ответ от провайдера'}
-   else if(tail)bd.textContent=m.t+tail
+   else{m.src=src.slice(0,5);m.serr=serr;mdRender(bd,m.t,m);scr(box)}
   }catch(e){m.err=1;m.t=bd.textContent='Не удалось получить ответ: '+e.message}
   return}
  await wait(1000);
@@ -141,14 +141,14 @@ function composer(o){
  const mic=$('[data-v]',w);let rec=null;mic.onclick=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Голосовой ввод недоступен на этом устройстве');return}if(rec){rec.stop();return}rec=new SR();rec.lang=LANG==='en'?'en-US':'ru-RU';rec.onresult=e=>{ta.value+=(ta.value?' ':'')+e.results[0][0].transcript;grow()};rec.onerror=()=>toast('Нет доступа к микрофону');rec.onend=()=>{rec=null;mic.classList.remove('rec')};try{rec.start();mic.classList.add('rec')}catch(e){rec=null}};
  w.setText=t=>{ta.value=t;grow()};w.chip=()=>{ch.innerHTML=o.chip();ch.onclick=o.onChip||null};w.busy=b=>{busy=b;upd()};const g=()=>gl.style.display=S.web?'grid':'none';bus.push(g);g();w.chip();return w}
 /* ===== ЧАТ: единственный чат — с подключённым AI-провайдером ===== */
-function apiView(){Chx.load();const v=$('#v-api'),p=S.providers.find(x=>x.ok);v.innerHTML='';
- if(!p){v.innerHTML=`<div class="top"><h1>Чат</h1></div><div class="warn">${ic('warn')}<h2>Подключите AI-провайдера, чтобы начать чат</h2><p class="sub">Чат работает только через вашего AI-провайдера. Добавьте API URL, модель и ключ в настройках.</p><button class="btn big" id="btn-connect-provider" data-action="provider:connect">Подключить AI-провайдера</button></div>`;
+function apiView(){Chx.load();const v=$('#v-api'),p=actProv();v.innerHTML='';
+ if(!p){v.innerHTML=`<div class="top"><h1>Чат</h1></div><div class="warn">${ic('warn')}<h2>Подключите AI-провайдера, чтобы начать чат</h2><p class="sub">Чат работает только через вашего AI-провайдера. Добавьте название, API URL и ключ, модель выберите из списка.</p><button class="btn big" id="btn-connect-provider" data-action="provider:connect">Подключить AI-провайдера</button></div>`;
   $('#btn-connect-provider',v).onclick=()=>{show('set');provPage()};return}
- v.innerHTML=`<div class="top"><h1>Чат</h1><button class="ib" data-chl aria-label="Список чатов" style="margin-left:auto">${ic('chat')}</button><button class="ib" data-chn aria-label="Новый чат">${ic('plus')}</button></div><button class="prow" id="btn-provider-info" data-action="provider:manage" aria-label="Мои провайдеры"><span class="stt2"></span><span class="pn"></span>${ic('chevR')}</button><div class="msgs"></div>`;
+ v.innerHTML=`<div class="top"><h1>Чат</h1><button class="ib" data-chl aria-label="Список чатов" style="margin-left:auto">${ic('chat')}</button><button class="ib" data-chn aria-label="Новый чат">${ic('plus')}</button></div><button class="prow" id="btn-provider-info" data-action="provider:manage" aria-label="Провайдер и модель"><span class="stt2"></span><span class="pn"></span>${ic('chevR')}</button><div class="msgs"></div>`;
  const pn=$('.pn',v);pn.textContent=p.name;const sm=document.createElement('small');sm.textContent=p.model;pn.append(sm);
- $('#btn-provider-info',v).onclick=()=>{show('set');provPage()};
+ $('#btn-provider-info',v).onclick=modelMenu;
  const box=$('.msgs',v);paint(box,S.apiMsgs);$('[data-chl]',v).onclick=chatsPage;$('[data-chn]',v).onclick=()=>{if(Chx.busy){toast('Дождитесь ответа');return}if(!S.apiMsgs.length){toast('Это уже новый чат');return}Chx.newChat();apiView()};
- const cmp=composer({ph:'Сообщение',chip:()=>'',onSend:async(t,f,fl)=>{const ch=Chx.cur;const m={r:'u',q:t,t:(f.length?f.join(', ')+'\n':'')+t};S.apiMsgs.push(m);autoFact(t,'');$('.empty',box)?.remove();box.append(msgEl(m,1));scr(box);cmp.busy(1);const pv0=S.providers.find(x=>x.ok);m.parts=await readFiles((fl||[]).slice(0,6),!!pv0&&/anthropic\.com/.test(pv0.url));Chx.busy=1;try{Chx.save(ch);await respond(ch.msgs,box,'['+p.model+'] ')}finally{Chx.busy=0;Chx.save(ch);cmp.busy(0)}}});
+ const cmp=composer({ph:'Сообщение',chip:()=>'',onSend:async(t,f,fl)=>{const ch=Chx.cur;const m={r:'u',q:t,t:(f.length?f.join(', ')+'\n':'')+t};S.apiMsgs.push(m);autoFact(t,'');$('.empty',box)?.remove();box.append(msgEl(m,1));scr(box);cmp.busy(1);const pv0=actProv();m.parts=await readFiles((fl||[]).slice(0,6),!!pv0&&/anthropic\.com/.test(pv0.url));Chx.busy=1;try{Chx.save(ch);await respond(ch.msgs,box,'['+p.model+'] ')}finally{Chx.busy=0;Chx.save(ch);cmp.busy(0)}}});
  v.append(cmp);if(PEND){cmp.setText(PEND);PEND=''}}
 /* ===== СЕССИЯ: терминал ===== */
 let termRedraw=()=>{};
@@ -277,7 +277,7 @@ function setView(){const v=$('#v-set'),p=S.p,TN=['Тёмная','Светлая'
  ${row('sun','Тема',TN[TK.indexOf(S.theme)],'data-theme',1)}${row('info','О приложении','Версия: 1.0.0','data-go="about"',1)}
  <button class="sr out" style="--i:${i++}" data-act="out"><span class="si">${ic('out')}</span><span class="m"><b>Выйти из аккаунта</b></span></button></div>`;
  $$('[data-go]',v).forEach(b=>b.onclick=()=>({prof:()=>openScreen('profile'),mem:()=>openScreen('memory'),prov:()=>openScreen('providers'),tpl:()=>openScreen('templates'),add:()=>provForm(-1,setView,'chat'),adds:()=>provForm(-1,setView,'search'),about:()=>openScreen('about')})[b.dataset.go]());
- $$('[data-tg]',v).forEach(b=>b.onclick=()=>{S.web=!S.web;$('.sw',b).classList.toggle('on',S.web);bus.forEach(f=>f());toast(S.web?'Поиск в интернете включён':'Поиск в интернете выключен')});
+ $$('[data-tg]',v).forEach(b=>b.onclick=()=>{S.web=!S.web;st.set('kw',S.web?'1':'0');$('.sw',b).classList.toggle('on',S.web);bus.forEach(f=>f());toast(S.web?'Поиск в интернете включён':'Поиск в интернете выключен')});
  $('[data-theme]',v).onclick=()=>{const s=sheet(`<h2 style="margin-bottom:8px">Тема</h2><div id="tl2"></div>`);TK.forEach((k,j)=>{const b=el(`<button class="sr in" style="--i:${j}"><span class="m"><b>${TN[j]}</b></span>${S.theme===k?ic('ok'):''}</button>`);b.onclick=()=>{S.theme=k;applyTheme();s.close();setView();toast('Сохранено')};$('#tl2',s).append(b)})};
  $('[data-act=out]',v).onclick=logout}
 /* ===== НАВИГАЦИЯ ===== */
@@ -364,7 +364,7 @@ const TPLE=[
 {n:"Break down a topic",d:"An explanation from basics to practice.",t:"Help me study [[TOPIC]]. Explain the basics, build a 20-minute mini-lesson, give 3 review questions and a short practical task."},
 {n:"Review code",d:"Find bugs, risks and improvements.",t:"Do a code review of this snippet: [[CODE]]. First name the critical problems, then risks and improvements. For each remark suggest a specific fix."}];
 const EN={
-"Чат":"Chat","Подключите AI-провайдера, чтобы начать чат":"Connect an AI provider to start chatting","Чат работает только через вашего AI-провайдера. Добавьте API URL, модель и ключ в настройках.":"Chat works only through your AI provider. Add the API URL, model and key in settings.","Подключить AI-провайдера":"Connect AI provider","Сначала подключите AI-провайдера":"Connect an AI provider first","Удалить факт?":"Delete fact?","Факт будет удалён из памяти без возможности восстановления.":"The fact will be permanently deleted from memory.","Это демонстрационный ответ. Здесь появится ответ вашего AI-провайдера.":"This is a demo reply. Your AI provider's answer will appear here.","Команды: status, whoami, date, fail, clear":"Commands: status, whoami, date, fail, clear",
+"Чат":"Chat","Подключите AI-провайдера, чтобы начать чат":"Connect an AI provider to start chatting","Чат работает только через вашего AI-провайдера. Добавьте название, API URL и ключ, модель выберите из списка.":"Chat works only through your AI provider. Add the name, API URL and key, then pick a model from the list in settings.","Подключить AI-провайдера":"Connect AI provider","Сначала подключите AI-провайдера":"Connect an AI provider first","Удалить факт?":"Delete fact?","Факт будет удалён из памяти без возможности восстановления.":"The fact will be permanently deleted from memory.","Это демонстрационный ответ. Здесь появится ответ вашего AI-провайдера.":"This is a demo reply. Your AI provider's answer will appear here.","Команды: status, whoami, date, fail, clear":"Commands: status, whoami, date, fail, clear",
 "Новый шаблон":"New template","Редактировать шаблон":"Edit template","Название шаблона":"Template name","Текст промпта":"Prompt text","Описание (необязательно)":"Description (optional)","Категория (необязательно)":"Category (optional)","Введите название шаблона":"Enter a template name","Введите текст промпта":"Enter the prompt text","Например, Пост для блога":"For example, Blog post","Что должен сделать ИИ. Переменные пишите в [КВАДРАТНЫХ СКОБКАХ]":"What the AI should do. Write variables in [SQUARE BRACKETS]","Краткое описание":"Short description","Например, Маркетинг":"For example, Marketing","Шаблон сохранён":"Template saved","Шаблон обновлён":"Template updated","Шаблон удалён":"Template deleted","Не удалось сохранить шаблон":"Could not save the template","Не удалось удалить шаблон":"Could not delete the template","Удалить шаблон?":"Delete template?","Мои":"Mine","Мой":"Mine","Активный чат":"Active chat","Неактивный чат":"Inactive chat","Хранилище браузера недоступно: шаблон исчезнет после перезагрузки":"Browser storage is unavailable: the template will disappear after reload",
 "Все":"All","Аналитика":"Analytics","Планирование":"Planning","Стратегия":"Strategy","Объяснение":"Explanation","Проверка":"Verification","Текст":"Text","Анализ":"Analysis","Выбор":"Choice","Обучение":"Learning","Код":"Code",
 "Чаты":"Chats","Терминал":"Terminal","Настройки":"Settings","Активные":"Active","История":"History","Новый чат":"New chat","Поиск во всех чатах…":"Search all chats…",
@@ -422,7 +422,7 @@ function trTree(root){if(root.nodeType===3){trText(root);return}if(root.nodeType
 new MutationObserver(ms=>ms.forEach(m=>{if(m.type==='childList')m.addedNodes.forEach(trTree);else if(m.type==='characterData')trText(m.target);else trAttr(m.target,m.attributeName)})).observe(app,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:AT});
 function applyLang(i){LANG=i?'en':'ru';document.documentElement.lang=LANG;trTree(app)}
 /* ===== ИНИЦИАЛИЗАЦИЯ ===== */
-async function initApp(){loadProviders();loadProfile();
+async function initApp(){loadProviders();loadProfile();S.web=st.get('kw')==='1';
  try{S.userTpls=await Api.templates.list()}catch(e){S.userTpls=[]}
  if(/en$/.test(location.hash))S.p.lang=1;
  applyTheme();apiView();applyLang(S.p.lang);

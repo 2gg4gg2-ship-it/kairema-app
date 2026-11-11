@@ -15,6 +15,8 @@ Chx.ser=m=>{
   if(p.k==='text'){const x=String(p.text||'');ps.push({k:'text',name:p.name,text:x.length>CHATS_FILE_MAX?x.slice(0,CHATS_FILE_MAX)+'\n[… файл обрезан в истории]':x})}
   else if(p.k==='image')nn.push(LANG==='en'?'📷 photo':'📷 фото');
   else if(p.k==='pdf')nn.push('📄 PDF')});
+ if(Array.isArray(m.src)&&m.src.length)o.src=m.src.slice(0,5).map(z=>({title:String(z.title||'').slice(0,200),url:String(z.url||'').slice(0,500)}));
+ if(m.serr)o.serr=String(m.serr).slice(0,200);
  if(ps.length)o.parts=ps;
  if(nn.length)o.n=nn;
  return o};
@@ -22,6 +24,8 @@ Chx.hyd=o=>{
  const m={r:o.r==='a'?'a':'u',t:String(o.t||'')};
  if(o.q!=null)m.q=o.q;
  if(o.err)m.err=1;
+ if(Array.isArray(o.src)&&o.src.length)m.src=o.src.filter(z=>z&&typeof z.url==='string').slice(0,5);
+ if(o.serr)m.serr=String(o.serr);
  if(Array.isArray(o.parts)&&o.parts.length)m.parts=o.parts.filter(p=>p&&p.k==='text');
  if(Array.isArray(o.n)&&o.n.length)m.t='['+o.n.join(', ')+']\n'+m.t;
  return m};

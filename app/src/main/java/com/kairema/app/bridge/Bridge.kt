@@ -240,13 +240,24 @@ class Bridge(private val ctx: Context, private val web: WebView) {
             if (!resp.isSuccessful) throw IllegalStateException(errorText(resp))
             val arr = JSONObject(resp.body!!.string()).optJSONArray("data")
                 ?: throw IllegalStateException("провайдер не вернул список моделей")
-            val ids = mutableListOf<String>()
+            val out = JSONArray()
             for (i in 0 until arr.length()) {
-                val id = arr.optJSONObject(i)?.optString("id").orEmpty()
-                if (id.isNotEmpty()) ids.add(id)
+                val o = arr.optJSONObject(i) ?: continue
+                val id = o.optString("id")
+                if (id.isEmpty() || id == "null") continue
+                val item = JSONObject().put("id", id)
+                val name = o.optString("name")
+                if (name.isNotEmpty() && name != "null" && name != id) item.put("name", name)
+                val pr = o.optJSONObject("pricing")
+                if (pr != null) {
+                    // Бесплатная модель: цена запроса и ответа равна нулю (так у OpenRouter).
+                    val free = id.endsWith(":free") ||
+                        (pr.optString("prompt").toDoubleOrNull() == 0.0 && pr.optString("completion").toDoubleOrNull() == 0.0)
+                    item.put("free", free)
+                }
+                out.put(item)
             }
-            ids.sort()
-            JSONArray(ids).toString()
+            out.toString()
         }
     }
 
@@ -255,9 +266,14 @@ class Bridge(private val ctx: Context, private val web: WebView) {
             ?: throw IllegalStateException("ключ не найден на устройстве")
         var base = normBase(p.getString("url"))
         val anthropic = base.contains("anthropic.com")
+        // Системная инструкция: у Anthropic отдельное поле, у остальных первое сообщение с ролью system.
+        val sys = p.optString("system")
+        val all = JSONArray()
+        if (!anthropic && sys.isNotEmpty()) all.put(JSONObject().put("role", "system").put("content", sys))
+        for (i in 0 until msgs.length()) all.put(msgs.get(i))
         val body = JSONObject()
             .put("model", p.getString("model"))
-            .put("messages", msgs)
+            .put("messages", all)
             .put("stream", true)
         val rb = Request.Builder()
         val endpoint: String
@@ -265,6 +281,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
             if (!base.contains("/v1")) base += "/v1"
             endpoint = if (base.endsWith("/messages")) base else "$base/messages"
             body.put("max_tokens", maxTokens ?: 4096)
+            if (sys.isNotEmpty()) body.put("system", sys)
             rb.header("x-api-key", key).header("anthropic-version", "2023-06-01")
         } else {
             endpoint = if (base.endsWith("/chat/completions")) base else "$base/chat/completions"
