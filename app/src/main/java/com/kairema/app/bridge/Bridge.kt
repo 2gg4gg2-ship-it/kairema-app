@@ -4,6 +4,7 @@ import android.content.Context
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import com.kairema.app.data.SecureKeys
+import com.kairema.app.terminal.Shell
 import okhttp3.Call
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
@@ -30,6 +31,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         .build()
     private val pool = Executors.newCachedThreadPool()
     private val calls = ConcurrentHashMap<String, Call>()
+    private val sh = Shell(ctx)
 
     @JavascriptInterface
     fun saveKey(id: String, key: String) = SecureKeys.save(ctx, id, key)
@@ -43,6 +45,13 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     @JavascriptInterface
     fun cancel(reqId: String) {
         calls.remove(reqId)?.cancel()
+        sh.cancel(reqId)
+    }
+
+    /** Команда в оболочке Android. Вывод идёт кусками, в конце метка кода выхода. */
+    @JavascriptInterface
+    fun shell(reqId: String, cmd: String, timeoutSec: Int) {
+        sh.run(reqId, cmd, timeoutSec.toLong(), { push(reqId, it) }, { done(reqId, it) })
     }
 
     /** Проверка ключа и модели: открываем поток ответа, смотрим код и сразу закрываем. */

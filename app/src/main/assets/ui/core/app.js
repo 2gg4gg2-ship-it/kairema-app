@@ -32,7 +32,7 @@ p:{name:'',user:'',email:'',lang:0},
 memos:[],
 tpls:TPLS
 };
-const T={st:'off',mark:'off',log:[]};let PEND='';let GQ='',FLT=0;
+const Chat={cmp:null,send(t){const c=this.cmp;if(!c||Chx.busy)return false;c.setText(t);$('.send',c).click();return true}};let PEND='';let GQ='',FLT=0;
 const copy=(t,m)=>{(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast(m),()=>toast('Не удалось скопировать'))};
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
 const rx=q=>new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
@@ -81,7 +81,8 @@ const NB=window.KairemaBridge,Native=(()=>{const pend={};let n=0;
  return{on:!!NB,
   saveKey:(id,k)=>{if(NB)NB.saveKey(id,k)},
   deleteKey:id=>{if(NB)NB.deleteKey(id)},
-  run(fn,args,on){return new Promise((res,rej)=>{const id='r'+(++n);pend[id]={res,rej,on};try{NB[fn](id,...args)}catch(e){delete pend[id];rej(e)}})}}})();
+  run(fn,args,on){let id;const p=new Promise((res,rej)=>{id='r'+(++n);pend[id]={res,rej,on};try{NB[fn](id,...args)}catch(e){delete pend[id];rej(e)}});p.id=id;return p},
+  cancel:id=>{if(NB&&id){try{NB.cancel(id)}catch(e){}}}}})();
 const TXT_EXT=/\.(txt|md|markdown|json|jsonl|csv|tsv|xml|html?|css|js|mjs|ts|tsx|jsx|py|kt|kts|java|c|h|cpp|hpp|cs|go|rs|rb|php|sh|bat|ps1|ya?ml|toml|ini|cfg|conf|log|sql|swift|gradle|properties|gitignore|env|vue|svelte|lua|dart|tex|srt|svg)$/i;
 const b64=buf=>{let s='';const u=new Uint8Array(buf),n=0x8000;for(let i=0;i<u.length;i+=n)s+=String.fromCharCode.apply(null,u.subarray(i,i+n));return btoa(s)};
 async function imgPart(f){
@@ -149,20 +150,8 @@ function apiView(){Chx.load();const v=$('#v-api'),p=actProv();v.innerHTML='';
  $('#btn-provider-info',v).onclick=modelMenu;
  const box=$('.msgs',v);paint(box,S.apiMsgs);$('[data-chl]',v).onclick=chatsPage;$('[data-chn]',v).onclick=()=>{if(Chx.busy){toast('Дождитесь ответа');return}if(!S.apiMsgs.length){toast('Это уже новый чат');return}Chx.newChat();apiView()};
  const cmp=composer({ph:'Сообщение',chip:()=>'',onSend:async(t,f,fl)=>{const ch=Chx.cur;const m={r:'u',q:t,t:(f.length?f.join(', ')+'\n':'')+t};S.apiMsgs.push(m);autoFact(t,'');$('.empty',box)?.remove();box.append(msgEl(m,1));scr(box);cmp.busy(1);const pv0=actProv();m.parts=await readFiles((fl||[]).slice(0,6),!!pv0&&/anthropic\.com/.test(pv0.url));Chx.busy=1;try{Chx.save(ch);await respond(ch.msgs,box,'['+p.model+'] ')}finally{Chx.busy=0;Chx.save(ch);cmp.busy(0)}}});
- v.append(cmp);if(PEND){cmp.setText(PEND);PEND=''}}
-/* ===== СЕССИЯ: терминал ===== */
-let termRedraw=()=>{};
-function activateSession(){T.st='on';T.mark='on';T.log.push(['o','● демо-сессия (сервера нет)'],['','Введите help для списка команд']);termRedraw()} /* TODO(api): POST /sessions */
-function deactivateSession(){T.st='off';T.mark='off';T.log.push(['','— сессия остановлена']);termRedraw()} /* TODO(api): DELETE /sessions/:id */
-function clearSession(){const doit=()=>{T.log=[];if(T.st==='err')T.st='off';T.mark='clr';termRedraw();toast('Сессия очищена')};if(T.log.length)ask('Очистить сессию?','Вывод и история команд будут удалены.','Очистить',doit);else doit()}
-function termView(){const v=$('#v-term');
- v.innerHTML=`<div class="top"><h1>Терминал</h1></div><p class="sub" style="margin:0 16px 8px">Демо: терминал пока не подключён ни к какому серверу. Команды ничего не выполняют на телефоне.</p><div class="scroll"><div class="ses"><div class="sbtns"><button class="sb" id="btn-session-activate" data-action="session:activate" data-a="on">${ic('play')}Активировать сессию</button><button class="sb" id="btn-session-deactivate" data-action="session:deactivate" data-a="off">${ic('stop')}Выключить сессию</button><button class="sb" id="btn-session-clear" data-action="session:clear" data-a="clr">${ic('trash')}Очистить сессию</button></div><div class="stt"><span class="sd"></span><b></b></div></div>
- <div class="tp"><div><div class="term"><div class="tout"></div><div class="tin"><span style="color:#9AA0A6">›</span><input autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="введите help" aria-label="Команда"><button class="send sm" aria-label="Enter">${ic('enter')}</button></div></div></div></div><p class="sub idle" style="margin-top:8px">Сессия не запущена. Нажмите «Активировать сессию», чтобы попробовать демо.</p></div>`;
- const out=$('.tout',v),inp=$('.tin input',v),draw=()=>{const s=T.st;$('.ses',v).dataset.mark=T.mark;$('.stt b',v).textContent=s==='err'?'Ошибка':{on:'Сессия активна',off:'Сессия выключена',clr:'Сессия очищена'}[T.mark];$('.tp',v).classList.toggle('open',s!=='off');$('.idle',v).style.display=s==='off'?'block':'none';$('[data-a=on]',v).disabled=T.mark==='on';$('[data-a=off]',v).disabled=T.mark==='off';$('[data-a=clr]',v).disabled=T.mark==='clr';inp.disabled=s!=='on';$('.tin .send',v).disabled=s!=='on';out.innerHTML='';T.log.forEach(([c,x])=>{const e=document.createElement('div');e.className=c;e.textContent=x;out.append(e)});scr(out)};
- const run=c=>{T.log.push(['c','› '+c]);const A={help:'Демо-терминал: сервера нет. Команды: help, date, clear',date:new Date().toLocaleString(LANG==='en'?'en-US':'ru-RU')};if(c==='clear')T.log=[];else T.log.push(A[c]?['o',A[c]]:['e','Неизвестная команда. Введите help']);if(T.st==='on')T.mark='on'};
- const go=()=>{const c=inp.value.trim();if(!c)return;inp.value='';run(c);draw()};$('.tin .send',v).onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go()};
- termRedraw=draw;
- $$('[data-a]',v).forEach(b=>b.onclick=()=>({on:activateSession,off:deactivateSession,clr:clearSession})[b.dataset.a]());draw()}
+ v.append(cmp);Chat.cmp=cmp;if(PEND){cmp.setText(PEND);PEND=''}}
+/* ===== ТЕРМИНАЛ: модуль features/terminal (вкладка рисуется функцией termView) ===== */
 /* ===== НАСТРОЙКИ: провайдеры ===== */
 function provPage(){return page('providers','Мои провайдеры',(b,d)=>{
  b.innerHTML='';
@@ -285,7 +274,7 @@ const TAB_SCREEN={api:'api',term:'terminal',set:'settings'};
 const TABS=[['api','chat','Чат'],['term','term','Терминал'],['set','set','Настройки']];
 $('#nav').innerHTML=TABS.map(([k,i,n],j)=>`<button class="tab ${j?'':'on'}" id="tab-${k}" data-action="nav:open" data-screen-target="${TAB_SCREEN[k]}" data-v="${k}">${ic(i)}${n}</button>`).join('');
 let CUR='api';
-function show(v){if(v===CUR)return;const ks=TABS.map(x=>x[0]),dir=ks.indexOf(v)>ks.indexOf(CUR)?1:-1,nv=$('#v-'+v),ov=$('#v-'+CUR);$$('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));({api:apiView,term:termView,set:setView})[v]?.();
+function show(v){if(v===CUR)return;const ks=TABS.map(x=>x[0]),dir=ks.indexOf(v)>ks.indexOf(CUR)?1:-1,nv=$('#v-'+v),ov=$('#v-'+CUR);$$('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));({api:apiView,term:()=>typeof termView==='function'&&termView(),set:setView})[v]?.();
  nv.style.transition='none';nv.style.setProperty('--x',dir*24+'px');void nv.offsetWidth;nv.style.transition='';ov.style.setProperty('--x',-dir*24+'px');ov.classList.remove('on');nv.classList.add('enter','on');setTimeout(()=>nv.classList.remove('enter'),1000);CUR=v}
 $$('.tab').forEach(t=>t.onclick=()=>openScreen(t.dataset.screenTarget));
 /* ===== ОНБОРДИНГ ===== */
@@ -347,7 +336,7 @@ const Api={base:'',token:null,
 /* ===== НАВИГАЦИЯ: реестр экранов (точки расширения) ===== */
 const SCREENS={onboarding:()=>onboarding(),api:()=>show('api'),terminal:()=>show('term'),settings:()=>show('set'),memory:()=>memPage(),profile:()=>profPage(),templates:()=>tplPage(),providers:()=>provPage(),about:()=>aboutPage()};
 function openScreen(name,...a){const f=SCREENS[name];if(!f){console.warn('Неизвестный экран:',name);return}return f(...a)}
-const Kairema={state:S,screens:SCREENS,open:openScreen,api:Api,actions:{activateSession,deactivateSession,clearSession,createPromptTemplate,savePromptTemplate,deletePromptTemplate}};
+const Kairema={state:S,screens:SCREENS,open:openScreen,api:Api,actions:{createPromptTemplate,savePromptTemplate,deletePromptTemplate}};
 window.Kairema=Kairema;
 
 /* i18n */

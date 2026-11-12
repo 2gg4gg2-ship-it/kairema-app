@@ -21,7 +21,7 @@ const MD_LI=/^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
 const MD_HR=/^\s*([-*_])(\s*\1){2,}\s*$/;
 const mdCells=l=>{l=l.trim();if(l.startsWith('|'))l=l.slice(1);if(l.endsWith('|'))l=l.slice(0,-1);return l.split('|').map(x=>x.trim())};
 const mdStart=(l,nx)=>/^```/.test(l)||/^#{1,6}\s/.test(l)||MD_HR.test(l)||/^\s*>/.test(l)||MD_LI.test(l)||(l.includes('|')&&nx!==undefined&&MD_SEP.test(nx));
-function mdBlocks(root,text){
+function mdBlocks(root,text,final){
  const L=text.replace(/\r/g,'').split('\n');let i=0;
  while(i<L.length){
   const l=L[i];
@@ -29,7 +29,10 @@ function mdBlocks(root,text){
   if(/^```/.test(l)){
    const buf=[];i++;
    while(i<L.length&&!/^```/.test(L[i])){buf.push(L[i]);i++}
-   i++;const pre=mdTag('pre'),c=mdTag('code');c.textContent=buf.join('\n');pre.append(c);root.append(pre);continue}
+   i++;const lang=l.replace(/^```/,'').trim().split(/\s+/)[0].toLowerCase(),pre=mdTag('pre'),c=mdTag('code');
+   c.textContent=buf.join('\n');pre.append(c);pre.dataset.lang=lang;root.append(pre);
+   if(final)Hooks.run('md:code',pre,buf.join('\n'),lang);
+   continue}
   let h=l.match(/^(#{1,6})\s+(.*)$/);
   if(h){const e=mdTag('h'+Math.min(6,Math.max(3,h[1].length+2)));mdInline(e,h[2].replace(/\s*#+\s*$/,''));root.append(e);i++;continue}
   if(MD_HR.test(l)){root.append(mdTag('hr'));i++;continue}
@@ -42,7 +45,7 @@ function mdBlocks(root,text){
    tb.append(bd);wrap.append(tb);root.append(wrap);continue}
   if(/^\s*>/.test(l)){
    const buf=[];while(i<L.length&&/^\s*>/.test(L[i])){buf.push(L[i].replace(/^\s*>\s?/,''));i++}
-   const q=mdTag('blockquote');mdBlocks(q,buf.join('\n'));root.append(q);continue}
+   const q=mdTag('blockquote');mdBlocks(q,buf.join('\n'),final);root.append(q);continue}
   if(MD_LI.test(l)){
    const stack=[];
    while(i<L.length){
@@ -77,7 +80,7 @@ function mdSources(bd,m){
 function mdRender(bd,text,m){
  if(bd._mr){cancelAnimationFrame(bd._mr);bd._mr=0}
  bd.textContent='';bd.classList.add('md');
- try{mdBlocks(bd,String(text||''))}catch(e){bd.textContent=String(text||'')}
+ try{mdBlocks(bd,String(text||''),!!m)}catch(e){bd.textContent=String(text||'')}
  if(m)mdSources(bd,m)}
 /* Во время потока: не чаще одного раза за кадр. */
 function mdLive(bd,m,after){
