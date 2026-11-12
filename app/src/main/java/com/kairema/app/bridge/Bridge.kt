@@ -5,6 +5,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import com.kairema.app.data.SecureKeys
 import com.kairema.app.terminal.Shell
+import com.kairema.app.terminal.TermuxRunner
 import okhttp3.Call
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
@@ -32,6 +33,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     private val pool = Executors.newCachedThreadPool()
     private val calls = ConcurrentHashMap<String, Call>()
     private val sh = Shell(ctx)
+    private val tm = TermuxRunner(ctx)
 
     @JavascriptInterface
     fun saveKey(id: String, key: String) = SecureKeys.save(ctx, id, key)
@@ -46,7 +48,18 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     fun cancel(reqId: String) {
         calls.remove(reqId)?.cancel()
         sh.cancel(reqId)
+        tm.cancel(reqId)
     }
+
+    /** Команда в Termux. Результат приходит целиком после завершения, в конце метка кода выхода. */
+    @JavascriptInterface
+    fun termux(reqId: String, cmd: String, timeoutSec: Int) {
+        tm.run(reqId, cmd, timeoutSec.toLong(), { push(reqId, it) }, { done(reqId, it) })
+    }
+
+    /** Проверка Termux: JSON с полями installed и permission. */
+    @JavascriptInterface
+    fun termuxStatus(): String = tm.status()
 
     /** Команда в оболочке Android. Вывод идёт кусками, в конце метка кода выхода. */
     @JavascriptInterface

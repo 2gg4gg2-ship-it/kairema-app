@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Запуск команд в Termux (нужно выдать в настройках Android) -->
+    <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
+
+    <!-- Видимость пакета Termux (Android 11+) -->
+    <queries>
+        <package android:name="com.termux" />
+    </queries>
 
     <application
         android:label="Kairema"
@@ -18,5 +25,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Результаты команд от Termux -->
+        <receiver
+            android:name=".terminal.TermuxResultReceiver"
+            android:exported="false" />
     </application>
 </manifest>

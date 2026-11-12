@@ -69,7 +69,7 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
   try{
    await Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()}),JSON.stringify(hist)],t=>{if(!got){got=true;bd.textContent='';m.t=''}m.t+=t;mdLive(bd,m,()=>scr(box))});
    if(!got){m.err=1;m.t=bd.textContent='Пустой ответ от провайдера'}
-   else{m.src=src.slice(0,5);m.serr=serr;mdRender(bd,m.t,m);scr(box)}
+   else{m.src=src.slice(0,5);m.serr=serr;mdRender(bd,m.t,m);scr(box);Hooks.run('chat:answer',m,bd)}
   }catch(e){m.err=1;m.t=bd.textContent='Не удалось получить ответ: '+e.message}
   return}
  await wait(1000);
@@ -82,7 +82,8 @@ const NB=window.KairemaBridge,Native=(()=>{const pend={};let n=0;
   saveKey:(id,k)=>{if(NB)NB.saveKey(id,k)},
   deleteKey:id=>{if(NB)NB.deleteKey(id)},
   run(fn,args,on){let id;const p=new Promise((res,rej)=>{id='r'+(++n);pend[id]={res,rej,on};try{NB[fn](id,...args)}catch(e){delete pend[id];rej(e)}});p.id=id;return p},
-  cancel:id=>{if(NB&&id){try{NB.cancel(id)}catch(e){}}}}})();
+  cancel:id=>{if(NB&&id){try{NB.cancel(id)}catch(e){}}},
+  sync:(fn,...a)=>{try{return NB?NB[fn](...a):null}catch(e){return null}}}})();
 const TXT_EXT=/\.(txt|md|markdown|json|jsonl|csv|tsv|xml|html?|css|js|mjs|ts|tsx|jsx|py|kt|kts|java|c|h|cpp|hpp|cs|go|rs|rb|php|sh|bat|ps1|ya?ml|toml|ini|cfg|conf|log|sql|swift|gradle|properties|gitignore|env|vue|svelte|lua|dart|tex|srt|svg)$/i;
 const b64=buf=>{let s='';const u=new Uint8Array(buf),n=0x8000;for(let i=0;i<u.length;i+=n)s+=String.fromCharCode.apply(null,u.subarray(i,i+n));return btoa(s)};
 async function imgPart(f){

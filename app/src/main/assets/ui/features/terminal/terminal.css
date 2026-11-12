@@ -6,3 +6,6 @@
 .rb:disabled{opacity:.5}
 .runout{margin:0 0 .75em;padding:10px 12px;background:#0A0B0D;color:#DDE0E4;border:1px solid #2A2D32;border-radius:12px;font:12.5px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;max-height:34vh;overflow:auto}
 .runout[hidden]{display:none}
+.agbar{display:flex;align-items:center;gap:10px;margin:0 12px 8px;padding:8px 12px;border:1px solid var(--line);border-left:3px solid #3DDC84;border-radius:12px;background:var(--s1);font-size:13px}
+.agbar b{flex:1;font-weight:600}
+.tm-bk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
