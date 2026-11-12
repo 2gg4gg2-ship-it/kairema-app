@@ -181,7 +181,7 @@ function provForm(i,done,kind='chat'){if(kind==='chat')return chatProvForm(i,don
   const bad=!!err,p=ch?{id,name:g('name'),model:g('model'),url:g('url'),ok:!bad}:{id,name:g('name'),url:g('url'),ok:!bad};if(i<0){if(bad)Native.deleteKey(id);else arr.push(p)}else arr[i]=p;saveProviders();
   stt.className='stat '+(bad?'bad':'ok');stt.textContent=bad?'✗ '+err:'✓ Подключено';sv.innerHTML='Проверить и сохранить';sv.disabled=false;done();toast(bad?(i<0?'Ключ не принят, провайдер не сохранён':'Провайдер сохранён с ошибкой'):'Провайдер подключён');if(!bad)setTimeout(()=>d.close(),900)}})}
 /* ===== ПАМЯТЬ ===== */
-function autoFact(t,src){if(!S.mem||!S.auto||!t)return;const m=t.match(/(меня зовут|мне нравится|my name is|i like)\s+[^.!?\n]+/i);if(m&&!S.memos.some(x=>x[0]===m[0])){S.memos.push([m[0],src?'Чат «'+src+'»':'']);toast('Факт добавлен в память')}}
+function autoFact(t,src){if(!S.mem||!S.auto||!t)return;const m=t.match(/(меня зовут|мне нравится|my name is|i like)\s+[^.!?\n]+/i);if(m&&!S.memos.some(x=>x[0]===m[0])){S.memos.push([m[0],src?'Чат «'+src+'»':'']);Hooks.run('memory:changed');toast('Факт добавлен в память')}}
 function factSheet(init,ok){const s=sheet(`<h2 style="margin-bottom:12px">${init===null?'Новый факт':'Редактировать факт'}</h2><textarea class="ta" placeholder="Введите факт" style="margin-bottom:14px"></textarea><div class="two"><button class="btn" data-ok>Сохранить</button><button class="btn ghost" data-c>Отмена</button></div>`);const x=$('textarea',s),sv=$('[data-ok]',s),chk=()=>sv.disabled=!x.value.trim();x.value=init||'';x.oninput=chk;chk();$('[data-c]',s).onclick=s.close;sv.onclick=()=>{ok(x.value.trim());s.close()}}
 function memPage(){page('memory','',(b,d)=>{
  const opt=(k,ttl,x)=>`<div class="mr"><button class="orow" data-t="${k}"><span>${ttl}</span><span class="sw ${S[k]?'on':''}"></span></button><p>${x}</p></div>`;
@@ -196,15 +196,15 @@ function memPage(){page('memory','',(b,d)=>{
  [...b.children].forEach((c,k)=>c.style.setProperty('--i',k));
  const nEl=$('[data-n]',b),sEl=$('[data-s]',b),ml=$('.ml',b);
  const stat=bump=>{nEl.textContent=String(S.memos.length).padStart(2,'0');sEl.textContent=S.mem?'Вкл':'Выкл';sEl.classList.toggle('on',S.mem);if(bump){nEl.classList.add('bump');setTimeout(()=>nEl.classList.remove('bump'),260)}};
- $$('[data-t]',b).forEach(e=>e.onclick=()=>{const k=e.dataset.t;S[k]=!S[k];$('.sw',e).classList.toggle('on',S[k]);stat();toast(k==='mem'?(S.mem?'Память включена':'Память выключена'):(S.auto?'Автоматическое добавление включено':'Автоматическое добавление выключено'))});
+ $$('[data-t]',b).forEach(e=>e.onclick=()=>{const k=e.dataset.t;S[k]=!S[k];Hooks.run('memory:changed');$('.sw',e).classList.toggle('on',S[k]);stat();toast(k==='mem'?(S.mem?'Память включена':'Память выключена'):(S.auto?'Автоматическое добавление включено':'Автоматическое добавление выключено'))});
  const ta=$('.ta',b),mp=$('.mp',b);ta.value=S.profD===null?S.prof:S.profD;ta.oninput=()=>S.profD=ta.value;
  $('[data-sv]',b).onclick=()=>{S.prof=ta.value.trim();S.profD=S.prof;ta.value=S.prof;mp.classList.remove('ok');void mp.offsetWidth;mp.classList.add('ok');toast('Профиль памяти сохранён')};
  $('[data-cn]',b).onclick=()=>{S.profD=S.prof;ta.value=S.prof};
  const facts=(fl,init)=>{ml.innerHTML='';if(!S.memos.length)ml.innerHTML='<p class="hint" style="margin:0 4px 10px">Сохранённых фактов пока нет.</p>';
   S.memos.forEach((x,i)=>{const r=el(`<div class="ft ${init?'in':''} ${i===fl?'fl':''}" style="--i:${i}"><span class="n">${String(i+1).padStart(2,'0')}</span><p></p><div class="fa2"><button class="fbtn" data-e data-action="memory:edit">${ic('edit')}Редактировать</button><button class="fbtn fdel" data-d data-action="memory:delete">${ic('trash')}Удалить</button></div></div>`);$('p',r).textContent=x[0];if(x[1]){const s=document.createElement('small');s.textContent=x[1];$('p',r).after(s)}
-   $('[data-e]',r).onclick=()=>factSheet(x[0],v=>{x[0]=v;facts(i);toast('Факт обновлён')});
-   $('[data-d]',r).onclick=()=>ask('Удалить факт?','Факт будет удалён из памяти без возможности восстановления.','Удалить',()=>{r.style.maxHeight=r.offsetHeight+'px';void r.offsetHeight;r.classList.add('rm');setTimeout(()=>{S.memos.splice(S.memos.indexOf(x),1);facts();stat(1);toast('Факт удалён')},320)});ml.append(r)})};
- $('[data-add]',b).onclick=()=>factSheet(null,v=>{S.memos.push([v,'']);facts(S.memos.length-1);stat(1);ml.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'});toast('Факт добавлен')});
+   $('[data-e]',r).onclick=()=>factSheet(x[0],v=>{x[0]=v;Hooks.run('memory:changed');facts(i);toast('Факт обновлён')});
+   $('[data-d]',r).onclick=()=>ask('Удалить факт?','Факт будет удалён из памяти без возможности восстановления.','Удалить',()=>{r.style.maxHeight=r.offsetHeight+'px';void r.offsetHeight;r.classList.add('rm');setTimeout(()=>{S.memos.splice(S.memos.indexOf(x),1);Hooks.run('memory:changed');facts();stat(1);toast('Факт удалён')},320)});ml.append(r)})};
+ $('[data-add]',b).onclick=()=>factSheet(null,v=>{S.memos.push([v,'']);Hooks.run('memory:changed');facts(S.memos.length-1);stat(1);ml.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'});toast('Факт добавлен')});
  facts(-1,1);stat()})}
 /* ===== ШАБЛОНЫ ПРОМПТОВ: встроенные + свои (хранение через Api.templates) ===== */
 const TPL_VIEWS=new Set();

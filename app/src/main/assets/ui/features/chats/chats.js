@@ -63,6 +63,7 @@ Chx.save=c=>{
   c.title=s.length>40?s.slice(0,40)+'…':s}
  c.ts=Date.now();
  if(!Chx.list.includes(c))Chx.list.push(c);
+ Hooks.run('sync:touch','chat',c.id);
  return Chx.persist()};
 Chx.when=ts=>{
  const d=new Date(ts),n=new Date(),loc=LANG==='en'?'en-US':'ru-RU';
@@ -71,14 +72,14 @@ Chx.rename=(c,done)=>{
  const s=sheet(`<h2 style="margin-bottom:14px">Переименовать чат</h2><div class="fld"><label for="ch-name">Название</label><input id="ch-name" maxlength="60" autocomplete="off"></div><div class="two"><button class="btn ghost" data-c>Отмена</button><button class="btn" data-o>Сохранить</button></div>`);
  const i=$('#ch-name',s);i.value=c.title;
  $('[data-c]',s).onclick=s.close;
- $('[data-o]',s).onclick=()=>{const v=i.value.trim();if(!v){toast('Введите название');return}c.title=v.slice(0,60);c.named=1;s.close();Chx.persist();done()}};
+ $('[data-o]',s).onclick=()=>{const v=i.value.trim();if(!v){toast('Введите название');return}c.title=v.slice(0,60);c.named=1;c.ts=Date.now();s.close();Chx.persist();Hooks.run('sync:touch','chat',c.id);done()}};
 Chx.remove=(c,done)=>{
  ask('Удалить чат?','Переписка будет удалена без возможности восстановления.','Удалить',()=>{
   if(Chx.busy&&c===Chx.cur){toast('Дождитесь ответа');return}
   Chx.list=Chx.list.filter(x=>x!==c);
   const wasCur=c===Chx.cur;
   if(wasCur){Chx.open(Chx.fresh());apiView()}
-  Chx.persist();done();toast('Чат удалён')})};
+  Chx.persist();Hooks.run('sync:delete','chat',c.id);done();toast('Чат удалён')})};
 function chatsPage(){
  Chx.load();
  if($('[data-screen=chats]'))return;
@@ -99,4 +100,25 @@ function chatsPage(){
  },`<button class="ib" data-chn aria-label="Новый чат">${ic('plus')}</button>`);
  $('[data-chn]',d).onclick=()=>{Chx.newChat();d.close();apiView()};
  return d}
+
+/* Подключение к синхронизации: чаты как вид данных «chat». */
+Hooks.on('sync:register',Sy=>Sy.register('chat',{
+ ids(){Chx.load();return Chx.list.filter(c=>c.msgs.some(m=>m.t)).map(c=>({id:c.id,ts:c.ts}))},
+ get(id){Chx.load();const c=Chx.list.find(x=>x.id===id);return c?{id:c.id,title:c.title,named:c.named?1:0,ts:c.ts,msgs:c.msgs.filter(m=>m.t).map(Chx.ser)}:null},
+ put(id,d){
+  Chx.load();
+  const c={id:String(id),title:String(d.title||''),named:d.named?1:0,ts:+d.ts||0,msgs:(Array.isArray(d.msgs)?d.msgs:[]).filter(m=>m&&typeof m==='object').map(Chx.hyd)};
+  const i=Chx.list.findIndex(x=>x.id===c.id);
+  if(!Chx.list.length&&Chx.cur&&!Chx.cur.msgs.length)Chx._adopt=1;
+  if(Chx.cur&&Chx.cur.id===c.id){if(Chx.busy)return;Chx.cur=c;S.apiMsgs=c.msgs}
+  if(i>=0)Chx.list[i]=c;else Chx.list.push(c);
+  Chx.persist()},
+ del(id){
+  Chx.load();Chx.list=Chx.list.filter(x=>x.id!==id);
+  if(Chx.cur&&Chx.cur.id===id)Chx.open(Chx.fresh());
+  Chx.persist()},
+ clear(){Chx.load();Chx.list=[];Chx.open(Chx.fresh());Chx.persist()},
+ refresh(){
+  if(Chx._adopt){Chx._adopt=0;if(Chx.cur&&!Chx.cur.msgs.length&&!Chx.busy&&Chx.list.length)Chx.open([...Chx.list].sort((x,y)=>y.ts-x.ts)[0])}
+  if(typeof CUR!=='undefined'&&CUR==='api'&&!Chx.busy)apiView()}}));
 i18nAdd(CHATS_EN);

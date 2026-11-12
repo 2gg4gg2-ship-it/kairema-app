@@ -32,6 +32,7 @@ function accMe(b,d,S2){
  const c=$('.ac-me',b);c.innerHTML=ini({name:u.email||'?'})+'<span class="m"><b></b><small>Вы вошли</small></span>';
  $('b',c).textContent=u.email||'';
  $('[data-out]',b).onclick=()=>accConfirmOut(()=>d.close());
+ Hooks.run('account:rendered',b,d);
  accSrvLink(b,d,S2)}
 function accLogin(b,d,S2){
  b.innerHTML='<div data-sg></div><div data-bd style="margin-top:14px"></div>';

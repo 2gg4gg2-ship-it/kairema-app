@@ -37,6 +37,7 @@ const Auth=(()=>{
  return{
   configured(){const c=cfg();return!!(c.url&&c.key)},
   url(){return cfg().url},
+  config(){const c=cfg();return{url:c.url,key:c.key}},
   host(){try{return new URL(cfg().url).host}catch(e){return''}},
   setConfig(url,key){
    url=String(url||'').trim().replace(/\/+$/,'');key=String(key||'').trim();
