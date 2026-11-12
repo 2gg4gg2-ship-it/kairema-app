@@ -149,7 +149,7 @@ function apiView(){Chx.load();const v=$('#v-api'),p=actProv();v.innerHTML='';
  v.innerHTML=`<div class="top"><h1>Чат</h1><button class="ib" data-chl aria-label="Список чатов" style="margin-left:auto">${ic('chat')}</button><button class="ib" data-chn aria-label="Новый чат">${ic('plus')}</button></div><button class="prow" id="btn-provider-info" data-action="provider:manage" aria-label="Провайдер и модель"><span class="stt2"></span><span class="pn"></span>${ic('chevR')}</button><div class="msgs"></div>`;
  const pn=$('.pn',v);pn.textContent=p.name;const sm=document.createElement('small');sm.textContent=p.model;pn.append(sm);
  $('#btn-provider-info',v).onclick=modelMenu;
- const box=$('.msgs',v);paint(box,S.apiMsgs);$('[data-chl]',v).onclick=chatsPage;$('[data-chn]',v).onclick=()=>{if(Chx.busy){toast('Дождитесь ответа');return}if(!S.apiMsgs.length){toast('Это уже новый чат');return}Chx.newChat();apiView()};
+ const box=$('.msgs',v);paint(box,S.apiMsgs);$('[data-chl]',v).onclick=chatsPage;$('[data-chn]',v).onclick=()=>Chx.create(apiView);
  const cmp=composer({ph:'Сообщение',chip:()=>'',onSend:async(t,f,fl)=>{const ch=Chx.cur;const m={r:'u',q:t,t:(f.length?f.join(', ')+'\n':'')+t};S.apiMsgs.push(m);autoFact(t,'');$('.empty',box)?.remove();box.append(msgEl(m,1));scr(box);cmp.busy(1);const pv0=actProv();m.parts=await readFiles((fl||[]).slice(0,6),!!pv0&&/anthropic\.com/.test(pv0.url));Chx.busy=1;try{Chx.save(ch);await respond(ch.msgs,box,'['+p.model+'] ')}finally{Chx.busy=0;Chx.save(ch);cmp.busy(0)}}});
  v.append(cmp);Chat.cmp=cmp;if(PEND){cmp.setText(PEND);PEND=''}}
 /* ===== ТЕРМИНАЛ: модуль features/terminal (вкладка рисуется функцией termView) ===== */
@@ -279,7 +279,7 @@ function show(v){if(v===CUR)return;const ks=TABS.map(x=>x[0]),dir=ks.indexOf(v)>
  nv.style.transition='none';nv.style.setProperty('--x',dir*24+'px');void nv.offsetWidth;nv.style.transition='';ov.style.setProperty('--x',-dir*24+'px');ov.classList.remove('on');nv.classList.add('enter','on');setTimeout(()=>nv.classList.remove('enter'),1000);CUR=v}
 $$('.tab').forEach(t=>t.onclick=()=>openScreen(t.dataset.screenTarget));
 /* ===== ОНБОРДИНГ ===== */
-const ONBOARD_ONCE=false; /* true — показывать только при первом запуске */
+const ONBOARD_ONCE=true; /* true — показывать только при первом запуске (флаг «показан» ставится сразу при показе), false — при каждом запуске */
 const OB_ART=[
 `<svg viewBox="0 0 320 320" fill="none" stroke="currentColor" stroke-width="1.5"><circle class="dr" pathLength="1" style="--d:100" cx="160" cy="160" r="134" stroke-opacity=".14"/><circle class="dr" pathLength="1" style="--d:220" cx="160" cy="160" r="100" stroke-opacity=".24"/><circle class="dr" pathLength="1" style="--d:340" cx="160" cy="160" r="66" stroke-opacity=".4"/>
 <g class="sp1"><g class="e" style="--d:600"><circle class="fc" cx="294" cy="160" r="6" fill-opacity=".85"/><circle class="fc" cx="60" cy="160" r="3.5" fill-opacity=".5"/></g></g>
@@ -321,7 +321,7 @@ function onboarding(){let i=0,busy=0;const N=OB_SLIDES.length,lg=()=>LANG==='en'
  let x0=null;const stg=$('.stage',o);stg.addEventListener('touchstart',e=>x0=e.touches[0].clientX,{passive:true});stg.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>50)go(i+(dx<0?1:-1))});
  const kd=e=>{if(!o.isConnected)return document.removeEventListener('keydown',kd);if(e.key==='ArrowRight')go(i+1);if(e.key==='ArrowLeft')go(i-1)};document.addEventListener('keydown',kd);
  raf(()=>{o.classList.remove('out');paint(1,1)})}
-let ended=0;function endSplash(){if(ended)return;ended=1;$('#splash').classList.add('out');setTimeout(()=>$('#splash').remove(),600);if(!ONBOARD_ONCE||!st.get('ko'))onboarding()}
+let ended=0;function endSplash(){if(ended)return;ended=1;$('#splash').classList.add('out');setTimeout(()=>$('#splash').remove(),600);if(!ONBOARD_ONCE||!st.get('ko')){if(ONBOARD_ONCE)st.set('ko','1');onboarding()}else askName()}
 /* ===== FUTURE API: единая точка подключения backend ===== */
 /* Сейчас данные шаблонов лежат в localStorage. Для перехода на сервер замените тела методов Api.templates.*
    на fetch(`${Api.base}/templates`, {headers:{Authorization:'Bearer '+Api.token}}) — UI-код менять не нужно.

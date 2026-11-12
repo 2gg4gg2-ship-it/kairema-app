@@ -211,4 +211,10 @@ mark{background:color-mix(in srgb,var(--ac) 24%,transparent);color:inherit;borde
 .btn.tnew{margin:4px 0 14px}.tc .th b{min-width:0;overflow-wrap:anywhere}.tc .th+.tt{margin-top:8px}.tgs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .tc.own{border-color:color-mix(in srgb,var(--tx) 22%,var(--line))}.tg.me{color:var(--tx);border-color:var(--tx2)}.tc .tm{margin-top:8px}
 .tpf .ta{min-height:140px}.fld.bad .ta{border-color:var(--err)}
+/* ===== Движение: общие анимации листов и подстраниц (у каждого модуля свои в features/<имя>/*.css) ===== */
+.sheet>*{animation:rise .45s var(--ease) backwards}
+.sheet>:nth-child(1){animation-delay:.05s}.sheet>:nth-child(2){animation-delay:.09s}.sheet>:nth-child(3){animation-delay:.13s}.sheet>:nth-child(4){animation-delay:.17s}.sheet>:nth-child(n+5){animation-delay:.21s}
+.spg .scroll>:not(.in){animation:in .45s var(--ease) backwards;animation-delay:calc(var(--i,0)*45ms)}
+.fld input,.fld textarea{transition:border-color .25s var(--ease),box-shadow .25s var(--ease)}
+.fld input:focus,.fld textarea:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--tx) 10%,transparent)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}.logo .ring{stroke-dashoffset:0}.logo .eye{transform:none}.word{opacity:1}}

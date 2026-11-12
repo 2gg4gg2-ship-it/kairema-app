@@ -1,11 +1,43 @@
 /* Стили модуля terminal. */
 .tm-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .tm-cmd{margin:0 0 12px;padding:12px 14px;background:var(--s1);border:1px solid var(--line);border-radius:12px;font:13px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;max-height:36vh;overflow:auto}
+
+/* Кнопки под блоками кода в чате */
 .runbar{margin:-.35em 0 .75em;display:flex;gap:8px;flex-wrap:wrap}
-.rb{border:1px solid var(--line);background:var(--s2);color:var(--tx);border-radius:10px;padding:8px 12px;font:inherit;font-size:13px;cursor:pointer}
-.rb:disabled{opacity:.5}
+.rb{min-height:40px;border:1px solid var(--line);background:var(--s2);color:var(--tx);border-radius:12px;padding:0 14px;font:600 13.5px var(--body);cursor:pointer;transition:background .2s var(--ease),transform .15s var(--ease),opacity .2s;animation:in .35s var(--ease) backwards}
+.rb:active{transform:scale(.96)}
+.rb:disabled{opacity:.5;pointer-events:none}
 .runout{margin:0 0 .75em;padding:10px 12px;background:#0A0B0D;color:#DDE0E4;border:1px solid #2A2D32;border-radius:12px;font:12.5px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;max-height:34vh;overflow:auto}
 .runout[hidden]{display:none}
-.agbar{display:flex;align-items:center;gap:10px;margin:0 12px 8px;padding:8px 12px;border:1px solid var(--line);border-left:3px solid #3DDC84;border-radius:12px;background:var(--s1);font-size:13px}
+.agbar{display:flex;align-items:center;gap:10px;margin:0 12px 8px;padding:8px 12px;border:1px solid var(--line);border-left:3px solid #3DDC84;border-radius:12px;background:var(--s1);font-size:13px;animation:in .35s var(--ease) backwards}
 .agbar b{flex:1;font-weight:600}
-.tm-bk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+
+/* Вкладка «Терминал»: статус, три кнопки сессии, диагностика, выбор оболочки */
+.tm-note{font-size:13px;line-height:1.45}
+.ses{gap:10px}
+.tm-st{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 14px;border:1px solid var(--line);border-radius:14px;background:var(--s1);animation:in .4s var(--ease) backwards}
+.tm-st .stt{margin:0;min-width:0}
+.tm-chip{flex:none;padding:3px 10px;border-radius:99px;border:1px solid var(--line);background:var(--s2);color:var(--tx2);font:500 12px var(--mono)}
+
+.tm-ctl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tm-ctl .sb{flex-direction:column;justify-content:center;gap:6px;min-height:66px;padding:10px 4px;border-radius:14px;font-size:12.5px;line-height:1.2;text-align:center;animation:in .4s var(--ease) backwards}
+.tm-ctl .sb:nth-child(2){animation-delay:.05s}.tm-ctl .sb:nth-child(3){animation-delay:.1s}
+.tm-ctl .sb svg.i{width:21px;height:21px}
+.tm-ctl .sb:not(:disabled):active{transform:scale(.95)}
+
+.tm-diag{display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--s1);text-align:left;color:var(--tx);transition:background .25s var(--ease),border-color .25s var(--ease),opacity .25s,transform .15s var(--ease);animation:in .4s var(--ease) .12s backwards}
+.tm-diag .ti{width:40px;height:40px;border-radius:12px;background:var(--s2);display:grid;place-items:center;flex:none;color:var(--g);transition:transform .3s var(--spring)}
+.tm-diag .m{flex:1;min-width:0}
+.tm-diag b{display:block;font:600 15.5px/1.25 var(--body)}
+.tm-diag small{display:block;margin-top:2px;color:var(--tx2);font-size:13px;line-height:1.3}
+.tm-diag>svg.i{color:var(--tx2);transition:transform .25s var(--ease)}
+.tm-diag:not(:disabled):active{transform:scale(.98);background:var(--s2)}
+.tm-diag:not(:disabled):active .ti{transform:scale(1.1)}
+.tm-diag:disabled{opacity:.45;pointer-events:none}
+@media (hover:hover){.tm-diag:not(:disabled):hover{border-color:color-mix(in srgb,var(--g) 50%,var(--line))}.tm-diag:not(:disabled):hover>svg.i{transform:translateX(3px)}}
+
+.tm-bk{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px 12px;margin:0;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--s1);animation:in .4s var(--ease) .18s backwards}
+.tm-bk .sub{font-size:13.5px;font-weight:600}
+.tm-bk .segc{min-width:0}
+.tm-chk{grid-column:1/-1;justify-content:center;width:100%;min-height:42px;color:var(--tx);animation:in .35s var(--ease) backwards}
+.tm-chk:disabled{opacity:.5}

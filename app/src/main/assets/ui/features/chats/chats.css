@@ -1,0 +1,14 @@
+/* Стили модуля chats: диалог «Новый чат», кнопка «Удалить все чаты», анимация удаления. */
+.chx-h{margin-bottom:6px;font:600 20px/1.2 var(--disp);letter-spacing:-.02em}
+.chx-p{margin:0 0 16px;line-height:1.45}
+.chx-two{margin-top:16px}
+
+.chx-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 14px;padding:0 2px;animation:in .4s var(--ease) backwards}
+.chx-bar .sub{font:500 13px var(--mono)}
+.chx-all{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--err) 40%,var(--line));background:color-mix(in srgb,var(--err) 8%,transparent);color:var(--err);font:600 13.5px var(--body);transition:background .2s var(--ease),transform .15s var(--ease)}
+.chx-all svg.i{width:17px;height:17px}
+.chx-all:active{transform:scale(.95);background:color-mix(in srgb,var(--err) 16%,transparent)}
+
+/* Удаляемая карточка уезжает вправо и гаснет; у списка «удалить все» — каскадом (--o) */
+.card.pv.gone{animation:chx-out .34s var(--ease) forwards;animation-delay:calc(var(--o,0)*40ms);pointer-events:none}
+@keyframes chx-out{to{opacity:0;transform:translateX(44px) scale(.95)}}

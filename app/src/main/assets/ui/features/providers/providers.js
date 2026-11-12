@@ -14,43 +14,66 @@ async function fetchModelList(p){
  if(!Native.on){await wait(600);l=[{id:'demo-free',name:'Demo free',free:true},{id:'demo-paid',name:'Demo paid',free:false}]}
  else{let raw='';await Native.run('models',[JSON.stringify({id:p.id,url:p.url})],t=>{raw+=t});l=normModels(JSON.parse(raw||'[]'))}
  MCACHE[p.id]={t:Date.now(),l};return l}
-/* Выбор модели: сверху бесплатные, ниже платные (если провайдер сообщает цены), поиск и фильтр. */
+/* Выбор модели: вкладки «Все / Бесплатные / Платные» с плавным переключением в обе стороны,
+   поиск, читаемые строки (название, id, метка цены). Стили: features/providers/providers.css */
+const mdlShort=id=>{const p=String(id).split('/');return p[p.length-1]||id};
+function mdlRow(o){
+ const r=el('<button type="button" class="mdl-row"><span class="mdl-t"><b class="mdl-n"></b><small class="mdl-id"></small></span><span class="mdl-e"></span></button>');
+ const t=o.name||mdlShort(o.id);
+ $('.mdl-n',r).textContent=t;
+ const idEl=$('.mdl-id',r);if(t!==o.id)idEl.innerHTML=esc(o.id).replace(/([\/:_-])/g,'$1<wbr>');else idEl.remove();
+ const e=$('.mdl-e',r);
+ if(o.free!==undefined){const g=document.createElement('em');g.className='mdl-tag '+(o.free?'free':'paid');g.textContent=o.free?'Бесплатная':'Платная';e.append(g)}
+ if(o.on){r.classList.add('on');e.insertAdjacentHTML('beforeend',ic('ok'))}
+ if(!e.children.length)e.remove();
+ if(o.i!==undefined)r.style.setProperty('--i',Math.min(o.i,9));
+ return r}
+/* Вкладки с «ползунком»: cb(индекс, предыдущий индекс). */
+function mdlTabs(labels,cb){
+ const w=el(`<div class="mdl-seg" role="tablist" style="--n:${labels.length};--k:0"><i class="mdl-th"></i>${labels.map(()=>'<button type="button" role="tab"><span></span><em>0</em></button>').join('')}</div>`);
+ const bs=$$('button',w);let cur=0;
+ bs.forEach((b,i)=>{$('span',b).textContent=labels[i];b.onclick=()=>{if(i===cur)return;const p=cur;cur=i;w.style.setProperty('--k',i);bs.forEach((z,j)=>{z.classList.toggle('on',j===i);z.setAttribute('aria-selected',j===i)});cb(i,p)}});
+ bs[0].classList.add('on');
+ w.count=(i,n)=>{$('em',bs[i]).textContent=n};
+ return w}
 function pickModel(rawList,cur,onPick){
  const list=normModels(rawList),en=LANG==='en',priced=list.some(x=>x.free!==undefined);
  let mode=0,lim=60;
- const s=sheet(`<h2 style="margin-bottom:10px">Выберите модель</h2><div data-mseg></div><div class="fld" style="margin-top:10px"><input data-ms type="text" placeholder="Поиск по названию" autocomplete="off" autocapitalize="off" spellcheck="false"></div><p class="hint" data-mc style="margin:0 2px 8px"></p><div data-ml style="max-height:44vh;overflow-y:auto"></div>`);
+ const s=sheet(`<h2 class="mdl-h">Выберите модель</h2><div data-mseg></div><div class="fld mdl-s"><input data-ms type="text" placeholder="Поиск по названию" autocomplete="off" autocapitalize="off" spellcheck="false"></div><p class="hint mdl-c" data-mc></p><div class="mdl-list" data-ml></div>`);
+ $('.sheet',s).classList.add('mdl');
  const inp=$('[data-ms]',s),box=$('[data-ml]',s),cnt=$('[data-mc]',s),byId=(a,b)=>a.id<b.id?-1:a.id>b.id?1:0;
- if(priced)$('[data-mseg]',s).append(seg(['Все','Бесплатные','Платные'],0,k=>{mode=k;lim=60;draw()}));
- const row=m=>{
-  const r=el('<button class="opt" style="display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);color:var(--tx)"><span class="mn" style="display:block;font-size:14px"></span><small class="mi" style="display:block;font-family:var(--mono);font-size:12px;color:var(--tx2);margin-top:2px"></small></button>');
-  $('.mn',r).textContent=(m.name||m.id)+(m.id===cur?'  ✓':'');
-  $('.mi',r).textContent=m.name?m.id:'';
-  r.onclick=()=>{s.close();onPick(m.id)};
-  box.append(r)};
- function draw(){
+ let tabs=null;
+ if(priced){tabs=mdlTabs(['Все','Бесплатные','Платные'],(k,p)=>{mode=k;lim=60;draw(k>p?'r':'l')});$('[data-mseg]',s).append(tabs)}
+ else $('[data-mseg]',s).remove();
+ function draw(dir){
   const q=inp.value.trim().toLowerCase();
-  let f=list.filter(x=>!q||x.id.toLowerCase().includes(q)||x.name.toLowerCase().includes(q));
+  const base=list.filter(x=>!q||x.id.toLowerCase().includes(q)||x.name.toLowerCase().includes(q));
+  if(tabs){tabs.count(0,base.length);tabs.count(1,base.filter(x=>x.free).length);tabs.count(2,base.filter(x=>!x.free).length)}
+  let f=base;
   if(priced&&mode===1)f=f.filter(x=>x.free);
   if(priced&&mode===2)f=f.filter(x=>!x.free);
   const fr=priced?f.filter(x=>x.free).sort(byId):[],pd=(priced?f.filter(x=>!x.free):f).sort(byId);
+  box.dataset.d=dir||'n';if(dir&&dir!=='n')box.scrollTop=0;
   box.innerHTML='';let shown=0;
   const sect=(title,arr)=>{
    if(!arr.length||shown>=lim)return;
-   if(title){const h=el('<p class="lbl" style="margin:12px 2px 4px"></p>');h.textContent=title+' ('+arr.length+')';box.append(h)}
-   for(const m of arr){if(shown>=lim)break;row(m);shown++}};
-  sect(priced?(en?'Free':'Бесплатные'):'',fr);sect(priced?(en?'Paid':'Платные'):'',pd);
+   if(title){const h=el('<p class="mdl-sec"></p>');h.style.setProperty('--i',Math.min(shown,9));h.textContent=title+' ('+arr.length+')';box.append(h)}
+   for(const m of arr){if(shown>=lim)break;const r=mdlRow({id:m.id,name:m.name,on:m.id===cur,i:shown});r.onclick=()=>{s.close();onPick(m.id)};box.append(r);shown++}};
+  sect(priced&&mode===0?(en?'Free':'Бесплатные'):'',fr);sect(priced&&mode===0?(en?'Paid':'Платные'):'',pd);
+  if(!f.length){const e=el('<p class="mdl-empty"></p>');e.textContent='Ничего не найдено';box.append(e)}
   cnt.textContent=(en?'Models found: ':'Найдено моделей: ')+f.length;
-  if(shown<f.length){const mb=el('<button class="btn ghost" style="width:100%;margin-top:10px">Показать ещё</button>');mb.onclick=()=>{lim+=60;draw()};box.append(mb)}}
- inp.oninput=()=>{lim=60;draw()};draw();return s}
+  if(shown<f.length){const mb=el('<button type="button" class="btn ghost mdl-more">Показать ещё</button>');mb.onclick=()=>{lim+=60;draw('n')};box.append(mb)}}
+ inp.oninput=()=>{lim=60;draw('n')};draw('u');return s}
 /* Переключение провайдера и модели прямо в чате. */
 function modelMenu(){
  if(Chx.busy){toast('Дождитесь ответа');return}
  const ok=S.providers.filter(x=>x.ok),cur=actProv();
  if(!cur)return;
- const s=sheet(`<h2 style="margin-bottom:12px">Провайдер и модель</h2><div data-pl></div><div class="stat" style="margin:8px 0"></div><button class="btn" data-mm style="width:100%">Выбрать другую модель</button><button class="btn ghost" data-mp style="width:100%;margin-top:10px">Управление провайдерами</button>`);
- ok.forEach(p=>{
-  const r=el('<button class="opt" style="display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);color:var(--tx)"><span class="mn" style="display:block;font-size:14px"></span><small class="mi" style="display:block;font-family:var(--mono);font-size:12px;color:var(--tx2);margin-top:2px"></small></button>');
-  $('.mn',r).textContent=p.name+(p.id===cur.id?'  ✓':'');$('.mi',r).textContent=p.model;
+ const s=sheet(`<h2 class="mdl-h">Провайдер и модель</h2><div class="mdl-list mdl-pl" data-pl></div><div class="stat" style="margin:8px 0"></div><button class="btn" data-mm style="width:100%">Выбрать другую модель</button><button class="btn ghost" data-mp style="width:100%;margin-top:10px">Управление провайдерами</button>`);
+ $('.sheet',s).classList.add('mdl','mdl-menu');
+ $('[data-pl]',s).dataset.d='u';
+ ok.forEach((p,i)=>{
+  const r=mdlRow({id:p.model,name:p.name,on:p.id===cur.id,i});
   r.onclick=()=>{st.set(PROV_ACT,p.id);s.close();apiView()};
   $('[data-pl]',s).append(r)});
  $('[data-mp]',s).onclick=()=>{s.close();show('set');provPage()};
@@ -109,3 +132,4 @@ function chatProvForm(i,done){
  $('[data-bk]',d).onclick=d.close;
  return d}
 i18nAdd(PROV_EN);
+i18nAdd({"Бесплатная":"Free","Платная":"Paid","Ничего не найдено":"Nothing found"});

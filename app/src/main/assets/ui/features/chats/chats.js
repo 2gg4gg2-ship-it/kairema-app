@@ -80,6 +80,34 @@ Chx.remove=(c,done)=>{
   const wasCur=c===Chx.cur;
   if(wasCur){Chx.open(Chx.fresh());apiView()}
   Chx.persist();Hooks.run('sync:delete','chat',c.id);done();toast('Чат удалён')})};
+/* Новый чат: сначала просим название. «Пропустить» — название появится само по первым строкам сообщения. */
+Chx.create=done=>{
+ Chx.load();
+ if(Chx.busy){toast('Дождитесь ответа');return}
+ const s=sheet(`<h2 class="chx-h">Новый чат</h2><p class="sub chx-p">Введите название или пропустите: оно появится само по первым строкам вашего сообщения.</p><div class="fld"><label for="ch-new">Название</label><input id="ch-new" maxlength="60" autocomplete="off" placeholder="Например, План поездки"></div><div class="two chx-two"><button class="btn ghost" data-s type="button">Пропустить</button><button class="btn" data-o type="button" disabled>Создать</button></div>`);
+ const i=$('#ch-new',s),ok=$('[data-o]',s);
+ const make=title=>{
+  s.close();
+  if(Chx.cur.msgs.length)Chx.open(Chx.fresh());
+  Chx.cur.title=title||'';Chx.cur.named=title?1:0;
+  done();
+  if(title)toast('Чат «'+title+'» создан')};
+ i.oninput=()=>{ok.disabled=!i.value.trim()};
+ i.onkeydown=e=>{if(e.key==='Enter'&&i.value.trim())make(i.value.trim().slice(0,60))};
+ $('[data-s]',s).onclick=()=>make('');
+ ok.onclick=()=>make(i.value.trim().slice(0,60));
+ setTimeout(()=>{try{i.focus()}catch(e){}},380)};
+/* Удалить все чаты: подтверждение, затем очистка списка и сигнал синхронизации по каждому чату. */
+Chx.removeAll=done=>{
+ Chx.load();
+ if(!Chx.list.length)return;
+ if(Chx.busy){toast('Дождитесь ответа');return}
+ ask('Удалить все чаты?','Все переписки будут удалены без возможности восстановления.','Удалить все',()=>{
+  if(Chx.busy){toast('Дождитесь ответа');return}
+  const ids=Chx.list.map(c=>c.id);
+  Chx.list=[];Chx.open(Chx.fresh());Chx.persist();
+  ids.forEach(id=>Hooks.run('sync:delete','chat',id));
+  apiView();done();toast('Все чаты удалены')})};
 function chatsPage(){
  Chx.load();
  if($('[data-screen=chats]'))return;
@@ -88,6 +116,13 @@ function chatsPage(){
   b.innerHTML='';
   const ls=[...Chx.list].sort((x,y)=>y.ts-x.ts);
   if(!ls.length)b.innerHTML='<div class="empty"><p>Сохранённых чатов пока нет.</p></div>';
+  else{
+   const bar=el(`<div class="chx-bar"><span class="sub"></span><button class="chx-all" type="button">${ic('trash')}<span>Удалить все чаты</span></button></div>`);
+   $('.sub',bar).textContent=(LANG==='en'?'Chats: ':'Чатов: ')+ls.length;
+   $('.chx-all',bar).onclick=()=>Chx.removeAll(()=>{
+    const rows=$$('.pv',b);rows.forEach((x,k)=>{x.style.setProperty('--o',Math.min(k,8));x.classList.add('gone')});
+    setTimeout(()=>d.r(),Math.min(rows.length,8)*40+340)});
+   b.append(bar)}
   ls.forEach((c,i)=>{
    const r=el(`<div class="card pv in" role="button" style="--i:${i}"><span class="m"><b></b><small></small></span><button class="cb" data-m aria-label="Меню чата">${ic('dots')}</button></div>`);
    $('b',r).textContent=c.title||(LANG==='en'?'New chat':'Новый чат');
@@ -95,10 +130,10 @@ function chatsPage(){
    r.onclick=()=>{d.close();Chx.open(c);apiView()};
    $('[data-m]',r).onclick=e=>{e.stopPropagation();menu([
     {i:'edit',l:'Переименовать',f:()=>Chx.rename(c,()=>d.r())},
-    {i:'trash',l:'Удалить',d:1,f:()=>Chx.remove(c,()=>d.r())}])};
+    {i:'trash',l:'Удалить',d:1,f:()=>Chx.remove(c,()=>{r.classList.add('gone');r.style.setProperty('--o',0);setTimeout(()=>d.r(),340)})}])};
    b.append(r)})
  },`<button class="ib" data-chn aria-label="Новый чат">${ic('plus')}</button>`);
- $('[data-chn]',d).onclick=()=>{Chx.newChat();d.close();apiView()};
+ $('[data-chn]',d).onclick=()=>Chx.create(()=>{d.close();apiView()});
  return d}
 
 /* Подключение к синхронизации: чаты как вид данных «chat». */
@@ -122,3 +157,4 @@ Hooks.on('sync:register',Sy=>Sy.register('chat',{
   if(Chx._adopt){Chx._adopt=0;if(Chx.cur&&!Chx.cur.msgs.length&&!Chx.busy&&Chx.list.length)Chx.open([...Chx.list].sort((x,y)=>y.ts-x.ts)[0])}
   if(typeof CUR!=='undefined'&&CUR==='api'&&!Chx.busy)apiView()}}));
 i18nAdd(CHATS_EN);
+i18nAdd({"Введите название или пропустите: оно появится само по первым строкам вашего сообщения.":"Enter a name or skip: it will be set automatically from the first lines of your message.","Например, План поездки":"E.g. Trip plan","Пропустить":"Skip","Создать":"Create","Удалить все чаты":"Delete all chats","Удалить все чаты?":"Delete all chats?","Все переписки будут удалены без возможности восстановления.":"All conversations will be permanently deleted.","Удалить все":"Delete all","Все чаты удалены":"All chats deleted"});
