@@ -5,7 +5,7 @@ const PROV_ACT='kact',MCACHE={};
 function actProv(){const ok=S.providers.filter(x=>x.ok);return ok.find(x=>x.id===st.get(PROV_ACT))||ok[0]}
 /* Системная инструкция: язык ответа как у вопроса и оформление в Markdown. */
 function sysPrompt(){
- return "You are the assistant inside the Kairema mobile app. Always answer in the same language as the user's latest message (for example, if the user writes in Russian, answer in Russian; if unsure, use "+(LANG==='en'?'English':'Russian')+"). Format answers with Markdown: short paragraphs, **bold** for key terms, bullet or numbered lists, tables for comparisons, fenced code blocks for code. Keep answers compact because they are read on a phone screen. If web search results are included in the user's message, base the answer on them and cite sources as [1], [2]. Today is "+new Date().toISOString().slice(0,10)+"."+(typeof memoryPrompt==='function'?memoryPrompt():'')+(typeof terminalPrompt==='function'?terminalPrompt():'')+(typeof artifactPrompt==='function'?artifactPrompt():'')}
+ return "You are the assistant inside the Kairema mobile app. Always answer in the same language as the user's latest message (for example, if the user writes in Russian, answer in Russian; if unsure, use "+(LANG==='en'?'English':'Russian')+"). Format answers with Markdown: short paragraphs, **bold** for key terms, bullet or numbered lists, tables for comparisons, fenced code blocks for code. Keep answers compact because they are read on a phone screen. If web search results are included in the user's message, base the answer on them and cite sources as [1], [2]. Today is "+new Date().toISOString().slice(0,10)+"."+(typeof stylePrompt==='function'?stylePrompt():'')+(typeof memoryPrompt==='function'?memoryPrompt():'')+(typeof terminalPrompt==='function'?terminalPrompt():'')+(typeof artifactPrompt==='function'?artifactPrompt():'')}
 function normModels(raw){
  return (Array.isArray(raw)?raw:[]).map(x=>typeof x==='string'?{id:x,name:''}:{id:String((x&&x.id)||''),name:(x&&x.name)?String(x.name):'',free:(x&&typeof x.free==='boolean')?x.free:undefined}).filter(x=>x.id)}
 async function fetchModelList(p){
@@ -58,7 +58,7 @@ function pickModel(rawList,cur,onPick){
   const sect=(title,arr)=>{
    if(!arr.length||shown>=lim)return;
    if(title){const h=el('<p class="mdl-sec"></p>');h.style.setProperty('--i',Math.min(shown,9));h.textContent=title+' ('+arr.length+')';box.append(h)}
-   for(const m of arr){if(shown>=lim)break;const r=mdlRow({id:m.id,name:m.name,on:m.id===cur,i:shown});r.onclick=()=>{s.close();onPick(m.id)};box.append(r);shown++}};
+   for(const m of arr){if(shown>=lim)break;const r=mdlRow({id:m.id,name:m.name,free:priced?!!m.free:undefined,on:m.id===cur,i:shown});r.onclick=()=>{s.close();onPick(m.id)};box.append(r);shown++}};
   sect(priced&&mode===0?(en?'Free':'Бесплатные'):'',fr);sect(priced&&mode===0?(en?'Paid':'Платные'):'',pd);
   if(!f.length){const e=el('<p class="mdl-empty"></p>');e.textContent='Ничего не найдено';box.append(e)}
   cnt.textContent=(en?'Models found: ':'Найдено моделей: ')+f.length;
@@ -124,7 +124,7 @@ function chatProvForm(i,done){
     stt.className='stat bad';stt.textContent='✗ '+err;sv.innerHTML='Проверить ключ';reset();
     if(i>=0&&kv){S.providers[i].ok=false;saveProviders();done()}
     return}
-   okList=normModels(list);MCACHE[id]={t:Date.now(),l:okList};stt.className='stat ok';stt.textContent='✓ Ключ принят. Выберите модель';sv.innerHTML='Выбрать модель';reset();choose()}
+   okList=normModels(list);MCACHE[id]={t:Date.now(),l:okList};stt.className='stat ok';stt.textContent='✓ Ключ принят. Выберите модель'+(okList.some(x=>x.free!==undefined)?' · '+(LANG==='en'?'Free: ':'Бесплатных: ')+okList.filter(x=>x.free).length+', '+(LANG==='en'?'paid: ':'платных: ')+okList.filter(x=>x.free===false).length:'');sv.innerHTML='Выбрать модель';reset();choose()}
  });
  /* Закрыли форму, а новый провайдер не сохранён: ключ с устройства удаляем. */
  const oc=d.close;
