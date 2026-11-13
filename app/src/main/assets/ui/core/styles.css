@@ -50,7 +50,7 @@ mark{background:color-mix(in srgb,var(--ac) 24%,transparent);color:inherit;borde
 @keyframes tp{0%,60%,100%{transform:scale(.6);opacity:.4}30%{transform:scale(1.15);opacity:1}}
 .cmp{margin:0 10px calc(8px + env(safe-area-inset-bottom,0px));background:var(--s1);border:1px solid var(--line);border-radius:22px;padding:8px 8px 4px 14px;transition:border-color .3s}.cmp:focus-within{border-color:var(--ac)}
 .cmp textarea{width:100%;background:none;border:0;outline:0;resize:none;line-height:22px;height:22px;max-height:110px;padding:0;overflow-y:auto;transition:height .28s var(--spring)}
-.cr{display:flex;align-items:center;gap:0;margin-left:-10px;margin-top:4px}.gl{color:var(--ok);display:grid;place-items:center;width:34px}
+.cr{display:flex;align-items:center;gap:0;margin-left:-10px;margin-top:4px}.gl{color:var(--tx2);display:grid;place-items:center;width:34px}.cr .gl{height:40px}.gl.on{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent);border-radius:50%}
 .chip2{display:flex;align-items:center;gap:6px;height:32px;padding:0 12px 0 9px;border-radius:16px;background:color-mix(in srgb,var(--ac) 18%,transparent);color:var(--tx);font-size:13px;font-weight:500;margin-left:4px;max-width:150px;overflow:hidden;white-space:nowrap}.chip2 svg{width:17px;height:17px;stroke:var(--ac);animation:pop .4s var(--spring)}@keyframes pop{from{transform:scale(.3) rotate(-40deg);opacity:0}}
 .send{width:44px;height:44px;border-radius:50%;background:var(--ac);color:var(--on);display:grid;place-items:center;flex:none;transition:transform .25s var(--spring),opacity .2s,background .4s;margin:0 2px 4px 0}.send.sm{width:40px;height:40px}
 .rec{color:var(--err);animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.4}}
@@ -237,3 +237,9 @@ mark{background:color-mix(in srgb,var(--ac) 24%,transparent);color:inherit;borde
 .st .grp .pill:last-child{border-bottom:0}
 .st .grp>:not(:last-child).pill{border-bottom:1px solid var(--line)}
 .st>.card.pf{margin-bottom:2px}
+
+/* Выделение текста: только содержимое сообщений ИИ, вывод терминала и поля ввода; остальной интерфейс не выделяется */
+html,body,#app{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
+.msg.a .bd,.msg.a .bd *,.tout,.tout *,.sx-sel,.sx-sel *{-webkit-user-select:text;user-select:text}
+.msg.a .bd .runbar,.msg.a .bd .runbar *,.msg.a .bd .art-bar,.msg.a .bd .art-bar *,.msg.a .bd .art-tb,.msg.a .bd .art-tb *,.msg.a .bd .runout *,.msg.a .bd button,.msg-act,.msg-act *{-webkit-user-select:none;user-select:none}
