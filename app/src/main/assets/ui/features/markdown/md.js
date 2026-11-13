@@ -42,7 +42,9 @@ function mdBlocks(root,text,final){
    const bd=mdTag('tbody');i+=2;
    while(i<L.length&&L[i].trim()&&L[i].includes('|')){
     const r=mdTag('tr');mdCells(L[i]).forEach(c=>{const e=mdTag('td');mdInline(e,c);r.append(e)});bd.append(r);i++}
-   tb.append(bd);wrap.append(tb);root.append(wrap);continue}
+   tb.append(bd);wrap.append(tb);root.append(wrap);
+   if(final)Hooks.run('md:table',wrap,tb);
+   continue}
   if(/^\s*>/.test(l)){
    const buf=[];while(i<L.length&&/^\s*>/.test(L[i])){buf.push(L[i].replace(/^\s*>\s?/,''));i++}
    const q=mdTag('blockquote');mdBlocks(q,buf.join('\n'),final);root.append(q);continue}

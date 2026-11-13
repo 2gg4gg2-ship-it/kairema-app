@@ -12,3 +12,11 @@
 /* Удаляемая карточка уезжает вправо и гаснет; у списка «удалить все» — каскадом (--o) */
 .card.pv.gone{animation:chx-out .34s var(--ease) forwards;animation-delay:calc(var(--o,0)*40ms);pointer-events:none}
 @keyframes chx-out{to{opacity:0;transform:translateX(44px) scale(.95)}}
+
+/* Название в списке: «Без названия» бледнее и курсивом, у закреплённых значок кнопки-булавки */
+.pv .m b{display:flex;align-items:center;gap:6px;min-width:0}
+.chx-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chx-un{opacity:.5;font-style:italic;font-weight:500}
+.chx-pin{display:inline-grid;place-items:center;flex:none;color:var(--tx2);animation:mdl-pop .4s var(--spring)}
+.chx-pin svg.i{width:15px;height:15px}
+.chx-sec{margin:14px 2px 8px;font:600 12px/1.2 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--tx2);animation:in .4s var(--ease) backwards}

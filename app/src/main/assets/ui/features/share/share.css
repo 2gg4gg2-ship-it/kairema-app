@@ -1,0 +1,25 @@
+/* Стили модуля share: кнопки под сообщением, лист «Поделиться», окно «Выделить текст». */
+.msg-act{display:flex;align-items:center;gap:2px;margin-top:6px;-webkit-user-select:none;user-select:none;animation:in .35s var(--ease) backwards}
+.msg-act button{display:grid;place-items:center;width:38px;height:36px;border-radius:10px;color:var(--tx2);transition:background .2s var(--ease),color .2s var(--ease),transform .15s var(--ease)}
+.msg-act button svg.i{width:19px;height:19px}
+.msg-act button:active{transform:scale(.88);background:var(--s2);color:var(--tx)}
+@media (hover:hover){.msg-act button:hover{background:var(--s2);color:var(--tx)}}
+.msg.a .msg-act{margin-left:-8px}
+/* Ваше сообщение: ряд кнопок раскрывается тапом по пузырю */
+.msg.u .msg-act{display:none;justify-content:flex-end;margin:4px -8px -6px 0}
+.msg.u .msg-act button{color:inherit;opacity:.75}
+.msg.u.sx-open .msg-act{display:flex}
+
+.sx-h{margin-bottom:10px;font:600 20px/1.2 var(--disp);letter-spacing:-.02em}
+.sx-list{display:flex;flex-direction:column;gap:2px}
+.sx-row{display:flex;align-items:center;gap:14px;width:100%;min-height:58px;padding:8px 6px;border-radius:14px;text-align:left;color:var(--tx);transition:background .2s var(--ease),transform .15s var(--ease);animation:in .4s var(--ease) backwards;animation-delay:calc(var(--i,0)*35ms + .08s)}
+.sx-row:active{background:var(--s2);transform:scale(.985)}
+.sx-i{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:var(--s2)}
+.sx-i svg.i{width:20px;height:20px}
+.sx-t{flex:1;min-width:0}
+.sx-t b{display:block;font:600 15.5px/1.25 var(--body)}
+.sx-t small{display:block;margin-top:2px;color:var(--tx2);font-size:13px;line-height:1.35}
+
+.sx-sel{max-height:52vh;overflow-y:auto;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--s2);font:16px/1.6 var(--serif);white-space:pre-wrap;overflow-wrap:anywhere;-webkit-user-select:text;user-select:text;outline:none}
+.sx-sel::selection{background:color-mix(in srgb,var(--ac,#3DDC84) 40%,transparent)}
+.sx-two{margin-top:14px}

@@ -33,7 +33,7 @@ memos:[],
 tpls:TPLS
 };
 const Chat={cmp:null,send(t){const c=this.cmp;if(!c||Chx.busy)return false;c.setText(t);$('.send',c).click();return true}};let PEND='';let GQ='',FLT=0;
-const copy=(t,m)=>{(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast(m),()=>toast('Не удалось скопировать'))};
+const copy=(t,m)=>{(typeof Sx!=='undefined'?Sx.copy(t):(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject())).then(()=>toast(m),()=>toast('Не удалось скопировать'))};
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
 const rx=q=>new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
 const hl=(t,q)=>q?esc(t).replace(rx(q),m=>`<mark>${m}</mark>`):esc(t);
@@ -49,7 +49,7 @@ function seg(items,idx,cb){const s=el(`<div class="segc">${items.map((x,i)=>`<bu
 function form(b,rules,btn){const chk=()=>{let ok=1;$$('[data-k]',b).forEach(i=>{const v=rules[i.dataset.k](i.value.trim());i.closest('.fld').classList.toggle('bad',!v&&i.dataset.t==='1');if(!v)ok=0});btn.disabled=!ok};$$('[data-k]',b).forEach(i=>i.addEventListener('input',()=>{i.dataset.t='1';chk()}));chk()}
 const fld=(l,k,v,er,type='text',ph='')=>`<div class="fld"><label>${l}</label><input data-k="${k}" type="${type}" value="${esc(v||'')}" placeholder="${ph}" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="er">${er}</div></div>`;
 /* ===== ЧАТЫ: сообщения и ответ ИИ ===== */
-function msgEl(m,isNew,q){const d=el(`<div class="msg ${m.r} ${isNew?'new':''}">${m.r==='a'?'<span class="mk"></span>':''}<span class="bd"></span></div>`);const bd=$('.bd',d);if(m.r==='a'&&!m.err&&!q&&m.t)mdRender(bd,m.t,m);else bd.innerHTML=hl(m.t,q);return d}
+function msgEl(m,isNew,q){const d=el(`<div class="msg ${m.r} ${isNew?'new':''}"><span class="bd"></span></div>`);const bd=$('.bd',d);if(m.r==='a'&&!m.err&&!q&&m.t)mdRender(bd,m.t,m);else bd.innerHTML=hl(m.t,q);Hooks.run('msg:render',d,m);return d}
 function paint(box,msgs,q){box.innerHTML='';if(!msgs.length)box.innerHTML='<div class="empty"><p>Диалог пуст. Напишите первое сообщение.</p></div>';msgs.forEach(m=>box.append(msgEl(m,0,q)))}
 const scr=b=>b.scrollTop=1e6;
 async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=msgEl(m,1);box.append(d);const bd=$('.bd',d);bd.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';scr(box);
@@ -151,7 +151,7 @@ function apiView(){Chx.load();const v=$('#v-api'),p=actProv();v.innerHTML='';
  $('#btn-provider-info',v).onclick=modelMenu;
  const box=$('.msgs',v);paint(box,S.apiMsgs);$('[data-chl]',v).onclick=chatsPage;$('[data-chn]',v).onclick=()=>Chx.create(apiView);
  const cmp=composer({ph:'Сообщение',chip:()=>'',onSend:async(t,f,fl)=>{const ch=Chx.cur;const m={r:'u',q:t,t:(f.length?f.join(', ')+'\n':'')+t};S.apiMsgs.push(m);autoFact(t,'');$('.empty',box)?.remove();box.append(msgEl(m,1));scr(box);cmp.busy(1);const pv0=actProv();m.parts=await readFiles((fl||[]).slice(0,6),!!pv0&&/anthropic\.com/.test(pv0.url));Chx.busy=1;try{Chx.save(ch);await respond(ch.msgs,box,'['+p.model+'] ')}finally{Chx.busy=0;Chx.save(ch);cmp.busy(0)}}});
- v.append(cmp);Chat.cmp=cmp;if(PEND){cmp.setText(PEND);PEND=''}}
+ v.append(cmp);Chat.cmp=cmp;Hooks.run('chat:rendered',v);if(PEND){cmp.setText(PEND);PEND=''}}
 /* ===== ТЕРМИНАЛ: модуль features/terminal (вкладка рисуется функцией termView) ===== */
 /* ===== НАСТРОЙКИ: провайдеры ===== */
 function provPage(){return page('providers','Мои провайдеры',(b,d)=>{

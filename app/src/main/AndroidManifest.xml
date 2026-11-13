@@ -26,6 +26,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Файлы для «Поделиться» (только чтение, временная папка cache/share) -->
+        <provider
+            android:name=".share.ShareFiles"
+            android:authorities="com.kairema.app.files"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
         <!-- Результаты команд от Termux -->
         <receiver
             android:name=".terminal.TermuxResultReceiver"

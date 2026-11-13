@@ -17,5 +17,10 @@
 .md table{border-collapse:collapse;font-size:.92em;min-width:100%}
 .md th,.md td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
 .md th{background:var(--s2);font-weight:650;white-space:nowrap}.md tr:last-child td{border-bottom:0}
+/* Ответ на засечках (как у Claude); таблицы и код остаются без засечек для читаемости */
+.msg.a .bd.md .tw{font-family:var(--sans);font-size:14.5px;line-height:1.45}
+.msg.a .bd.md table{font-size:1em}
+.msg.a .bd.md pre,.msg.a .bd.md pre code{font-family:var(--mono)}
+.msg.a .bd.md h3,.msg.a .bd.md h4,.msg.a .bd.md h5,.msg.a .bd.md h6{font-weight:600}
 .md .srcs{margin-top:.9em;padding-top:.6em;border-top:1px solid var(--line);font-size:.9em;color:var(--tx2)}
 .md .srcs>div{margin:.15em 0}.md .srct{font-weight:650;color:var(--tx)}.md .serr{color:var(--err)}

@@ -42,4 +42,4 @@ const Mem=(()=>{
 /* Факты для запроса к ИИ: добавляются к системной инструкции, если память включена. */
 function memoryPrompt(){
  if(!S.mem||!S.memos.length)return'';
- return"\n\nFacts the user asked you to remember (use them when relevant; do not mention them unless it helps):\n"+S.memos.slice(-40).map(x=>'- '+String(x[0]).slice(0,300)).join('\n')}
+ return"\n\nBackground notes about the user from the app's memory. They are private context, not a topic of conversation. Rules: (1) Use a note only when the user's current question needs it, and answer exactly what was asked, nothing more: if the user asks their name, reply with the name only. (2) Never list, recap or hint at notes the user did not ask about, even if they seem related or interesting. (3) Never say that you will remember, note or take something into account (no \"noted\", \"I'll keep that in mind\", \"учту\"), and never mention the memory itself unless the user asks about it. (4) If the user's message contradicts a note, trust the message.\nNotes:\n"+S.memos.slice(-40).map(x=>'- '+String(x[0]).slice(0,300)).join('\n')}

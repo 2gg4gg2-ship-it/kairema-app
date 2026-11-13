@@ -1,0 +1,12 @@
+/* Стили модуля artifacts: панель под блоком кода и таблицей, предпросмотр страницы. */
+.art-bar{display:flex;flex-wrap:wrap;gap:8px;margin:-.3em 0 .85em;-webkit-user-select:none;user-select:none;animation:in .35s var(--ease) backwards}
+.art-tb{margin-top:-.4em}
+.art-b{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 13px;border:1px solid var(--line);border-radius:11px;background:var(--s2);color:var(--tx);font:600 13px/1 var(--body);transition:background .2s var(--ease),transform .15s var(--ease)}
+.art-b svg.i{width:16px;height:16px;flex:none}
+.art-b:active{transform:scale(.95);background:var(--s1)}
+@media (hover:hover){.art-b:hover{background:var(--s1)}}
+
+.art-fr{flex:1;min-height:0;margin:4px 14px 0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+.art-fr iframe{display:block;width:100%;height:100%;border:0;background:#fff}
+.art-ft{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px))}
+.art-ft .art-b{flex:1 1 auto;justify-content:center}

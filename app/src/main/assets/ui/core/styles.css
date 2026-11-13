@@ -1,5 +1,5 @@
 /* ===== 01. ТОКЕНЫ: цвета, шрифты, easing ===== */
-:root{--bg:#0B0B0C;--s1:#131315;--s2:#1C1C1F;--line:#2B2B2F;--tx:#EDEDEF;--tx2:#9A9AA2;--ok:#EDEDEF;--warn:#9A9AA2;--err:#E5736B;--ac:#F2F2F4;--on:#0B0B0C;--ub:#2C2C30;--ut:#F5F5F6;--fs:16.5px;--ease:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.56,.64,1);--disp:'Space Grotesk','Manrope',sans-serif;--body:'Manrope','Space Grotesk',sans-serif;--mono:'JetBrains Mono',ui-monospace,Consolas,monospace}
+:root{--bg:#0B0B0C;--s1:#131315;--s2:#1C1C1F;--line:#2B2B2F;--tx:#EDEDEF;--tx2:#9A9AA2;--ok:#EDEDEF;--warn:#9A9AA2;--err:#E5736B;--ac:#F2F2F4;--on:#0B0B0C;--ub:#2C2C30;--ut:#F5F5F6;--fs:16.5px;--ease:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.56,.64,1);--disp:'Space Grotesk','Manrope',sans-serif;--body:'Manrope','Space Grotesk',sans-serif;--mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--serif:'Source Serif 4','Tiempos Text','Newsreader',Georgia,'Times New Roman',serif;--sans:'Inter','Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
 :root[data-theme=light]{--bg:#FAFAFA;--s1:#FFFFFF;--s2:#F0F0F2;--line:#E0E0E4;--tx:#0E0E10;--tx2:#62626A;--ok:#0E0E10;--warn:#62626A;--err:#C4453D;--ac:#0E0E10;--on:#FFFFFF;--ub:#E6E6E9;--ut:#0E0E10}
 
 /* ===== 02. БАЗА И СБРОС ===== */
@@ -41,7 +41,11 @@ mark{background:color-mix(in srgb,var(--ac) 24%,transparent);color:inherit;borde
 .msgs{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
 .msg{max-width:92%}.msg.new{animation:in .4s var(--ease) both}.msg .bd{white-space:pre-wrap;overflow-wrap:anywhere}
 .msg.u{align-self:flex-end;background:var(--ub);color:var(--ut);border:1px solid color-mix(in srgb,var(--ut) 18%,transparent);padding:10px 14px;border-radius:18px 18px 4px 18px;font-size:var(--fs)}
-.msg.a{font-size:var(--fs);line-height:1.65;background:transparent;color:var(--tx)}.msg.a .mk{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ac);margin-right:8px;transition:background .4s}
+.msg.a{font-size:var(--fs);line-height:1.65;background:transparent;color:var(--tx)}
+/* Шрифты как в приложении Claude: ответ ИИ на засечках (Source Serif 4 вместо Tiempos), ваши сообщения без засечек (Inter) */
+.msg.u{font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.msg.a .bd{font-family:var(--serif);font-size:17px;line-height:1.62;letter-spacing:.003em;-webkit-font-smoothing:antialiased}
+.msg .bd{-webkit-user-select:text;user-select:text}
 .typing{display:flex;gap:6px;align-items:center;height:24px}.typing i{width:8px;height:8px;border-radius:50%;background:var(--ac);animation:tp 1.2s var(--ease) infinite}.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
 @keyframes tp{0%,60%,100%{transform:scale(.6);opacity:.4}30%{transform:scale(1.15);opacity:1}}
 .cmp{margin:0 10px calc(8px + env(safe-area-inset-bottom,0px));background:var(--s1);border:1px solid var(--line);border-radius:22px;padding:8px 8px 4px 14px;transition:border-color .3s}.cmp:focus-within{border-color:var(--ac)}

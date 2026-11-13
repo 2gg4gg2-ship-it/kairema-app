@@ -4,6 +4,7 @@ import android.content.Context
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import com.kairema.app.data.SecureKeys
+import com.kairema.app.share.Share
 import com.kairema.app.terminal.Shell
 import com.kairema.app.terminal.TermuxRunner
 import okhttp3.Call
@@ -34,6 +35,27 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     private val calls = ConcurrentHashMap<String, Call>()
     private val sh = Shell(ctx)
     private val tm = TermuxRunner(ctx)
+    private val sx = Share(ctx)
+
+    /** Копия текста в буфер обмена Android. */
+    @JavascriptInterface
+    fun copyText(text: String): Boolean = sx.copy(text)
+
+    /** «Поделиться» текстом: системный список приложений (Telegram и др.). */
+    @JavascriptInterface
+    fun shareText(title: String, text: String) = sx.text(title, text)
+
+    /** «Поделиться» файлом (.md, .html, .csv и т.д.). */
+    @JavascriptInterface
+    fun shareFile(name: String, mime: String, content: String): Boolean = sx.file(name, mime, content)
+
+    /** Сохранение файла в «Загрузки» (Android 10+), иначе false. */
+    @JavascriptInterface
+    fun saveFile(name: String, mime: String, content: String): Boolean = sx.save(name, mime, content)
+
+    /** PDF: системный диалог печати со строкой «Сохранить как PDF». */
+    @JavascriptInterface
+    fun printHtml(title: String, html: String) = sx.print(title, html)
 
     @JavascriptInterface
     fun saveKey(id: String, key: String) = SecureKeys.save(ctx, id, key)
