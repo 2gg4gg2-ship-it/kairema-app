@@ -222,18 +222,3 @@ mark{background:color-mix(in srgb,var(--ac) 24%,transparent);color:inherit;borde
 .fld input,.fld textarea{transition:border-color .25s var(--ease),box-shadow .25s var(--ease)}
 .fld input:focus,.fld textarea:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--tx) 10%,transparent)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}.logo .ring{stroke-dashoffset:0}.logo .eye{transform:none}.word{opacity:1}}
-
-/* Цвет выделения текста: белый в тёмной теме, чёрный в светлой */
-::selection{background:var(--tx);color:var(--bg)}
-::-moz-selection{background:var(--tx);color:var(--bg)}
-/* Настройки: группы строк в карточках */
-.st .sh{border-bottom:0;margin:26px 6px 8px;padding-bottom:0;font-weight:700}
-.st .grp{background:var(--s1);border:1px solid var(--line);border-radius:18px;overflow:hidden}
-.st .grp .sr{padding:13px 14px;border-bottom:1px solid var(--line);border-radius:0}
-.st .grp .sr:last-child{border-bottom:0}
-.st .grp .sr .si{width:40px;height:40px}
-.st .grp .sr b{font-weight:600;font-size:16.5px}
-.st .grp .pill{margin:0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;min-height:54px;font-weight:600}
-.st .grp .pill:last-child{border-bottom:0}
-.st .grp>:not(:last-child).pill{border-bottom:1px solid var(--line)}
-.st>.card.pf{margin-bottom:2px}

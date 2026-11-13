@@ -1,5 +1,6 @@
 package com.kairema.app.terminal
 
+import android.app.Activity
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -31,6 +32,12 @@ class TermuxRunner(private val ctx: Context) {
         val installed = isInstalled()
         val perm = ctx.checkSelfPermission(PERM) == PackageManager.PERMISSION_GRANTED
         return JSONObject().put("installed", installed).put("permission", perm).toString()
+    }
+
+    /** Показывает системное окно запроса разрешения RUN_COMMAND (на некоторых прошивках этого пункта нет в настройках приложения). */
+    fun requestPermission() {
+        val a = ctx as? Activity ?: return
+        a.runOnUiThread { a.requestPermissions(arrayOf(PERM), REQ_PERM) }
     }
 
     private fun isInstalled(): Boolean = try {
@@ -77,7 +84,13 @@ class TermuxRunner(private val ctx: Context) {
                 .putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
                 .putExtra("com.termux.RUN_COMMAND_COMMAND_LABEL", "Kairema")
                 .putExtra("com.termux.RUN_COMMAND_PENDING_INTENT", pi)
-            ctx.startService(intent)
+            try {
+                ctx.startService(intent)
+            } catch (e: IllegalStateException) {
+                // Android не даёт запускать службу приложения, которое сейчас в фоне ("app is in background").
+                // Termux поддерживает запуск как foreground-службы, это обходит ограничение.
+                ctx.startForegroundService(intent)
+            }
         } catch (e: SecurityException) {
             fail(id, NO_PERM)
         } catch (e: Exception) {
@@ -107,6 +120,7 @@ class TermuxRunner(private val ctx: Context) {
         private const val NO_PERM =
             "Нет разрешения: Настройки Android, Приложения, Kairema, Разрешения, Дополнительные разрешения, «Run commands in Termux environment»"
         const val EXTRA_ID = "kairema_req_id"
+        private const val REQ_PERM = 7101
 
         private val jobs = ConcurrentHashMap<String, TermuxJob>()
         private val counter = AtomicInteger(5000)

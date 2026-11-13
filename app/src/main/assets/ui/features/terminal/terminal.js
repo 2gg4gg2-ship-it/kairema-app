@@ -3,6 +3,7 @@
    команда запускается только после вашего подтверждения, результат можно отправить ИИ одной кнопкой.
    Убрать модуль: удалить папку features/terminal и её строки в index.html (вкладка Терминал тогда пустая). */
 i18nAdd({"▶ Выполнить":"▶ Run","Выполнить":"Run","Всё равно выполнить":"Run anyway","Выполнить команду?":"Run the command?","Диагностика":"Diagnostics","Остановить":"Stop","Очистить":"Clear","Выберите оболочку: Android (встроенная, без python и git) или Termux (полноценный Linux, нужна установка Termux). «Диагностика» показывает, что доступно.":"Choose the shell: Android (built-in, no python or git) or Termux (a full Linux, Termux must be installed). “Diagnostics” shows what is available.","Демо: вне приложения команды не выполняются.":"Demo: commands do not run outside the app.","команда, например ls":"command, e.g. ls","Команда может удалить или изменить файлы. Проверьте её внимательно.":"The command may delete or change files. Check it carefully.","Команда выполнится в песочнице приложения на этом телефоне.":"The command will run in the app sandbox on this phone.","Отправить результат ИИ":"Send the result to AI","Исправить с ИИ":"Fix with AI","Выполняется…":"Running…","Дождитесь ответа":"Wait for the reply","Результат отправлен":"Result sent","Сессия не запущена. Нажмите «Активировать сессию», чтобы выполнять команды.":"The session is not running. Tap “Start session” to run commands.","● сессия запущена":"● session started","— сессия остановлена":"— session stopped","Оболочка":"Shell","Проверить Termux":"Check Termux","Выполнить и продолжать сам":"Run and continue automatically","Стоп":"Stop","Агент":"Agent","Запустить":"Start","Выключить":"Turn off","Что доступно на этом телефоне":"What is available on this phone","Сессия не запущена. Нажмите «Запустить», чтобы выполнять команды.":"The session is not running. Tap “Start” to run commands."});
+let TERMUX_WAIT=25;
 const Term=(()=>{
  const KH='kairema.term.hist.v1',MARK='\u0001',CAP=30000;
  let log=[],cur=null,redraw=null,hist=[],st='off',mark='off',backend='android';
@@ -49,7 +50,12 @@ const Term=(()=>{
   add(sx.installed?'o':'e',(sx.installed?'✓ ':'✗ ')+T2('Termux установлен','Termux is installed'));
   add(sx.permission?'o':'e',(sx.permission?'✓ ':'✗ ')+T2('Разрешение «Run commands in Termux environment» выдано','Permission “Run commands in Termux environment” is granted'));
   if(!sx.installed){add('o',T2('Установите Termux с GitHub (github.com/termux/termux-app/releases) или F-Droid. Версию из Google Play не берите.','Install Termux from GitHub (github.com/termux/termux-app/releases) or F-Droid. Do not use the Google Play version.'));return}
-  if(!sx.permission){add('o',T2('Выдайте: Настройки Android, Приложения, Kairema, Разрешения, Дополнительные разрешения, «Run commands in Termux environment».','Grant it: Android Settings, Apps, Kairema, Permissions, Additional permissions, “Run commands in Termux environment”.'));return}
+  if(!sx.permission){
+   add('o',T2('Сейчас Android покажет окно с вопросом. Нажмите «Разрешить».','Android will show a question now. Tap “Allow”.'));
+   Native.sync('termuxRequestPermission');
+   for(let i=0;i<TERMUX_WAIT&&!sx.permission;i++){await wait(1000);try{sx=JSON.parse(Native.sync('termuxStatus')||'{}')}catch(e){}}
+   add(sx.permission?'o':'e',(sx.permission?'✓ ':'✗ ')+T2('Разрешение «Run commands in Termux environment»','Permission “Run commands in Termux environment”'));
+   if(!sx.permission){add('o',T2('Окно не появилось или вы отказали. Попробуйте ещё раз нажать «Проверить Termux». Если окна нет и в настройках Kairema нет этого разрешения, напишите об этом в чат: есть запасной способ.','The window did not appear or you denied it. Tap “Check Termux” again. If there is no window and no such permission in Kairema settings, tell the assistant: there is a fallback.'));return}}
   add('c','› '+T2('Пробный запуск в Termux','Test run in Termux'));
   const r=await exec('echo termux-ok; python --version 2>&1 | head -1; git --version 2>&1 | head -1; curl --version 2>&1 | head -1',{backend:'termux',timeout:25});
   if(r.out)add('o',r.out);
@@ -57,7 +63,7 @@ const Term=(()=>{
    add('e',r.err);
    add('o',T2('Если Termux не отвечает, откройте Termux и выполните одну команду:','If Termux does not respond, open Termux and run one command:'));
    add('o','mkdir -p ~/.termux && echo "allow-external-apps=true" >> ~/.termux/termux.properties');
-   add('o',T2('Потом полностью закройте Termux (смахните из списка приложений) и откройте снова. Также отключите для Termux экономию батареи.','Then fully close Termux (swipe it away) and open it again. Also disable battery optimization for Termux.'))}
+   add('o',T2('Если ошибка про «app is in background»: в настройках Android для Termux выберите батарея «Без ограничений», включите «Автозапуск» и «Поверх других приложений», потом откройте Termux один раз. Если ошибки нет, полностью закройте Termux (смахните из списка приложений) и откройте снова.','If the error mentions “app is in background”: in Android settings set Termux battery to “Unrestricted”, enable “Autostart” and “Draw over other apps”, then open Termux once. Otherwise fully close Termux (swipe it away) and open it again.'))}
   else if(!/termux-ok/.test(r.out||''))add('e',exitText(r));
   else add('o','✓ '+T2('Termux отвечает. Если python или git не нашлись, в Termux выполните: pkg install python git curl','Termux responds. If python or git are missing, run in Termux: pkg install python git curl'));
   tick()}

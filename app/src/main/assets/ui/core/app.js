@@ -182,7 +182,7 @@ function memPage(){page('memory','',(b,d)=>{
  <div>${opt('mem','Использовать память в ответах','Разрешить учитывать сохранённые факты и профиль при формировании ответов. Выключение не удаляет записи.')}${opt('auto','Автоматически находить новые факты','Включить локальное распознавание простых фраз о себе, например «меня зовут…» или «мне нравится…». Выключение останавливает только автоматическое добавление.')}</div>
  <div class="sh">Профиль памяти</div>
  <div class="mp"><div class="fld"><label>Что Kairema важно знать о вас?</label><small class="d">Краткое описание о вас, ваши цели и предпочтения.</small><textarea class="ta" placeholder="Например: я учусь на дизайнера и предпочитаю короткие ответы с примерами."></textarea><p class="hint">Не добавляйте пароли, ключи API и другую секретную информацию.</p></div><div class="two"><button class="btn" data-sv>Сохранить</button><button class="btn ghost" data-cn>Отмена</button></div></div>
- <div class="sh">Список сохранённых фактов:</div><div class="ml"></div><button class="addf" data-add>${ic('plus')}Добавить новый факт</button><button class="addf dng" data-clr>${ic('trash')}Удалить все факты</button>`;
+ <div class="sh">Список сохранённых фактов:</div><div class="ml"></div><button class="addf" data-add>${ic('plus')}Добавить новый факт</button>`;
  [...b.children].forEach((c,k)=>c.style.setProperty('--i',k));
  const nEl=$('[data-n]',b),sEl=$('[data-s]',b),ml=$('.ml',b);
  const stat=bump=>{nEl.textContent=String(S.memos.length).padStart(2,'0');sEl.textContent=S.mem?'Вкл':'Выкл';sEl.classList.toggle('on',S.mem);if(bump){nEl.classList.add('bump');setTimeout(()=>nEl.classList.remove('bump'),260)}};
@@ -190,11 +190,10 @@ function memPage(){page('memory','',(b,d)=>{
  const ta=$('.ta',b),mp=$('.mp',b);ta.value=S.profD===null?S.prof:S.profD;ta.oninput=()=>S.profD=ta.value;
  $('[data-sv]',b).onclick=()=>{S.prof=ta.value.trim();S.profD=S.prof;ta.value=S.prof;mp.classList.remove('ok');void mp.offsetWidth;mp.classList.add('ok');toast('Профиль памяти сохранён')};
  $('[data-cn]',b).onclick=()=>{S.profD=S.prof;ta.value=S.prof};
- const clr=$('[data-clr]',b);const facts=(fl,init)=>{ml.innerHTML='';clr.style.display=S.memos.length?'':'none';if(!S.memos.length)ml.innerHTML='<p class="hint" style="margin:0 4px 10px">Сохранённых фактов пока нет.</p>';
+ const facts=(fl,init)=>{ml.innerHTML='';if(!S.memos.length)ml.innerHTML='<p class="hint" style="margin:0 4px 10px">Сохранённых фактов пока нет.</p>';
   S.memos.forEach((x,i)=>{const r=el(`<div class="ft ${init?'in':''} ${i===fl?'fl':''}" style="--i:${i}"><span class="n">${String(i+1).padStart(2,'0')}</span><p></p><div class="fa2"><button class="fbtn" data-e data-action="memory:edit">${ic('edit')}Редактировать</button><button class="fbtn fdel" data-d data-action="memory:delete">${ic('trash')}Удалить</button></div></div>`);$('p',r).textContent=x[0];if(x[1]){const s=document.createElement('small');s.textContent=x[1];$('p',r).after(s)}
    $('[data-e]',r).onclick=()=>factSheet(x[0],v=>{x[0]=v;Hooks.run('memory:changed');facts(i);toast('Факт обновлён')});
    $('[data-d]',r).onclick=()=>ask('Удалить факт?','Факт будет удалён из памяти без возможности восстановления.','Удалить',()=>{r.style.maxHeight=r.offsetHeight+'px';void r.offsetHeight;r.classList.add('rm');setTimeout(()=>{S.memos.splice(S.memos.indexOf(x),1);Hooks.run('memory:changed');facts();stat(1);toast('Факт удалён')},320)});ml.append(r)})};
- clr.onclick=()=>ask('Удалить все факты?','Все сохранённые факты (' +S.memos.length+') будут удалены без возможности восстановления.','Удалить всё',()=>{S.memos.length=0;Hooks.run('memory:changed');facts();stat(1);toast('Все факты удалены')});
  $('[data-add]',b).onclick=()=>factSheet(null,v=>{S.memos.push([v,'']);Hooks.run('memory:changed');facts(S.memos.length-1);stat(1);ml.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'});toast('Факт добавлен')});
  facts(-1,1);stat()})}
 /* ===== ШАБЛОНЫ ПРОМПТОВ: встроенные + свои (хранение через Api.templates) ===== */
@@ -270,9 +269,7 @@ function setView(){const v=$('#v-set'),p=S.p,TN=['Тёмная','Светлая'
  $$('[data-go]',v).forEach(b=>b.onclick=()=>({prof:()=>openScreen('profile'),mem:()=>openScreen('memory'),prov:()=>openScreen('providers'),tpl:()=>openScreen('templates'),add:()=>provForm(-1,setView,'chat'),adds:()=>provForm(-1,setView,'search'),about:()=>openScreen('about')})[b.dataset.go]());
  $$('[data-tg]',v).forEach(b=>b.onclick=()=>{S.web=!S.web;st.set('kw',S.web?'1':'0');$('.sw',b).classList.toggle('on',S.web);bus.forEach(f=>f());toast(S.web?'Поиск в интернете включён':'Поиск в интернете выключен')});
  $('[data-theme]',v).onclick=()=>{const s=sheet(`<h2 style="margin-bottom:8px">Тема</h2><div id="tl2"></div>`);TK.forEach((k,j)=>{const b=el(`<button class="sr in" style="--i:${j}"><span class="m"><b>${TN[j]}</b></span>${S.theme===k?ic('ok'):''}</button>`);b.onclick=()=>{S.theme=k;applyTheme();s.close();setView();toast('Сохранено')};$('#tl2',s).append(b)})};
- $('[data-act=out]',v).onclick=logout;Hooks.run('settings:rendered',v);groupRows($('.st',v))}
-/* Строки настроек подряд складываются в скруглённую карточку, чтобы ничего не «висело» в воздухе. */
-function groupRows(box){if(!box)return;let g=null;[...box.children].forEach(c=>{if(c.matches('.sr,.pill')){if(!g){g=el('<div class="grp"></div>');c.before(g)}g.append(c)}else g=null})}
+ $('[data-act=out]',v).onclick=logout;Hooks.run('settings:rendered',v)}
 /* ===== НАВИГАЦИЯ ===== */
 const TAB_SCREEN={api:'api',term:'terminal',set:'settings'};
 const TABS=[['api','chat','Чат'],['term','term','Терминал'],['set','set','Настройки']];
