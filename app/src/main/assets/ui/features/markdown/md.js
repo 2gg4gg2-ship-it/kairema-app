@@ -1,7 +1,7 @@
 /* ===== MARKDOWN → DOM для ответов ИИ =====
    Безопасно: всё строится через createElement и textContent, innerHTML не используется.
    Ссылки только http(s). Поддержка: абзацы, заголовки, списки, таблицы, цитаты, код, жирный, курсив. */
-const MD_INLINE=/(`[^`\n]+`)|(\*\*[^*\n]+?\*\*|__[^_\n]+?__)|(\*[^*\s][^*\n]*?\*|(?<![\w])_[^_\s][^_\n]*?_(?![\w]))|(\[[^\]\n]+\]\(https?:\/\/[^\s)]+\))|(https?:\/\/[^\s<>()]*[^\s<>().,;:!?*_])/g;
+const MD_INLINE=/(`[^`\n]+`)|(\*\*[^*\n]+?\*\*|__[^_\n]+?__)|(\*[^*\s][^*\n]*?\*|(?<![\w])_[^_\s][^_\n]*?_(?![\w]))|(\[[^\]\n]+\]\(https?:\/\/[^\s)]+\))|(https?:\/\/[^\s<>()]*[^\s<>().,;:!?*_])|(~~[^~\n]+?~~)|(==[^=\s](?:[^=\n]*?[^=\s])?==)|(\*\*\*[^*\n]+?\*\*\*)/g;
 function mdTag(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e}
 function mdLink(text,url){const a=mdTag('a');a.textContent=text;a.href=url;a.rel='noopener noreferrer';return a}
 function mdInline(parent,text){
@@ -13,6 +13,9 @@ function mdInline(parent,text){
   else if(m[2]){n=mdTag('strong');mdInline(n,t.slice(2,-2))}
   else if(m[3]){n=mdTag('em');mdInline(n,t.slice(1,-1))}
   else if(m[4]){const k=t.indexOf('](');n=mdLink(t.slice(1,k),t.slice(k+2,-1))}
+  else if(m[6]){n=mdTag('del');mdInline(n,t.slice(2,-2))}
+  else if(m[7]){n=mdTag('mark');mdInline(n,t.slice(2,-2))}
+  else if(m[8]){n=mdTag('strong');const e2=mdTag('em');mdInline(e2,t.slice(3,-3));n.append(e2)}
   else n=mdLink(t,t);
   parent.append(n);last=m.index+t.length}
  if(last<text.length)parent.append(document.createTextNode(text.slice(last)))}
@@ -89,4 +92,10 @@ function mdLive(bd,m,after){
  bd._mt=m.t;
  if(bd._mr)return;
  bd._mr=requestAnimationFrame(()=>{bd._mr=0;mdRender(bd,bd._mt);if(after)after()})}
+/* Инструкция моделям: богатое оформление, чтобы ответ не был сплошным текстом. Работает для любой подключённой модели. */
+function stylePrompt(){
+ return "\n\nFormatting style (important). Never answer with a solid wall of text. The app renders rich Markdown, so use a variety of styles: "
+  +"short headings (## and ###) to split longer answers; **bold** for key terms, names, numbers and conclusions (several per answer); *italic* for emphasis, titles and foreign words; ~~strikethrough~~ for corrections; ==highlight== for the single most important phrase; "
+  +"> quotes for notes and warnings; bullet and numbered lists; tables for comparisons; `inline code` for commands, files and values; fenced code blocks for code; --- to separate big parts. "
+  +"Start with the answer itself, then the details. Keep paragraphs to 1-3 sentences. Even a short answer should have at least one bold key phrase."}
 i18nAdd({"Источники":"Sources"});

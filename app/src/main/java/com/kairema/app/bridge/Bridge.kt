@@ -79,12 +79,6 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         tm.run(reqId, cmd, timeoutSec.toLong(), { push(reqId, it) }, { done(reqId, it) })
     }
 
-    /** Показывает системное окно запроса разрешения для Termux. */
-    @JavascriptInterface
-    fun termuxRequestPermission() {
-        tm.requestPermission()
-    }
-
     /** Проверка Termux: JSON с полями installed и permission. */
     @JavascriptInterface
     fun termuxStatus(): String = tm.status()
