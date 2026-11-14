@@ -42,6 +42,7 @@ app/
       voice/VoiceBridge.kt    голосовой ввод через SpeechRecognizer, запрос разрешения на микрофон
       data/ChatDb.kt, DbBridge.kt  SQLite с чатами и файлы вложений (KairemaDb)
       service/KeepAliveService.kt  служба переднего плана на время задач
+      search/WebRelevance.kt  очистка запроса и отбор результатов веб-поиска
       search/SearchIndex.kt, SearchBridge.kt  индекс поиска kairema_search.db (FTS5, запасной режим LIKE), JS-имя KairemaSearch
       share/Share.kt          буфер обмена, «Поделиться», сохранение в Загрузки, печать в PDF; ShareFiles.kt отдаёт файлы другим приложениям
 ```
@@ -110,4 +111,4 @@ app/
 Загрузите `kairema.zip` в корень репозитория. Сборка сама распакует его в папки
 выше, удалит zip и соберёт APK (раздел Actions → Artifacts).
 
-Текущая версия: 0.17.0
+Текущая версия: 0.17.1

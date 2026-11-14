@@ -3,8 +3,10 @@ package com.kairema.app.system
 import android.app.Activity
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Rect
 import android.os.Build
 import android.view.View
+import android.view.ViewTreeObserver
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.webkit.JavascriptInterface
@@ -19,7 +21,10 @@ import android.webkit.WebView
 class SystemBridge(private val act: Activity, private val web: WebView) {
 
     private var top = 0
-    private var bottom = 0
+    private var bottom = 0 // панель навигации
+    private var imeInset = 0 // клавиатура по данным WindowInsets
+    private var kbLayout = 0 // клавиатура по размеру окна (запасной способ)
+    private var kb = 0 // итоговая высота клавиатуры в dp
 
     /** Включить режим «на весь экран» и подписаться на размеры панелей. */
     fun setup() {
@@ -46,25 +51,48 @@ class SystemBridge(private val act: Activity, private val web: WebView) {
                 val bars = ins.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
                 val ime = ins.getInsets(WindowInsets.Type.ime())
                 top = Math.round(bars.top / d)
-                bottom = Math.round(Math.max(bars.bottom, ime.bottom) / d)
+                bottom = Math.round(bars.bottom / d)
+                imeInset = Math.round(ime.bottom / d)
             } else {
                 @Suppress("DEPRECATION")
                 top = Math.round(ins.systemWindowInsetTop / d)
                 @Suppress("DEPRECATION")
-                bottom = Math.round(ins.systemWindowInsetBottom / d)
+                bottom = Math.round(ins.stableInsetBottom / d)
+                @Suppress("DEPRECATION")
+                imeInset = Math.max(0, Math.round((ins.systemWindowInsetBottom - ins.stableInsetBottom) / d))
             }
-            push()
+            recalc()
             ins
         }
+        // Запасной способ: в режиме «на весь экран» окно не сжимается, а WindowInsets на некоторых прошивках
+        // не доходят до WebView. Высоту клавиатуры тогда видно по тому, насколько поднялся низ видимой области.
+        val decor = w.decorView
+        decor.viewTreeObserver.addOnGlobalLayoutListener(ViewTreeObserver.OnGlobalLayoutListener {
+            val r = Rect()
+            decor.getWindowVisibleDisplayFrame(r)
+            val h = decor.height
+            val diff = if (h > 0) h - r.bottom else 0
+            val k = if (diff > h * 0.15) Math.round(diff / web.resources.displayMetrics.density) else 0
+            if (k != kbLayout) {
+                kbLayout = k
+                recalc()
+            }
+        })
         web.requestApplyInsets()
     }
 
     private fun isNight(): Boolean =
         (act.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 
-    /** Передать в интерфейс размеры панелей и тему (после загрузки страницы и при их изменении). */
+    private fun recalc() {
+        val k = Math.max(imeInset, kbLayout)
+        if (k != kb) kb = k
+        push()
+    }
+
+    /** Передать в интерфейс размеры панелей, высоту клавиатуры и тему (после загрузки страницы и при их изменении). */
     fun push() {
-        val js = "window.Sys&&(Sys.insets($top,$bottom),Sys.system(${isNight()}))"
+        val js = "window.Sys&&(Sys.insets($top,$bottom,$kb),Sys.system(${isNight()}))"
         web.post { web.evaluateJavascript(js, null) }
     }
 

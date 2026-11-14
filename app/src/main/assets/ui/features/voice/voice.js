@@ -20,6 +20,6 @@ const Voice=(()=>{
    else if(type==='error')toast(text==='unavailable'?'Голосовой ввод недоступен: установите приложение Google или включите службу распознавания речи':'Ошибка голосового ввода');
    if(type==='end'||type==='noperm'||type==='error')fin()},
   toggle(mic,ta,grow){
-   if(cur){try{B.stop()}catch(e){}return}
+   if(cur){const me=cur;try{B.stop()}catch(e){}setTimeout(()=>{if(cur===me)fin()},2500);return}
    cur={mic,ta,grow,base:ta.value.trim()};mic.classList.add('rec');{const c=cm();if(c)c.classList.add('listening')}
    try{B.start(lang())}catch(e){fin();toast('Ошибка голосового ввода')}}}})();

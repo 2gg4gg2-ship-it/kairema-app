@@ -3,6 +3,7 @@ package com.kairema.app.bridge
 import android.content.Context
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import com.kairema.app.search.WebRelevance
 import com.kairema.app.data.SecureKeys
 import com.kairema.app.service.KeepAliveService
 import com.kairema.app.share.Share
@@ -273,14 +274,14 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                 val key = SecureKeys.load(ctx, p.getString("id"))
                     ?: throw IllegalStateException("ключ не найден на устройстве")
                 val url = p.getString("url").trim()
-                val call = http.newCall(buildSearchRequest(url, key, query))
+                val call = http.newCall(buildSearchRequest(url, key, WebRelevance.cleanQuery(query)))
                 calls[reqId] = call
                 call.execute().use { resp ->
                     if (!resp.isSuccessful) {
                         done(reqId, errorText(resp))
                         return@use
                     }
-                    push(reqId, parseSearch(url, resp.body!!.string()))
+                    push(reqId, WebRelevance.filter(parseSearch(url, resp.body!!.string()), query))
                     done(reqId, null)
                 }
             } catch (e: Exception) {

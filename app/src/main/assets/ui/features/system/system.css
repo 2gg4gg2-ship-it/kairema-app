@@ -1,0 +1,5 @@
+/* ===== КЛАВИАТУРА: экраны поднимаются над ней (класс .kb ставит system.js, высота в --kb) ===== */
+.kb nav{display:none}
+.kb .view,.kb .spg,.kb .sheet-bg,.kb .full:not(#splash){bottom:var(--kb)}
+.kb .cmp{margin-bottom:8px}
+.kb .sheet{max-height:100%;padding-bottom:20px}

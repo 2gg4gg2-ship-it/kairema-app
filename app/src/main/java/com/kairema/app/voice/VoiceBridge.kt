@@ -5,6 +5,8 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -22,6 +24,9 @@ class VoiceBridge(private val act: Activity, private val web: WebView) {
     private var rec: SpeechRecognizer? = null
     private var lang = "ru-RU"
     private var waitingPermission = false
+    private var active = false
+    private var gen = 0
+    private val ui = Handler(Looper.getMainLooper())
 
     @JavascriptInterface
     fun available(): Boolean = SpeechRecognizer.isRecognitionAvailable(act)
@@ -41,7 +46,17 @@ class VoiceBridge(private val act: Activity, private val web: WebView) {
 
     @JavascriptInterface
     fun stop() {
-        act.runOnUiThread { rec?.stopListening() }
+        act.runOnUiThread {
+            rec?.stopListening()
+            // Распознаватель иногда не отвечает после stopListening (если речи ещё не было): через 1,5 с обрываем сами.
+            val g = gen
+            ui.postDelayed(Runnable {
+                if (active && g == gen) {
+                    rec?.cancel()
+                    send("end", "")
+                }
+            }, 1500)
+        }
     }
 
     /** Вызывается из MainActivity после ответа на запрос разрешения. */
@@ -83,6 +98,8 @@ class VoiceBridge(private val act: Activity, private val web: WebView) {
             return
         }
         rec?.destroy()
+        gen++
+        active = true
         val r = SpeechRecognizer.createSpeechRecognizer(act)
         r.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) = send("start", "")
@@ -128,6 +145,7 @@ class VoiceBridge(private val act: Activity, private val web: WebView) {
         b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull() ?: ""
 
     private fun send(type: String, text: String) {
+        if (type == "end") active = false
         val js = "window.Voice&&Voice.ev(" + JSONObject.quote(type) + "," + JSONObject.quote(text) + ")"
         web.post { web.evaluateJavascript(js, null) }
     }
