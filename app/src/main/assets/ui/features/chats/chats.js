@@ -94,6 +94,7 @@ Chx.create=done=>{
  Chx.load();
  if(Chx.busy){toast('Дождитесь ответа');return}
  const s=sheet(`<h2 class="chx-h">Новый чат</h2><p class="sub chx-p">Введите название или пропустите: оно появится само по первым строкам вашего сообщения.</p><div class="fld"><label for="ch-new">Название</label><input id="ch-new" maxlength="60" autocomplete="off" placeholder="Например, План поездки"></div><div class="two chx-two"><button class="btn ghost" data-s type="button">Пропустить</button><button class="btn" data-o type="button" disabled>Создать</button></div>`);
+ s.classList.add('mid');setTimeout(()=>{try{$('#ch-new',s).focus()}catch(e){}},380);
  const i=$('#ch-new',s),ok=$('[data-o]',s);
  const make=title=>{
   s.close();

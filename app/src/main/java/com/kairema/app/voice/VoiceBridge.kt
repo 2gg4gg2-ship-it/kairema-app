@@ -51,6 +51,17 @@ class VoiceBridge(private val act: Activity, private val web: WebView) {
         if (granted) begin() else send("noperm", "")
     }
 
+    /** Результат системного окна голосового ввода (запасной путь). */
+    fun onResult(resultCode: Int, data: Intent?) {
+        if (resultCode == Activity.RESULT_OK) {
+            val t = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty()
+            if (t.isNotEmpty()) send("result", t) else send("silence", "")
+        } else {
+            send("silence", "")
+        }
+        send("end", "")
+    }
+
     fun destroy() {
         rec?.destroy()
         rec = null
@@ -58,7 +69,17 @@ class VoiceBridge(private val act: Activity, private val web: WebView) {
 
     private fun begin() {
         if (!SpeechRecognizer.isRecognitionAvailable(act)) {
-            send("error", "unavailable")
+            // Нет службы распознавания внутри приложения: пробуем системное окно голосового ввода.
+            val i = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                .putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang)
+            try {
+                @Suppress("DEPRECATION")
+                act.startActivityForResult(i, REQ_SPEECH)
+                send("start", "")
+            } catch (e: Exception) {
+                send("error", "unavailable")
+            }
             return
         }
         rec?.destroy()
@@ -113,5 +134,6 @@ class VoiceBridge(private val act: Activity, private val web: WebView) {
 
     companion object {
         const val REQ_MIC = 7102
+        const val REQ_SPEECH = 7104
     }
 }

@@ -147,14 +147,25 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                             done(reqId, "ошибка: " + err.optString("message"))
                             return@use
                         }
-                        val text: String? = if (anthropic) {
-                            if (j.optString("type") == "content_block_delta") {
-                                j.optJSONObject("delta")?.optString("text")
-                            } else null
+                        var text: String? = null
+                        var thought: String? = null
+                        if (anthropic) {
+                            val delta = if (j.optString("type") == "content_block_delta") j.optJSONObject("delta") else null
+                            if (delta != null) {
+                                if (delta.optString("type") == "thinking_delta") thought = delta.optString("thinking")
+                                else text = delta.optString("text")
+                            }
                         } else {
                             val d = j.optJSONArray("choices")?.optJSONObject(0)?.optJSONObject("delta")
-                            if (d == null || d.isNull("content")) null else d.optString("content")
+                            if (d != null) {
+                                if (!d.isNull("content")) text = d.optString("content")
+                                val r = if (!d.isNull("reasoning_content")) d.optString("reasoning_content")
+                                else if (!d.isNull("reasoning")) d.optString("reasoning") else null
+                                if (!r.isNullOrEmpty()) thought = r
+                            }
                         }
+                        // Размышления модели идут отдельно: в начале куска символ \u0001.
+                        if (!thought.isNullOrEmpty()) push(reqId, "\u0001" + thought)
                         if (!text.isNullOrEmpty()) push(reqId, text)
                     }
                     done(reqId, null)
@@ -164,6 +175,88 @@ class Bridge(private val ctx: Context, private val web: WebView) {
             }
         }
     }
+
+    /** Создание изображения. OpenRouter: chat/completions с modalities, остальные: /images/generations. Ответ: JSON {mime, b64}. */
+    @JavascriptInterface
+    fun image(reqId: String, provider: String, prompt: String) {
+        pool.execute {
+            try {
+                val p = JSONObject(provider)
+                val key = SecureKeys.load(ctx, p.getString("id"))
+                    ?: throw IllegalStateException("ключ не найден на устройстве")
+                val base = normBase(p.getString("url"))
+                if (base.contains("anthropic.com")) {
+                    done(reqId, "Anthropic не создаёт изображения")
+                    return@execute
+                }
+                val openRouter = base.contains("openrouter.ai")
+                val body = JSONObject().put("model", p.getString("model"))
+                val endpoint: String
+                if (openRouter) {
+                    endpoint = "$base/chat/completions"
+                    body.put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", prompt)))
+                    body.put("modalities", JSONArray().put("image").put("text"))
+                } else {
+                    endpoint = "$base/images/generations"
+                    body.put("prompt", prompt).put("n", 1).put("size", "1024x1024")
+                }
+                val call = http.newCall(
+                    Request.Builder().url(endpoint)
+                        .header("Authorization", "Bearer $key")
+                        .post(body.toString().toRequestBody("application/json".toMediaType()))
+                        .build()
+                )
+                calls[reqId] = call
+                call.execute().use { resp ->
+                    if (!resp.isSuccessful) {
+                        done(reqId, errorText(resp))
+                        return@use
+                    }
+                    val j = JSONObject(resp.body!!.string())
+                    var mime = "image/png"
+                    var b64: String? = null
+                    if (openRouter) {
+                        val u = j.optJSONArray("choices")?.optJSONObject(0)?.optJSONObject("message")
+                            ?.optJSONArray("images")?.optJSONObject(0)?.optJSONObject("image_url")?.optString("url")
+                        if (u != null && u.startsWith("data:") && u.contains(",")) {
+                            mime = u.substring(5, u.indexOf(';'))
+                            b64 = u.substring(u.indexOf(',') + 1)
+                        }
+                    } else {
+                        val d0 = j.optJSONArray("data")?.optJSONObject(0)
+                        val inline = d0?.optString("b64_json").orEmpty()
+                        if (inline.isNotEmpty()) {
+                            b64 = inline
+                        } else {
+                            val u = d0?.optString("url").orEmpty()
+                            if (u.startsWith("http")) {
+                                http.newCall(Request.Builder().url(u).build()).execute().use { r ->
+                                    if (r.isSuccessful) {
+                                        mime = r.header("Content-Type") ?: "image/png"
+                                        b64 = android.util.Base64.encodeToString(r.body!!.bytes(), android.util.Base64.NO_WRAP)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (b64.isNullOrEmpty()) {
+                        done(reqId, "провайдер не вернул изображение: проверьте, что выбранная модель умеет рисовать")
+                        return@use
+                    }
+                    push(reqId, JSONObject().put("mime", mime).put("b64", b64).toString())
+                    done(reqId, null)
+                }
+            } catch (e: Exception) {
+                done(reqId, netError(e))
+            }
+        }
+    }
+
+    @JavascriptInterface
+    fun saveImage(name: String, mime: String, b64: String): Boolean = sx.saveBytes(name, mime, b64)
+
+    @JavascriptInterface
+    fun shareImage(name: String, mime: String, b64: String): Boolean = sx.fileBytes(name, mime, b64)
 
     /** Поиск в интернете: Tavily, Brave Search или Serper. Ответ приходит одним куском JSON. */
     @JavascriptInterface
@@ -336,6 +429,15 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         } else {
             endpoint = if (base.endsWith("/chat/completions")) base else "$base/chat/completions"
             rb.header("Authorization", "Bearer $key")
+        }
+        // Режимы Thinking и Instant: think > 0 думать, think < 0 отвечать быстро, 0 как есть.
+        val think = p.optInt("think", 0)
+        if (anthropic && think > 0) {
+            body.put("thinking", JSONObject().put("type", "enabled").put("budget_tokens", 4000))
+            body.put("max_tokens", 16000)
+        } else if (!anthropic && base.contains("openrouter.ai")) {
+            if (think > 0) body.put("reasoning", JSONObject().put("effort", "medium"))
+            else if (think < 0) body.put("reasoning", JSONObject().put("enabled", false))
         }
         val call = http.newCall(
             rb.url(endpoint)

@@ -150,7 +150,9 @@ class MainActivity : Activity() {
 
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == REQ_FILE) {
+        if (requestCode == VoiceBridge.REQ_SPEECH) {
+            voice?.onResult(resultCode, data)
+        } else if (requestCode == REQ_FILE) {
             val cam = cameraUri
             val result: Array<Uri>? = if (cam != null) {
                 if (resultCode == RESULT_OK) {

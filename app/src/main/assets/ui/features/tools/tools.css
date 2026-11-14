@@ -1,0 +1,45 @@
+/* Меню «+», метки режимов в поле ввода, размышления, изображения */
+.cmp .modes{display:flex;flex-wrap:wrap;gap:6px;padding:2px 8px 6px 0}.cmp .modes:empty{display:none}
+.mchip{display:inline-flex;align-items:center;height:32px;border-radius:16px;background:var(--s2);border:1px solid var(--line);animation:pop .35s var(--spring)}
+.mchip .mc-b{display:inline-flex;align-items:center;gap:6px;height:100%;padding:0 4px 0 10px;color:var(--tx);font:600 13px var(--body)}
+.mchip .mc-b svg{width:16px;height:16px}
+.mchip .mc-x{display:grid;place-items:center;width:28px;height:100%;color:var(--tx2)}.mchip .mc-x svg{width:14px;height:14px}
+.mchip.blue{background:color-mix(in srgb,var(--blue) 16%,transparent);border-color:color-mix(in srgb,var(--blue) 45%,transparent)}
+.mchip.blue .mc-b,.mchip.blue .mc-x{color:var(--blue)}
+:root{--blue:#5B9BFF}:root[data-theme=light]{--blue:#1D5FD8}
+.cmp.mb textarea{color:var(--blue);caret-color:var(--blue)}.cmp.mb textarea::placeholder{color:color-mix(in srgb,var(--blue) 55%,transparent)}
+.cmp.mb{border-color:color-mix(in srgb,var(--blue) 45%,var(--line))}
+.cb.pl{width:40px;height:40px;border-radius:50%;background:var(--s2);color:var(--tx);margin-left:2px}.cb.pl svg{width:21px;height:21px}
+/* поиск: зелёный когда работает, красный когда выключен */
+.cr .gl{width:36px;height:36px;margin-left:6px;border-radius:50%;color:var(--r);background:color-mix(in srgb,var(--r) 13%,transparent)}
+.cr .gl.on{color:var(--g);background:color-mix(in srgb,var(--g) 15%,transparent)}
+.cr .gl svg{width:19px;height:19px}
+/* меню «+» */
+.tl-list{display:flex;flex-direction:column;gap:2px}
+.tl-h{margin:10px 6px 4px;font:700 12.5px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--tx2)}.tl-h:first-child{margin-top:0}
+.tl-row .sx-i{width:40px;height:40px}.tl-row.on .sx-i{background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)}
+.tl-ck{width:22px;flex:none;color:var(--blue);display:grid;place-items:center}
+/* размышления */
+.think{margin:0 0 10px;border:1px solid var(--line);border-radius:12px;background:var(--s1);overflow:hidden;font-family:var(--sans)}
+.think summary{cursor:pointer;list-style:none;padding:9px 12px;font:600 13px var(--body);color:var(--tx2)}
+.think summary::-webkit-details-marker{display:none}
+.think .tbody{padding:0 12px 10px;max-height:220px;overflow:auto;white-space:pre-wrap;font:13px/1.5 var(--body);color:var(--tx2)}
+/* изображения */
+.imgmsg{display:block}.genimg{display:block;width:100%;max-width:520px;border-radius:16px;border:1px solid var(--line);background:var(--s1)}
+.img-act{display:flex;gap:8px;margin-top:10px}
+.img-act button{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:19px;background:var(--s2);border:1px solid var(--line);color:var(--tx);font:600 13.5px var(--body)}
+.img-act svg{width:17px;height:17px}
+.imgload{display:inline-flex;align-items:center;gap:10px;color:var(--tx2);font:14px var(--body)}
+.imgload i{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--blue);animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* голосовой ввод: понятный индикатор */
+.cmp .lsn{display:none;align-items:center;gap:10px;padding:2px 8px 8px 0;color:var(--r);font:600 13.5px var(--body)}
+.cmp.listening .lsn{display:flex}.cmp.listening{border-color:var(--r)}
+.lsn .eq{display:inline-flex;align-items:flex-end;gap:3px;height:18px}.lsn .eq i{display:block;width:3px;height:6px;border-radius:2px;background:var(--r);animation:eq .9s ease-in-out infinite}
+.lsn .eq i:nth-child(2){animation-delay:.15s}.lsn .eq i:nth-child(3){animation-delay:.3s}.lsn .eq i:nth-child(4){animation-delay:.45s}
+@keyframes eq{50%{height:18px}}
+.cb.rec{background:var(--r);color:#fff;animation:pulse 1s infinite}
+/* окно по центру (новый чат): клавиатура его не перекрывает */
+.sheet-bg.mid{align-items:flex-start;padding:max(14vh,calc(var(--sat) + 48px)) 16px 0}
+.sheet-bg.mid .sheet{border-radius:24px;border:1px solid var(--line);padding-bottom:20px;transform:translateY(-16px) scale(.96);opacity:0;transition:transform .4s var(--ease),opacity .3s}
+.sheet-bg.mid.on .sheet{transform:none;opacity:1}

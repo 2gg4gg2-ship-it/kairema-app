@@ -7,13 +7,13 @@ i18nAdd({"Голосовой ввод недоступен: установите
 const Voice=(()=>{
  const B=window.KairemaVoiceBridge;let cur=null;
  const lang=()=>LANG==='en'?'en-US':'ru-RU';
- const fin=()=>{if(cur){cur.mic.classList.remove('rec');cur=null}};
+ const cm=()=>cur&&cur.mic.closest('.cmp');const fin=()=>{if(cur){cur.mic.classList.remove('rec');const c=cm();if(c)c.classList.remove('listening');cur=null}};
  const put=t=>{if(!cur)return;cur.ta.value=cur.base+(cur.base&&t?' ':'')+t;cur.grow();cur.ta.scrollTop=cur.ta.scrollHeight};
  return{
   native:!!B,
   /* Событие из Kotlin: start, partial, result, noperm, silence, error, end */
   ev(type,text){
-   if(type==='start'){if(cur)toast('Слушаю…')}
+   if(type==='start'){}
    else if(type==='partial'||type==='result')put(text);
    else if(type==='noperm')toast('Разрешите микрофон: Настройки Android, Приложения, Kairema, Разрешения');
    else if(type==='silence')toast('Не расслышал, попробуйте ещё раз');
@@ -21,5 +21,5 @@ const Voice=(()=>{
    if(type==='end'||type==='noperm'||type==='error')fin()},
   toggle(mic,ta,grow){
    if(cur){try{B.stop()}catch(e){}return}
-   cur={mic,ta,grow,base:ta.value.trim()};mic.classList.add('rec');
+   cur={mic,ta,grow,base:ta.value.trim()};mic.classList.add('rec');{const c=cm();if(c)c.classList.add('listening')}
    try{B.start(lang())}catch(e){fin();toast('Ошибка голосового ввода')}}}})();

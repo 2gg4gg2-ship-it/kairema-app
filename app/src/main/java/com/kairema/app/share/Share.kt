@@ -84,6 +84,44 @@ class Share(private val ctx: Context) {
         }
     }
 
+    /** Сохранение двоичного файла (картинка в base64) в «Загрузки». */
+    fun saveBytes(name: String, mime: String, b64: String): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+        return try {
+            val values = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, safeName(name))
+                put(MediaStore.MediaColumns.MIME_TYPE, mime)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            }
+            val uri = ctx.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: return false
+            val out = ctx.contentResolver.openOutputStream(uri) ?: return false
+            out.use { it.write(android.util.Base64.decode(b64, android.util.Base64.DEFAULT)) }
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /** Отправка двоичного файла (картинка в base64) другим приложениям. */
+    fun fileBytes(name: String, mime: String, b64: String): Boolean = try {
+        val safe = safeName(name)
+        val dir = File(ctx.cacheDir, ShareFiles.DIR)
+        dir.mkdirs()
+        File(dir, safe).writeBytes(android.util.Base64.decode(b64, android.util.Base64.DEFAULT))
+        val uri = Uri.parse("content://" + ShareFiles.AUTHORITY + "/" + Uri.encode(safe))
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = mime
+            putExtra(Intent.EXTRA_STREAM, uri)
+            clipData = ClipData.newRawUri(safe, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        launch(Intent.createChooser(send, safe))
+        true
+    } catch (_: Exception) {
+        false
+    }
+
     /** PDF: открываем системный диалог печати, в нём «Сохранить как PDF». Скрипты на странице выключены. */
     fun print(title: String, html: String) {
         val act = ctx as? Activity ?: return

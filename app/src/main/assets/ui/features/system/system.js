@@ -6,7 +6,7 @@ const Sys=(()=>{
  let dark=null;try{if(B)dark=!!B.dark()}catch(e){}
  const api={
   get dark(){return dark},
-  insets(t,b){root.style.setProperty('--sat',t+'px');root.style.setProperty('--sab',b+'px')},
+  insets(t,b){t=B?Math.max(t,28)+10:t;root.style.setProperty('--sat',t+'px');root.style.setProperty('--sab',b+'px')},
   /* Системная тема изменилась (Kotlin) */
   system(d){dark=!!d;if(typeof S!=='undefined'&&S.theme==='auto'&&typeof applyTheme==='function')applyTheme()},
   /* Сказать Kotlin цвет фона и цвет значков статус-бара под текущую тему */
