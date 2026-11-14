@@ -57,7 +57,7 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
  if(Native.on&&pv){
   const anth=/anthropic\.com/.test(pv.url),last=[...msgs].reverse().find(x=>x.r==='u');
   let src=[],serr='';
-  if((S.web||(last&&last.deep))&&last){
+  if(((S.web&&!(typeof isSelfQ==='function'&&isSelfQ(last&&(last.q||last.t))))||(last&&last.deep))&&last){
    const sp=S.sproviders.find(x=>x.ok);
    if(!sp)serr='нет подключённого провайдера поиска';
    else if(last.deep&&typeof Tools!=='undefined'){const r=await Tools.research(pv,sp,(last.q||last.t),bd);src=r.src;serr=r.serr}

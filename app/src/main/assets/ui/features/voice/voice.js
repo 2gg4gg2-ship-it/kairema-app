@@ -23,6 +23,6 @@ const Voice=(()=>{
     const was=!!cur,t=type==='end'?last:'';fin();
     if(type==='end'&&was){last='';if(typeof Tts!=='undefined')Tts.afterVoice(t)}}},
   toggle(mic,ta,grow){
-   if(cur){const me=cur;try{B.stop()}catch(e){}setTimeout(()=>{if(cur===me)fin()},2500);return}
+   if(cur){const me=cur;me.mic.classList.remove('rec');{const c=cm();if(c)c.classList.remove('listening')}try{B.stop()}catch(e){}setTimeout(()=>{if(cur===me)fin()},1800);return}
    last='';cur={mic,ta,grow,base:ta.value.trim()};mic.classList.add('rec');{const c=cm();if(c)c.classList.add('listening')}
    try{B.start(lang())}catch(e){fin();toast('Ошибка голосового ввода')}}}})();

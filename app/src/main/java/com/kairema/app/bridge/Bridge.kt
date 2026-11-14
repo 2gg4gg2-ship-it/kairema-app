@@ -427,6 +427,13 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                     val free = id.endsWith(":free") ||
                         (pr.optString("prompt").toDoubleOrNull() == 0.0 && pr.optString("completion").toDoubleOrNull() == 0.0)
                     item.put("free", free)
+                    // Тариф (доллары за 1 млн токенов), нужен для подсчёта цены ответа.
+                    val pIn = pr.optString("prompt").toDoubleOrNull()
+                    val pOut = pr.optString("completion").toDoubleOrNull()
+                    if (pIn != null && pOut != null) {
+                        item.put("pin", pIn * 1_000_000)
+                        item.put("pout", pOut * 1_000_000)
+                    }
                 }
                 // Возможности модели, если провайдер их сообщает (OpenRouter): картинки на выходе и размышление.
                 val outMods = o.optJSONObject("architecture")?.optJSONArray("output_modalities")
@@ -443,16 +450,6 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                         if (n == "reasoning" || n == "include_reasoning") th = true
                     }
                     item.put("think", th)
-                }
-                // Тариф (доллары за 1 млн токенов), если провайдер его сообщает (OpenRouter).
-                val pr = o.optJSONObject("pricing")
-                if (pr != null) {
-                    val a = pr.optString("prompt").toDoubleOrNull()
-                    val b = pr.optString("completion").toDoubleOrNull()
-                    if (a != null && b != null) {
-                        item.put("pin", a * 1_000_000)
-                        item.put("pout", b * 1_000_000)
-                    }
                 }
                 out.put(item)
             }
