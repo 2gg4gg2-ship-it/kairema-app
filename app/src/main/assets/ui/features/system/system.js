@@ -7,11 +7,11 @@ const Sys=(()=>{
  const api={
   get dark(){return dark},
   /* t, b: отступы под статус-бар и панель навигации; k: высота клавиатуры (0, если закрыта). Стили: system.css */
-  insets(t,b,k){nat=[t,b,k||0];est=0;paint(t,b,k)},
+  insets(t,b,k){nat=[t,b,k||0];est=0;if(k>0)try{localStorage.setItem('kairema.kbh',String(Math.round(k)))}catch(e){}paint(t,b,k)},
   /* Запасной путь (см. ниже): оценка высоты клавиатуры, если система её не сообщила */
   _est(k){est=1;paint(nat[0],nat[1],k)}};
  let nat=[0,0,0],est=0,base=innerHeight;
- const paint=(t,b,k)=>{t=B?Math.max(t,30)+26:t;k=k||0;root.style.setProperty('--sat',t+'px');root.style.setProperty('--sab',b+'px');root.style.setProperty('--kb',k+'px');
+ const paint=(t,b,k)=>{t=B?Math.max(t,34)+34:t;k=k||0;root.style.setProperty('--sat',t+'px');root.style.setProperty('--sab',b+'px');root.style.setProperty('--kb',k+'px');
    const was=root.classList.contains('kb');root.classList.toggle('kb',k>0);
    if(k>0&&!was)setTimeout(()=>{const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)){try{a.scrollIntoView({block:'nearest'})}catch(e){}}},80)};
  /* Системная тема изменилась (Kotlin) */
@@ -23,9 +23,10 @@ const Sys=(()=>{
     Если WebView сам уменьшился под клавиатуру (innerHeight упал), оценка не нужна. */
  const isIn=()=>{const a=document.activeElement;return !!a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)};
  addEventListener('resize',()=>{if(!isIn())base=Math.max(base,innerHeight)});
- addEventListener('focusin',()=>{if(!isIn())return;setTimeout(()=>{
-  if(!isIn()||root.classList.contains('kb')||innerHeight<base*.85)return;
-  api._est(Math.round(innerHeight*.4))},700)});
- addEventListener('focusout',()=>setTimeout(()=>{if(est&&!isIn()){est=0;paint(nat[0],nat[1],0)}},200));
+ /* Поднимаем сразу при фокусе (по высоте, запомненной с прошлого раза), не дожидаясь ответа системы: так ввод не «ползёт» с задержкой.
+    Реальные данные Kotlin потом уточняют высоту. Опускаем сразу при потере фокуса. */
+ const known=()=>{let k=0;try{k=+localStorage.getItem('kairema.kbh')||0}catch(e){}return k>=150&&k<=innerHeight*.6?k:Math.round(innerHeight*.4)};
+ addEventListener('focusin',()=>{if(!isIn()||root.classList.contains('kb')||innerHeight<base*.85)return;api._est(known())});
+ addEventListener('focusout',()=>setTimeout(()=>{if(est&&!isIn()){est=0;paint(nat[0],nat[1],0)}},60));
  if(window.matchMedia){try{matchMedia('(prefers-color-scheme:dark)').addEventListener('change',e=>{if(!B)api.system(e.matches)})}catch(e){}}
  return api})();

@@ -436,6 +436,12 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                     }
                 }
                 // Возможности модели, если провайдер их сообщает (OpenRouter): картинки на выходе и размышление.
+                val inMods = o.optJSONObject("architecture")?.optJSONArray("input_modalities")
+                if (inMods != null) {
+                    var vis = false
+                    for (k in 0 until inMods.length()) if (inMods.optString(k) == "image") vis = true
+                    item.put("vis", vis)
+                }
                 val outMods = o.optJSONObject("architecture")?.optJSONArray("output_modalities")
                 if (outMods != null) {
                     var img = false

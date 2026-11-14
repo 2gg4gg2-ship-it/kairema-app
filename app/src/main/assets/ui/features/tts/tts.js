@@ -1,14 +1,12 @@
-/* ===== ОЗВУЧКА ОТВЕТОВ И РЕЖИМ «СВОБОДНЫЕ РУКИ» =====
+/* ===== ОЗВУЧКА ОТВЕТОВ =====
    Нативный синтезатор речи Android (Kotlin: com.kairema.app.tts.TtsBridge, интерфейс KairemaTtsBridge).
    Под ответом ИИ появляется кнопка «Прослушать»; нажали ещё раз, чтобы остановить.
-   «Свободные руки» (меню «+»): ответ читается вслух, затем включается микрофон, сказанное отправляется само,
-   и так по кругу, пока режим не выключат (метка в поле ввода) или вы промолчите два раза подряд.
    В браузере используется speechSynthesis, если он есть.
    Убрать модуль: удалить папку features/tts, строку в index.html и строки с Tts в voice.js и tools.js (они защищены typeof). */
-i18nAdd({"Прослушать":"Listen","Остановить":"Stop","Свободные руки":"Hands-free","Ответ вслух, затем слушает вас":"Reads the answer aloud, then listens to you","Свободные руки включены":"Hands-free on","Свободные руки выключены":"Hands-free off","Озвучка недоступна: в телефоне нет синтезатора речи":"Speech is unavailable: no text-to-speech engine on this phone","Нет голоса для этого языка: установите его в настройках синтезатора речи":"No voice for this language: install it in the text-to-speech settings","Не удалось озвучить ответ":"Could not read the answer aloud"});
+i18nAdd({"Прослушать":"Listen","Остановить":"Stop","Озвучка недоступна: в телефоне нет синтезатора речи":"Speech is unavailable: no text-to-speech engine on this phone","Нет голоса для этого языка: установите его в настройках синтезатора речи":"No voice for this language: install it in the text-to-speech settings","Не удалось озвучить ответ":"Could not read the answer aloud"});
 const Tts=(()=>{
  const B=window.KairemaTtsBridge,SS=window.speechSynthesis;
- const api={hf:false,id:'',btn:null,silent:0,native:!!B};
+ const api={id:'',btn:null,native:!!B};
  const icons=()=>{P.spk=P.spk||'<path d="M4 10v4h4l5 4V6L8 10zM16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/>';P.stp=P.stp||'<rect x="6" y="6" width="12" height="12" rx="2"/>'};
  const rate=()=>{let r=1;try{r=parseFloat(st.get('ktrate'))||1}catch(e){}return Math.min(2,Math.max(.5,r))};
  /* Текст для чтения: без разметки, кода, ссылок и таблиц */
@@ -55,26 +53,6 @@ const Tts=(()=>{
    else if(SS){const u=new SpeechSynthesisUtterance(t);u.lang=lg;u.rate=rate();const id=api.id;u.onend=()=>api.ev('end',id,'');u.onerror=()=>api.ev('error',id,'x');SS.cancel();SS.speak(u)}
    else{toast('Озвучка недоступна: в телефоне нет синтезатора речи');end('error')}}
   catch(e){toast('Не удалось озвучить ответ');end('error')}};
- /* Свободные руки */
- const cmp=()=>$('#v-api .cmp')||$('.cmp');
- api.listen=()=>{
-  if(!api.hf)return;
-  const c=cmp(),mic=c&&$('[data-v]',c);
-  if(mic&&!mic.classList.contains('rec'))mic.click()};
- api.hands=on=>{
-  api.hf=!!on;api.silent=0;
-  if(!on)api.stop();
-  toast(on?'Свободные руки включены':'Свободные руки выключены');
-  if(typeof Tools!=='undefined'&&Tools.refresh)Tools.refresh();
-  if(on)api.listen()};
- /* Распознавание речи закончилось (вызывает voice.js) */
- api.afterVoice=text=>{
-  if(!api.hf)return;
-  if(text&&text.trim()){
-   api.silent=0;
-   setTimeout(()=>{if(!api.hf)return;const c=cmp(),sd=c&&$('.send',c);if(sd&&!sd.disabled)sd.click()},350)}
-  else{api.silent++;if(api.silent>=2)api.hands(false);else setTimeout(api.listen,400)}};
- api.voiceFail=()=>{if(api.hf)api.hands(false)};
  /* Кнопка под ответом */
  const addBtn=(d,m)=>{
   if(!m||m.r!=='a'||!m.t||m.err||m.img)return;
@@ -86,7 +64,5 @@ const Tts=(()=>{
  Hooks.on('msg:render',(d,m)=>setTimeout(()=>addBtn(d,m),0));
  Hooks.on('chat:answer',(m,bd)=>{
   const d=bd&&bd.closest&&bd.closest('.msg');
-  if(d)setTimeout(()=>addBtn(d,m),0);
-  if(api.hf&&m&&m.r==='a'&&!m.err&&!m.img){
-   setTimeout(()=>{if(!api.hf)return;const b=d&&$('[data-tts]',d);api.say(m.t,b||null,why=>{if(why==='end')setTimeout(api.listen,300)})},60)}});
+  if(d)setTimeout(()=>addBtn(d,m),0);});
  return api})();

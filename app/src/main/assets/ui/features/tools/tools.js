@@ -24,7 +24,6 @@ const Tools=(()=>{
   const add=(cls,icon,txt,off,body)=>{const c=el(`<span class="mchip ${cls}"><button type="button" class="mc-b">${ic(icon)}<b></b></button><button type="button" class="mc-x" aria-label="Убрать">${ic('x')}</button></span>`);$('b',c).textContent=L(txt);$('.mc-x',c).onclick=off;if(body)$('.mc-b',c).onclick=body;box.append(c)};
   if(api.mode==='image'&&canImg())add('blue','img','Создать изображение',()=>api.set(null),()=>api.askImgModel(actProv()));
   if(api.mode==='deep')add('blue','search','Глубокое исследование',()=>api.set(null));
-  if(typeof Tts!=='undefined'&&Tts.hf)add('plain','mic','Свободные руки',()=>Tts.hands(false));
   if(tm()==='think')add('plain','brain','Думать',()=>api.setThink('auto'));
   if(tm()==='instant')add('plain','bolt','Быстрый ответ',()=>api.setThink('auto'));
   w.el.classList.toggle('mb',blue());
@@ -50,7 +49,6 @@ const Tools=(()=>{
    ...(canSearch()?[['search','Глубокое исследование','Несколько поисков и подробный отчёт с источниками',()=>{if(!S.sproviders.some(x=>x.ok)){toast('Для глубокого исследования подключите провайдера поиска (Настройки)');return}api.set('deep')},api.mode==='deep']]:[]),
    ...(canThink()?[['brain','Думать','Размышление перед ответом (Thinking)',()=>api.setThink(api.thinkMode==='think'?'auto':'think'),api.thinkMode==='think'],
    ['bolt','Быстрый ответ','Без долгих размышлений (Instant)',()=>api.setThink(api.thinkMode==='instant'?'auto':'instant'),api.thinkMode==='instant']]:[]),
-   ...(typeof Tts!=='undefined'?[['mic','Свободные руки','Ответ вслух, затем слушает вас',()=>Tts.hands(!Tts.hf),Tts.hf]]:[]),
    ...(canSearch()?[['globe','Поиск в интернете','',()=>toggleWeb(),!!S.web]]:[]),
    ['tpl','Шаблоны промтов','',()=>c.tpl()]];
   const s=sheet('<div class="tl-list"></div>');const box=$('.tl-list',s);let i=0;

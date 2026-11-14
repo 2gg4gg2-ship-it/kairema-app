@@ -20,6 +20,10 @@
     <!-- Видимость пакета Termux и службы распознавания речи (Android 11+) -->
     <queries>
         <package android:name="com.termux" />
+        <package android:name="com.google.android.googlequicksearchbox" />
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>

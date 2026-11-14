@@ -18,10 +18,7 @@ const Voice=(()=>{
    else if(type==='noperm')toast('Разрешите микрофон: Настройки Android, Приложения, Kairema, Разрешения');
    else if(type==='silence')toast('Не расслышал, попробуйте ещё раз');
    else if(type==='error')toast(text==='unavailable'?'Голосовой ввод недоступен: установите приложение Google или включите службу распознавания речи':'Ошибка голосового ввода');
-   if(type==='noperm'||type==='error'){if(typeof Tts!=='undefined')Tts.voiceFail()}
-   if(type==='end'||type==='noperm'||type==='error'){
-    const was=!!cur,t=type==='end'?last:'';fin();
-    if(type==='end'&&was){last='';if(typeof Tts!=='undefined')Tts.afterVoice(t)}}},
+   if(type==='end'||type==='noperm'||type==='error'){last='';fin()}},
   toggle(mic,ta,grow){
    if(cur){const me=cur;me.mic.classList.remove('rec');{const c=cm();if(c)c.classList.remove('listening')}try{B.stop()}catch(e){}setTimeout(()=>{if(cur===me)fin()},1800);return}
    last='';cur={mic,ta,grow,base:ta.value.trim()};mic.classList.add('rec');{const c=cm();if(c)c.classList.add('listening')}

@@ -7,7 +7,7 @@ function actProv(){const ok=S.providers.filter(x=>x.ok);return ok.find(x=>x.id==
 function sysPrompt(){
  return "You are the assistant inside the Kairema mobile app. Always answer in the same language as the user's latest message (for example, if the user writes in Russian, answer in Russian; if unsure, use "+(LANG==='en'?'English':'Russian')+"). Format answers with Markdown: short paragraphs, **bold** for key terms, bullet or numbered lists, tables for comparisons, fenced code blocks for code. Keep answers compact because they are read on a phone screen. About the app: Kairema is an Android AI chat app: the user connects their own API key of an AI provider (OpenAI-compatible or Anthropic) and chats with the model they selected; it has chat history and search, memory, web search, a terminal (Android shell or Termux), sharing and file export. You are that selected model, not a Kairema product, and you do not know who created the app or its company, so never invent a creator, company, team, ratings, reviews or financial facts about it. If web search results are included in the user's message, they come from an automatic search and may be irrelevant: use them only when they directly answer the question, cite sources as [1], [2], and otherwise ignore them silently and never invent sources. Never repeat facts from earlier answers that were not supported by real sources. Today is "+new Date().toISOString().slice(0,10)+"."+(typeof stylePrompt==='function'?stylePrompt():'')+(typeof memoryPrompt==='function'?memoryPrompt():'')+(typeof terminalPrompt==='function'?terminalPrompt():'')+(typeof artifactPrompt==='function'?artifactPrompt():'')}
 function normModels(raw){
- return (Array.isArray(raw)?raw:[]).map(x=>typeof x==='string'?{id:x,name:''}:{id:String((x&&x.id)||''),name:(x&&x.name)?String(x.name):'',free:(x&&typeof x.free==='boolean')?x.free:undefined,img:(x&&typeof x.img==='boolean')?x.img:undefined,think:(x&&typeof x.think==='boolean')?x.think:undefined,pin:(x&&typeof x.pin==='number')?x.pin:undefined,pout:(x&&typeof x.pout==='number')?x.pout:undefined}).filter(x=>x.id)}
+ return (Array.isArray(raw)?raw:[]).map(x=>typeof x==='string'?{id:x,name:''}:{id:String((x&&x.id)||''),name:(x&&x.name)?String(x.name):'',free:(x&&typeof x.free==='boolean')?x.free:undefined,img:(x&&typeof x.img==='boolean')?x.img:undefined,think:(x&&typeof x.think==='boolean')?x.think:undefined,vis:(x&&typeof x.vis==='boolean')?x.vis:undefined,pin:(x&&typeof x.pin==='number')?x.pin:undefined,pout:(x&&typeof x.pout==='number')?x.pout:undefined}).filter(x=>x.id)}
 async function fetchModelList(p){
  const c=MCACHE[p.id];if(c&&Date.now()-c.t<600000)return c.l;
  let l;
@@ -23,6 +23,7 @@ function mdlRow(o){
  $('.mdl-n',r).textContent=t;
  const idEl=$('.mdl-id',r);if(t!==o.id)idEl.innerHTML=esc(o.id).replace(/([\/:_-])/g,'$1<wbr>');else idEl.remove();
  const e=$('.mdl-e',r);
+ if(o.caps){[['img','Картинки'],['think','Think'],['vis','Зрение']].forEach(([k,n])=>{if(o.caps[k]){const g=document.createElement('em');g.className='mdl-tag cap';g.textContent=L(n);e.append(g)}})}
  if(o.free!==undefined){const g=document.createElement('em');g.className='mdl-tag '+(o.free?'free':'paid');g.textContent=o.free?'Бесплатная':'Платная';e.append(g)}
  if(o.on){r.classList.add('on');e.insertAdjacentHTML('beforeend',ic('ok'))}
  if(!e.children.length)e.remove();
@@ -58,7 +59,7 @@ function pickModel(rawList,cur,onPick){
   const sect=(title,arr)=>{
    if(!arr.length||shown>=lim)return;
    if(title){const h=el('<p class="mdl-sec"></p>');h.style.setProperty('--i',Math.min(shown,9));h.textContent=title+' ('+arr.length+')';box.append(h)}
-   for(const m of arr){if(shown>=lim)break;const r=mdlRow({id:m.id,name:m.name,free:priced?!!m.free:undefined,on:m.id===cur,i:shown});r.onclick=()=>{s.close();onPick(m.id)};box.append(r);shown++}};
+   for(const m of arr){if(shown>=lim)break;const r=mdlRow({id:m.id,name:m.name,free:priced?!!m.free:undefined,caps:(typeof Caps!=='undefined'&&Caps.of)?Caps.of(m):null,on:m.id===cur,i:shown});r.onclick=()=>{s.close();onPick(m.id)};box.append(r);shown++}};
   sect(priced&&mode===0?(en?'Free':'Бесплатные'):'',fr);sect(priced&&mode===0?(en?'Paid':'Платные'):'',pd);
   if(!f.length){const e=el('<p class="mdl-empty"></p>');e.textContent='Ничего не найдено';box.append(e)}
   cnt.textContent=(en?'Models found: ':'Найдено моделей: ')+f.length;
@@ -132,7 +133,7 @@ function chatProvForm(i,done){
  $('[data-bk]',d).onclick=d.close;
  return d}
 i18nAdd(PROV_EN);
-i18nAdd({"Бесплатная":"Free","Платная":"Paid","Ничего не найдено":"Nothing found"});
+i18nAdd({"Картинки":"Images","Зрение":"Vision","Бесплатная":"Free","Платная":"Paid","Ничего не найдено":"Nothing found"});
 
 /* Вопросы про само приложение или про ИИ («что такое Kairema», «что ты умеешь», «кто тебя создал») в интернете не ищутся:
    поисковик вернёт посторонние страницы, а ответ есть в системной инструкции (sysPrompt). Глубокое исследование это правило не затрагивает. */

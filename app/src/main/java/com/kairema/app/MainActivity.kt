@@ -221,7 +221,7 @@ class MainActivity : Activity() {
     private companion object {
         const val REQ_FILE = 1
         const val REQ_MEDIA = 7103
-        const val REQ_NOTIFY = 7104
+        const val REQ_NOTIFY = 7105
         const val BACK_JS = """(function(){
             var a=document.querySelectorAll('.pbg,.sheet-bg,.spg');
             if(!a.length)return false;
