@@ -38,7 +38,7 @@ function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clea
 const rx=q=>new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
 const hl=(t,q)=>q?esc(t).replace(rx(q),m=>`<mark>${m}</mark>`):esc(t);
 const av=p=>`<span class="pic">${ic('user')}</span>`;const ini=(p,c='')=>`<span class="ini ${c}">${esc(((p.name||'Гость')[0]).toUpperCase())}</span>`;
-function applyTheme(){const l=S.theme==='light'||(S.theme==='auto'&&matchMedia('(prefers-color-scheme:light)').matches),r=document.documentElement;r.dataset.theme=l?'light':'dark';r.dataset.pal=(location.hash.match(/p[123]/)||['p1'])[0];r.dataset.font=(location.hash.match(/f[123]/)||['f1'])[0]}
+function applyTheme(){const l=S.theme==='light'||(S.theme==='auto'&&(typeof Sys!=='undefined'&&Sys.dark!==null?!Sys.dark:matchMedia('(prefers-color-scheme:light)').matches)),r=document.documentElement;r.dataset.theme=l?'light':'dark';r.dataset.pal=(location.hash.match(/p[123]/)||['p1'])[0];r.dataset.font=(location.hash.match(/f[123]/)||['f1'])[0];if(typeof Sys!=='undefined')Sys.sync()}
 /* ===== UI-ХЕЛПЕРЫ: подстраницы, шторки, меню, формы ===== */
 function sub(){const d=el('<div class="spg"></div>');app.append(d);raf(()=>d.classList.add('on'));d.close=()=>{d.classList.remove('on');setTimeout(()=>d.remove(),400)};return d}
 function page(name,title,render,right=''){const d=sub();d.dataset.screen=name;d.innerHTML=`<div class="top"><button class="ib" data-bk aria-label="Назад">${ic('back')}</button><h2>${esc(title)}</h2>${right}</div><div class="scroll"></div>`;$('[data-bk]',d).onclick=d.close;const b=$('.scroll',d);d.r=()=>{render(b,d)};d.r();return d}
@@ -128,8 +128,14 @@ const saveProviders=()=>st.set(PKEY,JSON.stringify({c:S.providers,s:S.sproviders
 const loadProviders=()=>{try{const o=JSON.parse(st.get(PKEY)||'{}');if(Array.isArray(o.c))S.providers=o.c;if(Array.isArray(o.s))S.sproviders=o.s}catch(e){}};
 const pid=()=>'p_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 /* composer */
+/* Включить или выключить поиск в интернете (кнопка в поле ввода и переключатель в настройках). */
+function toggleWeb(){
+ if(!S.web&&!S.sproviders.some(x=>x.ok)){toast('Сначала подключите провайдера поиска: Настройки, Добавить провайдера поиска');return}
+ S.web=!S.web;st.set('kw',S.web?'1':'0');bus.forEach(f=>f());
+ $$('[data-tg=web] .sw').forEach(x=>x.classList.toggle('on',S.web));
+ toast(S.web?'Поиск в интернете включён':'Поиск в интернете выключен')}
 function composer(o){
- const w=el(`<div class="cmp"><div class="att"></div><textarea rows="1" placeholder="${o.ph||'Сообщение'}" aria-label="Сообщение"></textarea><div class="cr"><button class="cb" data-a data-action="composer:attach" aria-label="Прикрепить файл или фото">${ic('clip')}</button><button class="cb" data-t data-action="composer:templates" aria-label="Шаблоны промтов">${ic('tpl')}</button><button class="cb" data-v data-action="composer:voice" aria-label="Голосовой ввод">${ic('mic')}</button><span class="gl" title="Веб-поиск включён">${ic('globe')}</span><button class="chip2" data-c></button><span style="flex:1"></span><button class="send" disabled data-action="composer:send" aria-label="Отправить">${ic('up')}</button></div><input type="file" hidden data-ig accept="image/*" multiple><input type="file" hidden data-if multiple><input type="file" hidden data-ic accept="image/*" capture="environment"></div>`);
+ const w=el(`<div class="cmp"><div class="att"></div><textarea rows="1" placeholder="${o.ph||'Сообщение'}" aria-label="Сообщение"></textarea><div class="cr"><button class="cb" data-a data-action="composer:attach" aria-label="Прикрепить файл или фото">${ic('clip')}</button><button class="cb" data-t data-action="composer:templates" aria-label="Шаблоны промтов">${ic('tpl')}</button><button class="cb" data-v data-action="composer:voice" aria-label="Голосовой ввод">${ic('mic')}</button><button class="cb gl" data-w aria-label="Поиск в интернете">${ic('globe')}</button><button class="chip2" data-c></button><span style="flex:1"></span><button class="send" disabled data-action="composer:send" aria-label="Отправить">${ic('up')}</button></div><input type="file" hidden data-ig accept="image/*" multiple><input type="file" hidden data-if multiple><input type="file" hidden data-ic accept="image/*" capture="environment"></div>`);
  const ta=$('textarea',w),sd=$('.send',w),gl=$('.gl',w),ch=$('.chip2',w);let files=[],busy=0;
  const upd=()=>sd.disabled=busy||(!ta.value.trim()&&!files.length);
  const grow=()=>{const p=ta.offsetHeight;ta.style.height='auto';const h=Math.min(ta.scrollHeight,110);ta.style.height=p+'px';ta.offsetHeight;ta.style.height=h+'px';upd()};
@@ -140,8 +146,8 @@ function composer(o){
  $('[data-a]',w).onclick=()=>{const s=sheet(`<button class="pi2" data-k="g">${ic('img')}<span>Галерея</span></button><button class="pi2" data-k="f">${ic('file')}<span>Файлы</span></button><button class="pi2" data-k="c">${ic('cam')}<span>Камера</span></button><button class="btn ghost" data-x style="width:100%;margin-top:10px">Отмена</button>`);$$('[data-k]',s).forEach(b=>b.onclick=()=>{s.close();ins[b.dataset.k].click()});$('[data-x]',s).onclick=s.close};
  const tpl=()=>{const s=sheet(`<h2 style="margin-bottom:12px">Шаблоны промтов</h2><div id="tl"></div>`);tplList($('#tl',s),t=>{s.close();ta.value=(ta.value?ta.value+'\n':'')+t;grow();ta.focus()})};
  $('[data-t]',w).onclick=tpl;let lp;ta.addEventListener('pointerdown',()=>{lp=setTimeout(tpl,650)});['pointerup','pointermove','pointercancel'].forEach(e=>ta.addEventListener(e,()=>clearTimeout(lp)));
- const mic=$('[data-v]',w);let rec=null;mic.onclick=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Голосовой ввод недоступен на этом устройстве');return}if(rec){rec.stop();return}rec=new SR();rec.lang=LANG==='en'?'en-US':'ru-RU';rec.onresult=e=>{ta.value+=(ta.value?' ':'')+e.results[0][0].transcript;grow()};rec.onerror=()=>toast('Нет доступа к микрофону');rec.onend=()=>{rec=null;mic.classList.remove('rec')};try{rec.start();mic.classList.add('rec')}catch(e){rec=null}};
- w.setText=t=>{ta.value=t;grow()};w.chip=()=>{ch.innerHTML=o.chip();ch.onclick=o.onChip||null};w.busy=b=>{busy=b;upd()};const g=()=>gl.style.display=S.web?'grid':'none';bus.push(g);g();w.chip();return w}
+ const mic=$('[data-v]',w);let rec=null;mic.onclick=()=>{if(typeof Voice!=='undefined'&&Voice.native){Voice.toggle(mic,ta,grow);return}const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Голосовой ввод недоступен на этом устройстве');return}if(rec){rec.stop();return}rec=new SR();rec.lang=LANG==='en'?'en-US':'ru-RU';rec.onresult=e=>{ta.value+=(ta.value?' ':'')+e.results[0][0].transcript;grow()};rec.onerror=()=>toast('Нет доступа к микрофону');rec.onend=()=>{rec=null;mic.classList.remove('rec')};try{rec.start();mic.classList.add('rec')}catch(e){rec=null}};
+ w.setText=t=>{ta.value=t;grow()};w.chip=()=>{ch.innerHTML=o.chip();ch.onclick=o.onChip||null};w.busy=b=>{busy=b;upd()};const g=()=>{gl.classList.toggle('on',!!S.web);gl.setAttribute('aria-pressed',S.web?'true':'false');gl.title=S.web?'Поиск в интернете включён':'Поиск в интернете выключен'};gl.onclick=()=>toggleWeb();bus.push(g);g();w.chip();return w}
 /* ===== ЧАТ: единственный чат — с подключённым AI-провайдером ===== */
 function apiView(){Chx.load();const v=$('#v-api'),p=actProv();v.innerHTML='';
  if(!p){v.innerHTML=`<div class="top"><h1>Чат</h1></div><div class="warn">${ic('warn')}<h2>Подключите AI-провайдера, чтобы начать чат</h2><p class="sub">Чат работает только через вашего AI-провайдера. Добавьте название, API URL и ключ, модель выберите из списка.</p><button class="btn big" id="btn-connect-provider" data-action="provider:connect">Подключить AI-провайдера</button></div>`;
@@ -182,7 +188,7 @@ function memPage(){page('memory','',(b,d)=>{
  <div>${opt('mem','Использовать память в ответах','Разрешить учитывать сохранённые факты и профиль при формировании ответов. Выключение не удаляет записи.')}${opt('auto','Автоматически находить новые факты','Включить локальное распознавание простых фраз о себе, например «меня зовут…» или «мне нравится…». Выключение останавливает только автоматическое добавление.')}</div>
  <div class="sh">Профиль памяти</div>
  <div class="mp"><div class="fld"><label>Что Kairema важно знать о вас?</label><small class="d">Краткое описание о вас, ваши цели и предпочтения.</small><textarea class="ta" placeholder="Например: я учусь на дизайнера и предпочитаю короткие ответы с примерами."></textarea><p class="hint">Не добавляйте пароли, ключи API и другую секретную информацию.</p></div><div class="two"><button class="btn" data-sv>Сохранить</button><button class="btn ghost" data-cn>Отмена</button></div></div>
- <div class="sh">Список сохранённых фактов:</div><div class="ml"></div><button class="addf" data-add>${ic('plus')}Добавить новый факт</button>`;
+ <div class="sh">Список сохранённых фактов:</div><div class="ml"></div><button class="addf" data-add>${ic('plus')}Добавить новый факт</button><button class="addf dng" data-clr>${ic('trash')}Удалить все факты</button>`;
  [...b.children].forEach((c,k)=>c.style.setProperty('--i',k));
  const nEl=$('[data-n]',b),sEl=$('[data-s]',b),ml=$('.ml',b);
  const stat=bump=>{nEl.textContent=String(S.memos.length).padStart(2,'0');sEl.textContent=S.mem?'Вкл':'Выкл';sEl.classList.toggle('on',S.mem);if(bump){nEl.classList.add('bump');setTimeout(()=>nEl.classList.remove('bump'),260)}};
@@ -190,10 +196,11 @@ function memPage(){page('memory','',(b,d)=>{
  const ta=$('.ta',b),mp=$('.mp',b);ta.value=S.profD===null?S.prof:S.profD;ta.oninput=()=>S.profD=ta.value;
  $('[data-sv]',b).onclick=()=>{S.prof=ta.value.trim();S.profD=S.prof;ta.value=S.prof;mp.classList.remove('ok');void mp.offsetWidth;mp.classList.add('ok');toast('Профиль памяти сохранён')};
  $('[data-cn]',b).onclick=()=>{S.profD=S.prof;ta.value=S.prof};
- const facts=(fl,init)=>{ml.innerHTML='';if(!S.memos.length)ml.innerHTML='<p class="hint" style="margin:0 4px 10px">Сохранённых фактов пока нет.</p>';
+ const clr=$('[data-clr]',b);const facts=(fl,init)=>{ml.innerHTML='';clr.style.display=S.memos.length?'':'none';if(!S.memos.length)ml.innerHTML='<p class="hint" style="margin:0 4px 10px">Сохранённых фактов пока нет.</p>';
   S.memos.forEach((x,i)=>{const r=el(`<div class="ft ${init?'in':''} ${i===fl?'fl':''}" style="--i:${i}"><span class="n">${String(i+1).padStart(2,'0')}</span><p></p><div class="fa2"><button class="fbtn" data-e data-action="memory:edit">${ic('edit')}Редактировать</button><button class="fbtn fdel" data-d data-action="memory:delete">${ic('trash')}Удалить</button></div></div>`);$('p',r).textContent=x[0];if(x[1]){const s=document.createElement('small');s.textContent=x[1];$('p',r).after(s)}
    $('[data-e]',r).onclick=()=>factSheet(x[0],v=>{x[0]=v;Hooks.run('memory:changed');facts(i);toast('Факт обновлён')});
    $('[data-d]',r).onclick=()=>ask('Удалить факт?','Факт будет удалён из памяти без возможности восстановления.','Удалить',()=>{r.style.maxHeight=r.offsetHeight+'px';void r.offsetHeight;r.classList.add('rm');setTimeout(()=>{S.memos.splice(S.memos.indexOf(x),1);Hooks.run('memory:changed');facts();stat(1);toast('Факт удалён')},320)});ml.append(r)})};
+ clr.onclick=()=>ask('Удалить все факты?','Все сохранённые факты (' +S.memos.length+') будут удалены без возможности восстановления.','Удалить всё',()=>{S.memos.length=0;Hooks.run('memory:changed');facts();stat(1);toast('Все факты удалены')});
  $('[data-add]',b).onclick=()=>factSheet(null,v=>{S.memos.push([v,'']);Hooks.run('memory:changed');facts(S.memos.length-1);stat(1);ml.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'});toast('Факт добавлен')});
  facts(-1,1);stat()})}
 /* ===== ШАБЛОНЫ ПРОМПТОВ: встроенные + свои (хранение через Api.templates) ===== */
@@ -250,7 +257,7 @@ function profPage(){page('profile','Мой профиль',(b,d)=>{const p=S.p;b
  <div class="sh">Язык интерфейса</div><div id="lg" style="margin:14px 0 4px"></div><button class="btn big" id="btn-save-profile" data-action="profile:save" data-s>Сохранить</button>`;
  let lang=p.lang;$('#lg',b).replaceWith(seg(['Русский','English'],lang,i=>{lang=i;S.p.lang=i;saveProfile();applyLang(i)}));const sv=$('[data-s]',b);form(b,{name:v=>v.length>0,user:v=>!v||/^[a-z0-9_]{3,20}$/i.test(v),email:v=>!v||/^\S+@\S+\.\S+$/.test(v)},sv);
  sv.onclick=()=>{const g=k=>$(`[data-k=${k}]`,b).value.trim();Object.assign(S.p,{name:g('name'),user:g('user'),email:g('email'),lang});saveProfile();toast('Профиль сохранён');d.close();setView()}})}
-function logout(){ask('Выйти из аккаунта?','Чаты останутся на сервере. Войти можно в любой момент.','Выйти',()=>{const f=el(`<div class="full out"><svg class="logo" viewBox="0 0 96 96"><path class="ring" d="M70 22 A34 34 0 1 0 82 48"/><circle class="eye" cx="48" cy="48" r="9"/></svg><h1 style="margin:22px 0 6px">Вы вышли</h1><p class="sub" style="margin-bottom:24px">Войдите, чтобы продолжить</p><button class="btn" style="width:100%;max-width:320px">Войти</button></div>`);app.append(f);raf(()=>f.classList.remove('out'));$('.btn',f).onclick=()=>{f.classList.add('out');setTimeout(()=>f.remove(),500);$$('.spg').forEach(x=>x.remove());show('api')}})}
+function logout(){ask('Выйти из аккаунта?','Чаты останутся на сервере. Войти можно в любой момент.','Выйти',()=>{const f=el(`<div class="full out"><img class="brandimg logo-img" src="core/brand/logo.png" alt="Kairema"><h1 style="margin:22px 0 6px">Вы вышли</h1><p class="sub" style="margin-bottom:24px">Войдите, чтобы продолжить</p><button class="btn" style="width:100%;max-width:320px">Войти</button></div>`);app.append(f);raf(()=>f.classList.remove('out'));$('.btn',f).onclick=()=>{f.classList.add('out');setTimeout(()=>f.remove(),500);$$('.spg').forEach(x=>x.remove());show('api')}})}
 /* ===== НАСТРОЙКИ ===== */
 function setView(){const v=$('#v-set'),p=S.p,TN=['Тёмная','Светлая','Авто'],TK=['dark','light','auto'],ok=[...S.providers,...S.sproviders].filter(x=>x.ok).length;let i=0;
  const row=(ic1,ttl,sb,att,circ,end)=>`<button class="sr" style="--i:${i++}" ${att}><span class="si ${circ?'c':''}">${ic(ic1)}</span><span class="m"><b>${ttl}</b><small>${sb}</small></span>${end===undefined?ic('chevR'):end}</button>`;
@@ -267,9 +274,11 @@ function setView(){const v=$('#v-set'),p=S.p,TN=['Тёмная','Светлая'
  ${row('sun','Тема',TN[TK.indexOf(S.theme)],'data-theme',1)}${row('info','О приложении','Версия: '+APP_VERSION,'data-go="about"',1)}
  <button class="sr out" style="--i:${i++}" data-act="out"><span class="si">${ic('out')}</span><span class="m"><b>Выйти из аккаунта</b></span></button></div>`;
  $$('[data-go]',v).forEach(b=>b.onclick=()=>({prof:()=>openScreen('profile'),mem:()=>openScreen('memory'),prov:()=>openScreen('providers'),tpl:()=>openScreen('templates'),add:()=>provForm(-1,setView,'chat'),adds:()=>provForm(-1,setView,'search'),about:()=>openScreen('about')})[b.dataset.go]());
- $$('[data-tg]',v).forEach(b=>b.onclick=()=>{S.web=!S.web;st.set('kw',S.web?'1':'0');$('.sw',b).classList.toggle('on',S.web);bus.forEach(f=>f());toast(S.web?'Поиск в интернете включён':'Поиск в интернете выключен')});
- $('[data-theme]',v).onclick=()=>{const s=sheet(`<h2 style="margin-bottom:8px">Тема</h2><div id="tl2"></div>`);TK.forEach((k,j)=>{const b=el(`<button class="sr in" style="--i:${j}"><span class="m"><b>${TN[j]}</b></span>${S.theme===k?ic('ok'):''}</button>`);b.onclick=()=>{S.theme=k;applyTheme();s.close();setView();toast('Сохранено')};$('#tl2',s).append(b)})};
- $('[data-act=out]',v).onclick=logout;Hooks.run('settings:rendered',v)}
+ $$('[data-tg]',v).forEach(b=>b.onclick=()=>toggleWeb());
+ $('[data-theme]',v).onclick=()=>{const s=sheet(`<h2 style="margin-bottom:8px">Тема</h2><div id="tl2"></div>`);TK.forEach((k,j)=>{const b=el(`<button class="sr in" style="--i:${j}"><span class="m"><b>${TN[j]}</b></span>${S.theme===k?ic('ok'):''}</button>`);b.onclick=()=>{S.theme=k;st.set('kth',k);applyTheme();s.close();setView();toast('Сохранено')};$('#tl2',s).append(b)})};
+ $('[data-act=out]',v).onclick=logout;Hooks.run('settings:rendered',v);groupRows($('.st',v))}
+/* Строки настроек подряд складываются в скруглённую карточку, чтобы ничего не «висело» в воздухе. */
+function groupRows(box){if(!box)return;let g=null;[...box.children].forEach(c=>{if(c.matches('.sr,.pill')){if(!g){g=el('<div class="grp"></div>');c.before(g)}g.append(c)}else g=null})}
 /* ===== НАВИГАЦИЯ ===== */
 const TAB_SCREEN={api:'api',term:'terminal',set:'settings'};
 const TABS=[['api','chat','Чат'],['term','term','Терминал'],['set','set','Настройки']];
@@ -415,9 +424,9 @@ function applyLang(i){LANG=i?'en':'ru';document.documentElement.lang=LANG;trTree
 async function initApp(){loadProviders();loadProfile();S.web=st.get('kw')==='1';
  try{S.userTpls=await Api.templates.list()}catch(e){S.userTpls=[]}
  if(/en$/.test(location.hash))S.p.lang=1;
- applyTheme();apiView();applyLang(S.p.lang);
+ S.theme=st.get('kth')||'auto';applyTheme();apiView();applyLang(S.p.lang);
  $('#v-api').classList.add('enter');setTimeout(()=>$('#v-api').classList.remove('enter'),1000);
- $('#splash').onclick=endSplash;setTimeout(endSplash,reduce?600:2000);
+ if(typeof splashStart==='function')splashStart(endSplash,reduce);else{$('#splash').onclick=endSplash;setTimeout(endSplash,reduce?600:2000)}
  Hooks.run('app:ready');
  /* TODO(api): загрузить чаты и профиль с сервера */
 }

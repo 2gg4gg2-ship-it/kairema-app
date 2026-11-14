@@ -5,13 +5,26 @@
     <!-- Запуск команд в Termux (нужно выдать в настройках Android) -->
     <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
 
-    <!-- Видимость пакета Termux (Android 11+) -->
+    <!-- Голосовой ввод, камера и фото (разрешения запрашиваются при первом использовании) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <!-- Видимость пакета Termux и службы распознавания речи (Android 11+) -->
     <queries>
         <package android:name="com.termux" />
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
     </queries>
 
     <application
         android:label="Kairema"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">

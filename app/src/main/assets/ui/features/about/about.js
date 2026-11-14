@@ -6,7 +6,7 @@ function aboutScreen(){
  return page('about','О приложении',b=>{
   const feats=[['api','Свой провайдер','OpenAI-совместимые API и Anthropic. Ключи хранятся в Keystore.'],['term','Терминал','Android и Termux. Команды из ответов ИИ запускаются в один тап.'],['brain','Память','Факты о вас сохраняются на устройстве и учитываются в ответах.'],['globe','Поиск в сети','Tavily, Brave Search и Serper дополняют вопрос свежими данными.']];
   b.innerHTML=`<div class="abt">
-   <div class="abt-hero"><svg class="abt-logo" viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"><path class="rg" pathLength="1" d="M70 22 A34 34 0 1 0 82 48"/><circle class="ey" cx="48" cy="48" r="9" fill="currentColor" stroke="none"/></svg>
+   <div class="abt-hero"><img class="brandimg abt-logo" src="core/brand/logo.png" alt="Kairema">
     <h2 class="abt-name">Kairema <span>AI</span></h2><p class="abt-tag">Персональный ИИ-ассистент</p><span class="abt-ver"></span></div>
    <p class="abt-lead">Для общения, обучения, работы и решения повседневных задач. Отвечает на вопросы, помогает разобраться в сложном, писать тексты и код, находить идеи.</p>
    <div class="sh abt-sh">Возможности</div>

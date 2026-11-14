@@ -63,7 +63,7 @@ app/src/main/
 ### Обязательные и необязательные модули
 - Обязательные (ядро вызывает их напрямую): `markdown`, `chats`, `providers`.
 - Необязательные (подключаются через Hooks; удаление папки и строк в `index.html` не ломает приложение):
-  `about`, `share`, `artifacts` (нужен share), `auth`, `memory`, `sync`, `terminal`.
+  `about`, `share`, `artifacts` (нужен share), `auth`, `memory`, `sync`, `terminal`, `scroller`, `voice` (нужен Kotlin `voice/`), `brand`, `system` (нужен Kotlin `system/`).
 
 ### Как подключается модуль (не правя `core/app.js`)
 - `Hooks.on('app:ready', fn)`: приложение запущено. `Hooks.on('settings:rendered', fn(el))`: экран настроек нарисован.

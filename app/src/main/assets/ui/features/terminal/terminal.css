@@ -41,3 +41,12 @@
 .tm-bk .segc{min-width:0}
 .tm-chk{grid-column:1/-1;justify-content:center;width:100%;min-height:42px;color:var(--tx);animation:in .35s var(--ease) backwards}
 .tm-chk:disabled{opacity:.5}
+
+/* Копирование вывода терминала: панель кнопок и выделяемый текст */
+.tcp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:8px 10px;border-bottom:1px solid #2A2D32}
+.tcp button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 10px;border-radius:10px;border:1px solid #2A2D32;background:#15171A;color:#DDE0E4;font:600 12.5px var(--body);white-space:nowrap;transition:background .2s,transform .15s var(--ease)}
+.tcp button:active{transform:scale(.95);background:#22262B}
+.tcp svg.i{width:16px;height:16px}
+.tout{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+.tout *{-webkit-user-select:text;user-select:text}
+.tout::selection,.tout *::selection{background:#fff;color:#000}
