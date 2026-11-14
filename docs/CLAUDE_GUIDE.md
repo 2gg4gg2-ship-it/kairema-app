@@ -63,7 +63,7 @@ app/src/main/
 ### Обязательные и необязательные модули
 - Обязательные (ядро вызывает их напрямую): `markdown`, `chats`, `providers`.
 - Необязательные (подключаются через Hooks; удаление папки и строк в `index.html` не ломает приложение):
-  `about`, `share`, `artifacts` (нужен share), `auth`, `memory`, `sync`, `terminal`, `scroller`, `voice` (нужен Kotlin `voice/`), `brand`, `system` (нужен Kotlin `system/`).
+  `about`, `share`, `artifacts` (нужен share), `auth`, `memory`, `sync`, `terminal`, `scroller`, `search` (нужен Kotlin `search/`, без него ищет JS), `voice` (нужен Kotlin `voice/`), `brand`, `system` (нужен Kotlin `system/`).
 
 ### Как подключается модуль (не правя `core/app.js`)
 - `Hooks.on('app:ready', fn)`: приложение запущено. `Hooks.on('settings:rendered', fn(el))`: экран настроек нарисован.
@@ -73,7 +73,7 @@ app/src/main/
 - Экран: `SCREENS.<имя> = функция` (после `app:ready`). Открывается `openScreen('<имя>')`.
 - Переводы: `i18nAdd({"Русский текст":"English text"})`. **Ключ перевода это русский текст.** Изменил русскую строку, обнови английскую.
 - Строки модулей перечислены в `index.html` между комментариями «МОДУЛИ»; порядок важен: модуль должен загружаться **до** `core/app.js`.
-- Данные в localStorage: ключи вида `kairema.<что>.v1`. Меняешь формат: создай `.v2` и перенеси данные (миграция), старое не удаляй сразу.
+- Чаты и медиа живут в SQLite/filesDir через `KairemaDb` (см. NOTES, 0.16.0); не возвращай их в localStorage. Остальные данные в localStorage: ключи вида `kairema.<что>.v1`. Меняешь формат: создай `.v2` и перенеси данные (миграция), старое не удаляй сразу.
 
 ### Мост JS <-> Kotlin
 - Kotlin объявляет методы в `Bridge.kt` (`@JavascriptInterface`). Длинные операции асинхронны: JS вызывает `Native.run(метод, [аргументы], onChunk)`,

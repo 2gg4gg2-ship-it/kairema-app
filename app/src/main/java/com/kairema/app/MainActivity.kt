@@ -17,6 +17,8 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.kairema.app.bridge.Bridge
+import com.kairema.app.data.DbBridge
+import com.kairema.app.search.SearchBridge
 import com.kairema.app.system.SystemBridge
 import com.kairema.app.voice.VoiceBridge
 
@@ -94,11 +96,16 @@ class MainActivity : Activity() {
         }
 
         web.addJavascriptInterface(Bridge(this, web), "KairemaBridge")
+        web.addJavascriptInterface(DbBridge(this), "KairemaDb")
+        web.addJavascriptInterface(SearchBridge(this), "KairemaSearch")
         sys = SystemBridge(this, web).also {
             web.addJavascriptInterface(it, "KairemaSysBridge")
             it.setup()
         }
         voice = VoiceBridge(this, web).also { web.addJavascriptInterface(it, "KairemaVoiceBridge") }
+        if (Build.VERSION.SDK_INT >= 33 && !granted(Manifest.permission.POST_NOTIFICATIONS)) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIFY)
+        }
         setContentView(web)
         web.loadUrl("file:///android_asset/ui/index.html")
     }
@@ -205,6 +212,7 @@ class MainActivity : Activity() {
     private companion object {
         const val REQ_FILE = 1
         const val REQ_MEDIA = 7103
+        const val REQ_NOTIFY = 7104
         const val BACK_JS = """(function(){
             var a=document.querySelectorAll('.pbg,.sheet-bg,.spg');
             if(!a.length)return false;

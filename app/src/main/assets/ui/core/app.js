@@ -63,12 +63,15 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
    else if(last.deep&&typeof Tools!=='undefined'){const r=await Tools.research(pv,sp,(last.q||last.t),bd);src=r.src;serr=r.serr}
    else{bd.textContent='Ищу в интернете…';let raw='';
     try{await Native.run('search',[JSON.stringify({id:sp.id,url:sp.url}),(last.q||last.t).slice(0,300)],t=>{raw+=t});src=JSON.parse(raw||'[]')}catch(e){serr=e.message}}}
-  const ctx=src.length?'Результаты поиска в интернете ('+new Date().toLocaleDateString('ru-RU')+'):\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+'\n'+s.url+'\n'+s.snippet).join('\n\n')+'\n\nОтветь на вопрос, опираясь на эти результаты, и ссылайся на источники номерами [1], [2]. Вопрос пользователя: ':'';
-  const hist=msgs.filter(x=>x!==m&&!x.err&&x.t).map(x=>({role:x.r==='u'?'user':'assistant',content:toContent(x,anth,x===last?ctx:'')}));
+  const ctx=src.length?'Результаты поиска в интернете ('+new Date().toLocaleDateString('ru-RU')+'):\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+'\n'+s.url+'\n'+s.snippet).join('\n\n')+'\n\nПравила: это результаты автоматического поиска по тексту вопроса, они могут не относиться к делу (например, если вопрос про тебя, это приложение или нашу беседу). Используй только то, что прямо отвечает на вопрос, и ссылайся номерами [1], [2]. Если результаты не по теме, молча игнорируй их и отвечай сам; ничего не выдумывай и не приписывай найденное предмету вопроса. Вопрос пользователя: ':'';
+  const mkHist=c=>msgs.filter(x=>x!==m&&!x.err&&x.t).map(x=>({role:x.r==='u'?'user':'assistant',content:toContent(x,anth,x===last?c:'')}));const hist=mkHist(ctx);
   const tail=(src.length?'\n\nИсточники:\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+' — '+s.url).join('\n'):'')+(serr?'\n\n⚠ Поиск не сработал: '+serr:'');
   let got=false;
   try{
-   await Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):''),think:typeof Tools!=='undefined'?Tools.think():0}),JSON.stringify(hist)],t=>{if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scr(box))});
+   const run=h=>Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):''),think:typeof Tools!=='undefined'?Tools.think():0}),JSON.stringify(h)],t=>{if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scr(box))});
+   await run(hist);
+   /* Пустой ответ при включённом поиске: повторяем один раз без результатов поиска */
+   if(!got&&ctx){src=[];serr='модель не ответила с результатами поиска, ответ без них';await run(mkHist(''))}
    if(!got){m.err=1;m.t=bd.textContent='Пустой ответ от провайдера'}
    else{m.src=src.slice(0,5);m.serr=serr;mdRender(bd,m.t,m);scr(box);Hooks.run('chat:answer',m,bd)}
   }catch(e){m.err=1;m.t=bd.textContent='Не удалось получить ответ: '+e.message}
@@ -114,8 +117,11 @@ const toContent=(m,anth,pre)=>{
  const blocks=[];
  for(const p of parts){
   if(p.k==='text')txt+='\n\n--- Файл «'+p.name+'» ---\n'+p.text+'\n--- конец файла ---';
-  else if(p.k==='image')blocks.push(anth?{type:'image',source:{type:'base64',media_type:p.mime,data:p.data}}:{type:'image_url',image_url:{url:'data:'+p.mime+';base64,'+p.data}});
-  else if(p.k==='pdf'&&anth)blocks.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:p.data}})}
+  else if(p.k==='image'||p.k==='pdf'){
+   const dd=p.data||Media.load(p.path);
+   if(!dd)txt+='\n\n[вложение «'+(p.name||p.k)+'» недоступно]';
+   else if(p.k==='image')blocks.push(anth?{type:'image',source:{type:'base64',media_type:p.mime,data:dd}}:{type:'image_url',image_url:{url:'data:'+p.mime+';base64,'+dd}});
+   else if(anth)blocks.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:dd}})}}
  return[...blocks,{type:'text',text:txt}]};
 const PKEY='kairema.providers.v1';
 const PRKEY='kairema.profile.v1';

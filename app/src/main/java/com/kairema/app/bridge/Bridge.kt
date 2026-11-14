@@ -4,6 +4,7 @@ import android.content.Context
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import com.kairema.app.data.SecureKeys
+import com.kairema.app.service.KeepAliveService
 import com.kairema.app.share.Share
 import com.kairema.app.terminal.Shell
 import com.kairema.app.terminal.TermuxRunner
@@ -76,6 +77,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     /** Команда в Termux. Результат приходит целиком после завершения, в конце метка кода выхода. */
     @JavascriptInterface
     fun termux(reqId: String, cmd: String, timeoutSec: Int) {
+        track(reqId)
         tm.run(reqId, cmd, timeoutSec.toLong(), { push(reqId, it) }, { done(reqId, it) })
     }
 
@@ -92,6 +94,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     /** Команда в оболочке Android. Вывод идёт кусками, в конце метка кода выхода. */
     @JavascriptInterface
     fun shell(reqId: String, cmd: String, timeoutSec: Int) {
+        track(reqId)
         sh.run(reqId, cmd, timeoutSec.toLong(), { push(reqId, it) }, { done(reqId, it) })
     }
 
@@ -126,6 +129,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     /** Отправка сообщений провайдеру, ответ приходит в интерфейс кусками. */
     @JavascriptInterface
     fun chat(reqId: String, provider: String, messages: String) {
+        track(reqId)
         pool.execute {
             try {
                 val p = JSONObject(provider)
@@ -179,6 +183,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     /** Создание изображения. OpenRouter: chat/completions с modalities, остальные: /images/generations. Ответ: JSON {mime, b64}. */
     @JavascriptInterface
     fun image(reqId: String, provider: String, prompt: String) {
+        track(reqId)
         pool.execute {
             try {
                 val p = JSONObject(provider)
@@ -261,6 +266,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     /** Поиск в интернете: Tavily, Brave Search или Serper. Ответ приходит одним куском JSON. */
     @JavascriptInterface
     fun search(reqId: String, provider: String, query: String) {
+        track(reqId)
         pool.execute {
             try {
                 val p = JSONObject(provider)
@@ -474,7 +480,15 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     private fun push(id: String, text: String) =
         js("KairemaNative.chunk(${JSONObject.quote(id)},${JSONObject.quote(text)})")
 
+    /** Долгие задачи держат службу переднего плана, пока не вызван done. */
+    private val tracked = ConcurrentHashMap.newKeySet<String>()
+
+    private fun track(id: String) {
+        if (tracked.add(id)) KeepAliveService.begin(ctx)
+    }
+
     private fun done(id: String, err: String?) {
+        if (tracked.remove(id)) KeepAliveService.end(ctx)
         calls.remove(id)
         js("KairemaNative.done(${JSONObject.quote(id)},${if (err == null) "null" else JSONObject.quote(err)})")
     }

@@ -97,7 +97,9 @@ const Tools=(()=>{
   catch(e){m.err=1;m.t=bd.textContent=L('Не удалось создать изображение: ')+e.message}
   scr(box)};
  api.paintImg=(d,m)=>{
-  if(!m.img)return;const bd=$('.bd',d);bd.textContent='';bd.classList.add('imgmsg');
+  if(!m.img)return;
+  if(!m.img.b64&&m.img.path)m.img.b64=Media.load(m.img.path);
+  const bd=$('.bd',d);bd.textContent='';bd.classList.add('imgmsg');
   const im=new Image();im.className='genimg';im.alt=m.t||'';im.src='data:'+m.img.mime+';base64,'+m.img.b64;bd.append(im);
   if(typeof Sx!=='undefined')Sx.icons();
   const row=el(`<div class="img-act"><button type="button" data-s>${ic('dwn')}<span>${L('Сохранить')}</span></button><button type="button" data-h>${ic('shr')}<span>${L('Поделиться')}</span></button></div>`);
