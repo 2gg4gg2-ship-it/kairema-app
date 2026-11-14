@@ -3,10 +3,7 @@ package com.kairema.app
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ContentValues
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -17,7 +14,6 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.kairema.app.bridge.Bridge
-import com.kairema.app.voice.VoiceBridge
 
 /**
  * Оболочка: показывает интерфейс из assets/index.html.
@@ -28,9 +24,6 @@ class MainActivity : Activity() {
     private lateinit var web: WebView
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var cameraUri: Uri? = null
-    private var voice: VoiceBridge? = null
-    private var pendingChooser: WebChromeClient.FileChooserParams? = null
-    private var askedMedia = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,67 +63,26 @@ class MainActivity : Activity() {
                 fileCallback?.onReceiveValue(null)
                 fileCallback = callback
                 cameraUri = null
-                // Камера и фото: сначала просим разрешение (оно же появится в настройках Android), потом открываем выбор.
-                val need = when {
-                    params.isCaptureEnabled && !granted(Manifest.permission.CAMERA) -> arrayOf(Manifest.permission.CAMERA)
-                    !params.isCaptureEnabled && !askedMedia && !granted(mediaPermission()) -> {
-                        askedMedia = true
-                        arrayOf(mediaPermission())
+                val camera = if (params.isCaptureEnabled) cameraIntent() else null
+                return try {
+                    startActivityForResult(camera ?: params.createIntent(), REQ_FILE)
+                    true
+                } catch (_: Exception) {
+                    discardCamera()
+                    try {
+                        startActivityForResult(params.createIntent(), REQ_FILE)
+                        true
+                    } catch (_: Exception) {
+                        fileCallback = null
+                        false
                     }
-                    else -> null
                 }
-                if (need != null) {
-                    pendingChooser = params
-                    requestPermissions(need, REQ_MEDIA)
-                    return true
-                }
-                return launchChooser(params)
             }
         }
 
         web.addJavascriptInterface(Bridge(this, web), "KairemaBridge")
-        voice = VoiceBridge(this, web).also { web.addJavascriptInterface(it, "KairemaVoiceBridge") }
         setContentView(web)
         web.loadUrl("file:///android_asset/ui/index.html")
-    }
-
-    private fun granted(p: String) = checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED
-
-    private fun mediaPermission() =
-        if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_IMAGES else Manifest.permission.READ_EXTERNAL_STORAGE
-
-    private fun launchChooser(params: WebChromeClient.FileChooserParams): Boolean {
-        val camera = if (params.isCaptureEnabled && granted(Manifest.permission.CAMERA)) cameraIntent() else null
-        return try {
-            startActivityForResult(camera ?: params.createIntent(), REQ_FILE)
-            true
-        } catch (_: Exception) {
-            discardCamera()
-            try {
-                startActivityForResult(params.createIntent(), REQ_FILE)
-                true
-            } catch (_: Exception) {
-                fileCallback?.onReceiveValue(null)
-                fileCallback = null
-                false
-            }
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        val ok = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
-        voice?.onPermission(requestCode, ok)
-        if (requestCode == REQ_MEDIA) {
-            val p = pendingChooser
-            pendingChooser = null
-            if (p != null) launchChooser(p)
-        }
-    }
-
-    override fun onDestroy() {
-        voice?.destroy()
-        super.onDestroy()
     }
 
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
@@ -187,7 +139,6 @@ class MainActivity : Activity() {
 
     private companion object {
         const val REQ_FILE = 1
-        const val REQ_MEDIA = 7103
         const val BACK_JS = """(function(){
             var a=document.querySelectorAll('.pbg,.sheet-bg,.spg');
             if(!a.length)return false;
