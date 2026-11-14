@@ -248,8 +248,8 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 .brandimg{display:block;height:auto;-webkit-user-drag:none}
 :root[data-theme=light] .brandimg{filter:invert(1)}
 #splash{background:var(--bg)}
-#splash .intro{width:min(84vw,460px);aspect-ratio:1/1;display:block;object-fit:contain;mix-blend-mode:lighten;pointer-events:none}
+#splash .intro{opacity:0;transition:opacity .25s;width:min(84vw,460px);aspect-ratio:1/1;display:block;object-fit:contain;mix-blend-mode:lighten;pointer-events:none}
 :root[data-theme=light] #splash .intro{filter:invert(1);mix-blend-mode:darken}
 #splash .intro-fb{display:none;width:min(46vw,220px);animation:sin .8s var(--ease) both}
-#splash.fb .intro{display:none}#splash.fb .intro-fb{display:block}
+#splash .intro.on{opacity:1}#splash.fb .intro{display:none}#splash.fb .intro-fb{display:block}
 .full>.logo-img{width:92px;animation:sin .8s var(--ease) both}

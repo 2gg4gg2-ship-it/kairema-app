@@ -7,13 +7,13 @@ function actProv(){const ok=S.providers.filter(x=>x.ok);return ok.find(x=>x.id==
 function sysPrompt(){
  return "You are the assistant inside the Kairema mobile app. Always answer in the same language as the user's latest message (for example, if the user writes in Russian, answer in Russian; if unsure, use "+(LANG==='en'?'English':'Russian')+"). Format answers with Markdown: short paragraphs, **bold** for key terms, bullet or numbered lists, tables for comparisons, fenced code blocks for code. Keep answers compact because they are read on a phone screen. About the app: Kairema is an Android AI chat app: the user connects their own API key of an AI provider (OpenAI-compatible or Anthropic) and chats with the model they selected; it has chat history and search, memory, web search, a terminal (Android shell or Termux), sharing and file export. You are that selected model, not a Kairema product, and you do not know who created the app or its company, so never invent a creator, company, team, ratings, reviews or financial facts about it. If web search results are included in the user's message, they come from an automatic search and may be irrelevant: use them only when they directly answer the question, cite sources as [1], [2], and otherwise ignore them silently and never invent sources. Never repeat facts from earlier answers that were not supported by real sources. Today is "+new Date().toISOString().slice(0,10)+"."+(typeof stylePrompt==='function'?stylePrompt():'')+(typeof memoryPrompt==='function'?memoryPrompt():'')+(typeof terminalPrompt==='function'?terminalPrompt():'')+(typeof artifactPrompt==='function'?artifactPrompt():'')}
 function normModels(raw){
- return (Array.isArray(raw)?raw:[]).map(x=>typeof x==='string'?{id:x,name:''}:{id:String((x&&x.id)||''),name:(x&&x.name)?String(x.name):'',free:(x&&typeof x.free==='boolean')?x.free:undefined}).filter(x=>x.id)}
+ return (Array.isArray(raw)?raw:[]).map(x=>typeof x==='string'?{id:x,name:''}:{id:String((x&&x.id)||''),name:(x&&x.name)?String(x.name):'',free:(x&&typeof x.free==='boolean')?x.free:undefined,img:(x&&typeof x.img==='boolean')?x.img:undefined,think:(x&&typeof x.think==='boolean')?x.think:undefined,pin:(x&&typeof x.pin==='number')?x.pin:undefined,pout:(x&&typeof x.pout==='number')?x.pout:undefined}).filter(x=>x.id)}
 async function fetchModelList(p){
  const c=MCACHE[p.id];if(c&&Date.now()-c.t<600000)return c.l;
  let l;
  if(!Native.on){await wait(600);l=[{id:'demo-free',name:'Demo free',free:true},{id:'demo-paid',name:'Demo paid',free:false}]}
  else{let raw='';await Native.run('models',[JSON.stringify({id:p.id,url:p.url})],t=>{raw+=t});l=normModels(JSON.parse(raw||'[]'))}
- MCACHE[p.id]={t:Date.now(),l};return l}
+ MCACHE[p.id]={t:Date.now(),l};if(typeof Caps!=='undefined')Caps.learn(p.id,l);return l}
 /* Выбор модели: вкладки «Все / Бесплатные / Платные» с плавным переключением в обе стороны,
    поиск, читаемые строки (название, id, метка цены). Стили: features/providers/providers.css */
 const mdlShort=id=>{const p=String(id).split('/');return p[p.length-1]||id};
@@ -124,7 +124,7 @@ function chatProvForm(i,done){
     stt.className='stat bad';stt.textContent='✗ '+err;sv.innerHTML='Проверить ключ';reset();
     if(i>=0&&kv){S.providers[i].ok=false;saveProviders();done()}
     return}
-   okList=normModels(list);MCACHE[id]={t:Date.now(),l:okList};stt.className='stat ok';stt.textContent='✓ Ключ принят. Выберите модель'+(okList.some(x=>x.free!==undefined)?' · '+(LANG==='en'?'Free: ':'Бесплатных: ')+okList.filter(x=>x.free).length+', '+(LANG==='en'?'paid: ':'платных: ')+okList.filter(x=>x.free===false).length:'');sv.innerHTML='Выбрать модель';reset();choose()}
+   okList=normModels(list);MCACHE[id]={t:Date.now(),l:okList};if(typeof Caps!=='undefined')Caps.learn(id,okList);stt.className='stat ok';stt.textContent='✓ Ключ принят. Выберите модель'+(okList.some(x=>x.free!==undefined)?' · '+(LANG==='en'?'Free: ':'Бесплатных: ')+okList.filter(x=>x.free).length+', '+(LANG==='en'?'paid: ':'платных: ')+okList.filter(x=>x.free===false).length:'');sv.innerHTML='Выбрать модель';reset();choose()}
  });
  /* Закрыли форму, а новый провайдер не сохранён: ключ с устройства удаляем. */
  const oc=d.close;

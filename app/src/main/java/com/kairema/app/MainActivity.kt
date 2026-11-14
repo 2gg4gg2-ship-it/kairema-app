@@ -7,6 +7,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -20,6 +21,7 @@ import com.kairema.app.bridge.Bridge
 import com.kairema.app.data.DbBridge
 import com.kairema.app.search.SearchBridge
 import com.kairema.app.system.SystemBridge
+import com.kairema.app.tts.TtsBridge
 import com.kairema.app.voice.VoiceBridge
 
 /**
@@ -33,6 +35,7 @@ class MainActivity : Activity() {
     private var cameraUri: Uri? = null
     private var voice: VoiceBridge? = null
     private var sys: SystemBridge? = null
+    private var tts: TtsBridge? = null
     private var pendingChooser: WebChromeClient.FileChooserParams? = null
     private var askedMedia = false
 
@@ -69,6 +72,10 @@ class MainActivity : Activity() {
         }
 
         web.webChromeClient = object : WebChromeClient() {
+            /** Прозрачный постер: без него WebView рисует серый квадрат с иконкой play до первого кадра заставки. */
+            override fun getDefaultVideoPoster(): Bitmap =
+                Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+
             override fun onShowFileChooser(
                 view: WebView,
                 callback: ValueCallback<Array<Uri>>,
@@ -103,6 +110,7 @@ class MainActivity : Activity() {
             it.setup()
         }
         voice = VoiceBridge(this, web).also { web.addJavascriptInterface(it, "KairemaVoiceBridge") }
+        tts = TtsBridge(this, web).also { web.addJavascriptInterface(it, "KairemaTtsBridge") }
         if (Build.VERSION.SDK_INT >= 33 && !granted(Manifest.permission.POST_NOTIFICATIONS)) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIFY)
         }
@@ -152,6 +160,7 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         voice?.destroy()
+        tts?.shutdown()
         super.onDestroy()
     }
 

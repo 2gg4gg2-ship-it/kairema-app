@@ -141,12 +141,30 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                         return@use
                     }
                     val src = resp.body!!.source()
+                    // Расход токенов и цена, если провайдер их сообщает (уходит в JS куском с \u0002).
+                    var uIn = -1L
+                    var uOut = -1L
+                    var uCost = -1.0
                     while (true) {
                         val line = src.readUtf8Line() ?: break
                         if (!line.startsWith("data:")) continue
                         val data = line.substring(5).trim()
                         if (data == "[DONE]") break
                         val j = try { JSONObject(data) } catch (_: Exception) { continue }
+                        if (anthropic) {
+                            j.optJSONObject("message")?.optJSONObject("usage")?.let {
+                                if (it.has("input_tokens")) uIn = it.optLong("input_tokens")
+                            }
+                            if (j.optString("type") == "message_delta") {
+                                j.optJSONObject("usage")?.let { if (it.has("output_tokens")) uOut = it.optLong("output_tokens") }
+                            }
+                        } else {
+                            j.optJSONObject("usage")?.let {
+                                if (it.has("prompt_tokens")) uIn = it.optLong("prompt_tokens")
+                                if (it.has("completion_tokens")) uOut = it.optLong("completion_tokens")
+                                if (it.has("cost") && !it.isNull("cost")) uCost = it.optDouble("cost", -1.0)
+                            }
+                        }
                         val err = j.optJSONObject("error")
                         if (err != null) {
                             done(reqId, "ошибка: " + err.optString("message"))
@@ -172,6 +190,11 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                         // Размышления модели идут отдельно: в начале куска символ \u0001.
                         if (!thought.isNullOrEmpty()) push(reqId, "\u0001" + thought)
                         if (!text.isNullOrEmpty()) push(reqId, text)
+                    }
+                    if (uIn >= 0 || uOut >= 0) {
+                        val u = JSONObject().put("i", uIn).put("o", uOut)
+                        if (uCost >= 0) u.put("c", uCost)
+                        push(reqId, "\u0002" + u.toString())
                     }
                     done(reqId, null)
                 }
@@ -405,6 +428,32 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                         (pr.optString("prompt").toDoubleOrNull() == 0.0 && pr.optString("completion").toDoubleOrNull() == 0.0)
                     item.put("free", free)
                 }
+                // Возможности модели, если провайдер их сообщает (OpenRouter): картинки на выходе и размышление.
+                val outMods = o.optJSONObject("architecture")?.optJSONArray("output_modalities")
+                if (outMods != null) {
+                    var img = false
+                    for (k in 0 until outMods.length()) if (outMods.optString(k) == "image") img = true
+                    item.put("img", img)
+                }
+                val sp = o.optJSONArray("supported_parameters")
+                if (sp != null) {
+                    var th = false
+                    for (k in 0 until sp.length()) {
+                        val n = sp.optString(k)
+                        if (n == "reasoning" || n == "include_reasoning") th = true
+                    }
+                    item.put("think", th)
+                }
+                // Тариф (доллары за 1 млн токенов), если провайдер его сообщает (OpenRouter).
+                val pr = o.optJSONObject("pricing")
+                if (pr != null) {
+                    val a = pr.optString("prompt").toDoubleOrNull()
+                    val b = pr.optString("completion").toDoubleOrNull()
+                    if (a != null && b != null) {
+                        item.put("pin", a * 1_000_000)
+                        item.put("pout", b * 1_000_000)
+                    }
+                }
                 out.put(item)
             }
             out.toString()
@@ -425,6 +474,11 @@ class Bridge(private val ctx: Context, private val web: WebView) {
             .put("model", p.getString("model"))
             .put("messages", all)
             .put("stream", true)
+        // Для OpenAI и OpenRouter просим в конце потока данные о расходе (токены, у OpenRouter и цена).
+        if (!anthropic && (base.contains("openrouter.ai") || base.contains("api.openai.com"))) {
+            body.put("stream_options", JSONObject().put("include_usage", true))
+            if (base.contains("openrouter.ai")) body.put("usage", JSONObject().put("include", true))
+        }
         val rb = Request.Builder()
         val endpoint: String
         if (anthropic) {

@@ -8,6 +8,8 @@ function splashStart(end,reduce){
  sp.onclick=fin;
  const fb=ms=>{sp.classList.add('fb');setTimeout(fin,ms)};
  if(!v||reduce){fb(reduce?600:1800);return}
+ v.removeAttribute('controls');v.poster='';
+ v.addEventListener('playing',()=>{v.classList.add('on');clearTimeout(wd)});const wd=setTimeout(()=>{if(!v.classList.contains('on'))fb(600)},3500);
  v.addEventListener('ended',()=>setTimeout(fin,250));
  v.addEventListener('error',()=>fb(1800));
  setTimeout(fin,6500);

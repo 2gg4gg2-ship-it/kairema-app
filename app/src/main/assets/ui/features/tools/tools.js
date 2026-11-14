@@ -10,20 +10,28 @@ const Tools=(()=>{
  const icons=()=>{P.bolt=P.bolt||'<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>';P.wand=P.wand||'<path d="M5 19L15 9M14 4l1 2 2 1-2 1-1 2-1-2-2-1 2-1zM19 12l.7 1.3L21 14l-1.3.7L19 16l-.7-1.3L17 14l1.3-.7z"/>'};
  const api={mode:null,thinkMode:'auto',binds:[]};
  try{api.thinkMode=st.get('kthink')||'auto'}catch(e){}
+ /* Возможности выбранной модели (features/caps): Thinking/Instant только если модель размышляет, картинки если есть модель для них */
+ const canThink=()=>typeof Caps==='undefined'||Caps.think(actProv());
+ const canImg=()=>typeof Caps==='undefined'||Caps.image(actProv());
+ const canSearch=()=>S.sproviders.some(x=>x.ok);
+ const tm=()=>canThink()?api.thinkMode:'auto';
+ api.can={think:canThink,image:canImg,search:canSearch};
  const blue=()=>api.mode==='image'||api.mode==='deep';
  /* Метки в поле ввода */
  api.paint=w=>{
   icons();
   const box=$('.modes',w.el),ta=$('textarea',w.el);if(!box)return;box.innerHTML='';
   const add=(cls,icon,txt,off,body)=>{const c=el(`<span class="mchip ${cls}"><button type="button" class="mc-b">${ic(icon)}<b></b></button><button type="button" class="mc-x" aria-label="Убрать">${ic('x')}</button></span>`);$('b',c).textContent=L(txt);$('.mc-x',c).onclick=off;if(body)$('.mc-b',c).onclick=body;box.append(c)};
-  if(api.mode==='image')add('blue','img','Создать изображение',()=>api.set(null),()=>api.askImgModel(actProv()));
+  if(api.mode==='image'&&canImg())add('blue','img','Создать изображение',()=>api.set(null),()=>api.askImgModel(actProv()));
   if(api.mode==='deep')add('blue','search','Глубокое исследование',()=>api.set(null));
-  if(api.thinkMode==='think')add('plain','brain','Думать',()=>api.setThink('auto'));
-  if(api.thinkMode==='instant')add('plain','bolt','Быстрый ответ',()=>api.setThink('auto'));
+  if(typeof Tts!=='undefined'&&Tts.hf)add('plain','mic','Свободные руки',()=>Tts.hands(false));
+  if(tm()==='think')add('plain','brain','Думать',()=>api.setThink('auto'));
+  if(tm()==='instant')add('plain','bolt','Быстрый ответ',()=>api.setThink('auto'));
   w.el.classList.toggle('mb',blue());
   ta.placeholder=api.mode==='image'?L('Опишите изображение'):api.mode==='deep'?L('О чём провести исследование?'):(w.ph||'Сообщение')};
  api.bind=(el_,ph)=>{const w={el:el_,ph};api.binds.push(w);el_._tw=w;api.paint(w)};
  const repaint=()=>{api.binds=api.binds.filter(w=>w.el.isConnected);api.binds.forEach(api.paint)};
+ api.refresh=()=>repaint();
  api.set=m=>{api.mode=(api.mode===m?null:m);repaint()};
  api.setThink=v=>{api.thinkMode=v;try{st.set('kthink',v)}catch(e){}repaint()};
  /* Режим одного сообщения: берётся при отправке и сбрасывается */
@@ -38,11 +46,12 @@ const Tools=(()=>{
    ['cam','Камера','',()=>c.pick('c')],
    ['file','Файлы','',()=>c.pick('f')],
    ['h','Функции'],
-   ['wand','Создать изображение','Опишите картинку, она создаётся сразу',()=>api.set('image'),api.mode==='image'],
-   ['search','Глубокое исследование','Несколько поисков и подробный отчёт с источниками',()=>{if(!S.sproviders.some(x=>x.ok)){toast('Для глубокого исследования подключите провайдера поиска (Настройки)');return}api.set('deep')},api.mode==='deep'],
-   ['brain','Думать','Размышление перед ответом (Thinking)',()=>api.setThink(api.thinkMode==='think'?'auto':'think'),api.thinkMode==='think'],
-   ['bolt','Быстрый ответ','Без долгих размышлений (Instant)',()=>api.setThink(api.thinkMode==='instant'?'auto':'instant'),api.thinkMode==='instant'],
-   ['globe','Поиск в интернете','',()=>toggleWeb(),!!S.web],
+   ...(canImg()?[['wand','Создать изображение','Опишите картинку, она создаётся сразу',()=>api.set('image'),api.mode==='image']]:[]),
+   ...(canSearch()?[['search','Глубокое исследование','Несколько поисков и подробный отчёт с источниками',()=>{if(!S.sproviders.some(x=>x.ok)){toast('Для глубокого исследования подключите провайдера поиска (Настройки)');return}api.set('deep')},api.mode==='deep']]:[]),
+   ...(canThink()?[['brain','Думать','Размышление перед ответом (Thinking)',()=>api.setThink(api.thinkMode==='think'?'auto':'think'),api.thinkMode==='think'],
+   ['bolt','Быстрый ответ','Без долгих размышлений (Instant)',()=>api.setThink(api.thinkMode==='instant'?'auto':'instant'),api.thinkMode==='instant']]:[]),
+   ...(typeof Tts!=='undefined'?[['mic','Свободные руки','Ответ вслух, затем слушает вас',()=>Tts.hands(!Tts.hf),Tts.hf]]:[]),
+   ...(canSearch()?[['globe','Поиск в интернете','',()=>toggleWeb(),!!S.web]]:[]),
    ['tpl','Шаблоны промтов','',()=>c.tpl()]];
   const s=sheet('<div class="tl-list"></div>');const box=$('.tl-list',s);let i=0;
   rows.forEach(r=>{
@@ -51,11 +60,11 @@ const Tools=(()=>{
    $('b',b).textContent=L(r[1]);const sm=$('small',b);if(r[2])sm.textContent=L(r[2]);else sm.remove();
    b.onclick=()=>{s.close();setTimeout(r[3],120)};box.append(b)})};
  /* Параметры для провайдера: 1 думать, -1 быстро, 0 как есть */
- api.think=()=>api.thinkMode==='think'?1:api.thinkMode==='instant'?-1:0;
+ api.think=()=>tm()==='think'?1:tm()==='instant'?-1:0;
  api.sysx=last=>{let s='';
   if(last&&last.deep)s+='\n\nDeep research mode: write a thorough, well-structured report: a title, a short summary, sections with ## headings, key findings in **bold**, a comparison table when useful, and a conclusion. Cite sources as [1], [2] using the provided search results. Be specific and avoid filler.';
-  if(api.thinkMode==='think')s+='\n\nThink carefully and reason step by step before giving the final answer.';
-  if(api.thinkMode==='instant')s+='\n\nInstant mode: answer right away and concisely, without long reasoning.';
+  if(tm()==='think')s+='\n\nThink carefully and reason step by step before giving the final answer.';
+  if(tm()==='instant')s+='\n\nInstant mode: answer right away and concisely, without long reasoning.';
   return s};
  /* Размышления модели (приходят отдельно от ответа) */
  api.thought=(d,m,t)=>{

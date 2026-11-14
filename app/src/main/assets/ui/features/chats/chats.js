@@ -17,6 +17,7 @@ Chx.ser=(m,local)=>{
  const o={r:m.r,t:m.t};
  if(m.q!=null)o.q=m.q;
  if(m.err)o.err=1;
+ if(m.cost)o.cost=m.cost;
  const ps=[],nn=[];
  (m.parts||[]).forEach(p=>{
   if(p.k==='text'){const x=String(p.text||'');ps.push({k:'text',name:p.name,text:x.length>CHATS_FILE_MAX?x.slice(0,CHATS_FILE_MAX)+'\n[… файл обрезан в истории]':x})}
@@ -41,6 +42,7 @@ Chx.hyd=o=>{
  if(o.err)m.err=1;
  if(Array.isArray(o.src)&&o.src.length)m.src=o.src.filter(z=>z&&typeof z.url==='string').slice(0,5);
  if(o.serr)m.serr=String(o.serr);
+ if(o.cost&&typeof o.cost==='object')m.cost={i:+o.cost.i||0,o:+o.cost.o||0,c:typeof o.cost.c==='number'?o.cost.c:null,e:o.cost.e?1:0};
  if(Chx.db()&&o.img&&safe(o.img.path))m.img={mime:String(o.img.mime||'image/png'),path:o.img.path};
  if(Array.isArray(o.parts)&&o.parts.length)m.parts=o.parts.filter(p=>p&&(p.k==='text'||(Chx.db()&&(p.k==='image'||p.k==='pdf')&&safe(p.path))));
  if(Array.isArray(o.n)&&o.n.length)m.t='['+o.n.join(', ')+']\n'+m.t;

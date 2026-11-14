@@ -7,7 +7,7 @@ const Sys=(()=>{
  const api={
   get dark(){return dark},
   /* t, b: отступы под статус-бар и панель навигации; k: высота клавиатуры (0, если закрыта). Стили: system.css */
-  insets(t,b,k){t=B?Math.max(t,28)+10:t;k=k||0;root.style.setProperty('--sat',t+'px');root.style.setProperty('--sab',b+'px');root.style.setProperty('--kb',k+'px');
+  insets(t,b,k){t=B?Math.max(t,30)+26:t;k=k||0;root.style.setProperty('--sat',t+'px');root.style.setProperty('--sab',b+'px');root.style.setProperty('--kb',k+'px');
    const was=root.classList.contains('kb');root.classList.toggle('kb',k>0);
    if(k>0&&!was)setTimeout(()=>{const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName)){try{a.scrollIntoView({block:'nearest'})}catch(e){}}},80)},
   /* Системная тема изменилась (Kotlin) */

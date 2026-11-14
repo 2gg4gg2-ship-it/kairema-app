@@ -68,12 +68,12 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
   const tail=(src.length?'\n\nИсточники:\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+' — '+s.url).join('\n'):'')+(serr?'\n\n⚠ Поиск не сработал: '+serr:'');
   let got=false;
   try{
-   const run=h=>Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):''),think:typeof Tools!=='undefined'?Tools.think():0}),JSON.stringify(h)],t=>{if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scr(box))});
+   const run=h=>Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):''),think:typeof Tools!=='undefined'?Tools.think():0}),JSON.stringify(h)],t=>{if(t.charCodeAt(0)===2){if(typeof Cost!=='undefined')Cost.usage(m,t.slice(1));return}if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scr(box))});
    await run(hist);
    /* Пустой ответ при включённом поиске: повторяем один раз без результатов поиска */
    if(!got&&ctx){src=[];serr='модель не ответила с результатами поиска, ответ без них';await run(mkHist(''))}
    if(!got){m.err=1;m.t=bd.textContent='Пустой ответ от провайдера'}
-   else{m.src=src.slice(0,5);m.serr=serr;mdRender(bd,m.t,m);scr(box);Hooks.run('chat:answer',m,bd)}
+   else{m.src=src.slice(0,5);m.serr=serr;mdRender(bd,m.t,m);scr(box);if(typeof Cost!=='undefined')Cost.done(m,pv,hist,sysPrompt());Hooks.run('chat:answer',m,bd)}
   }catch(e){m.err=1;m.t=bd.textContent='Не удалось получить ответ: '+e.message}
   return}
  await wait(1000);
