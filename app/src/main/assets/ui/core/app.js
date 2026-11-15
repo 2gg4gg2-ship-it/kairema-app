@@ -55,6 +55,8 @@ function paint(box,msgs,q){box.innerHTML='';if(!msgs.length)box.innerHTML='<div 
   more.onclick=()=>{const h=box.scrollHeight,t=box.scrollTop,to=from,f=Math.max(0,from-60),fr=document.createDocumentFragment();for(let i=f;i<to;i++)fr.append(msgEl(msgs[i],0));from=f;more.after(fr);if(from)lab();else more.remove();box.scrollTop=t+(box.scrollHeight-h)};box.append(more)}
  for(let i=from;i<msgs.length;i++)box.append(msgEl(msgs[i],0,q))}
 const scr=b=>b.scrollTop=1e6;
+function stopTail(d){const b=el('<button class="more-old stp-c"></button>');b.textContent=L('Остановлено. Продолжить');b.onclick=()=>{b.remove();const c=Chat.cmp;if(!c||!c.setText)return;c.setText(L('Продолжи с того места, где остановился.'));const sd=$('.send',c);if(sd&&!sd.disabled)sd.click()};d.append(b)}
+i18nAdd({"Остановлено. Продолжить":"Stopped. Continue","Продолжи с того места, где остановился.":"Continue from where you stopped.","Остановить":"Stop"});
 async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=msgEl(m,1);box.append(d);const bd=$('.bd',d);bd.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';scr(box);
  const pv=actProv();
  if(Native.on&&pv){
@@ -69,15 +71,21 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
   const ctx=src.length?'Результаты поиска в интернете ('+new Date().toLocaleDateString('ru-RU')+'):\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+'\n'+s.url+'\n'+s.snippet).join('\n\n')+'\n\nПравила: это результаты автоматического поиска по тексту вопроса, они могут не относиться к делу (например, если вопрос про тебя, это приложение или нашу беседу). Используй только то, что прямо отвечает на вопрос, и ссылайся номерами [1], [2]. Если результаты не по теме, молча игнорируй их и отвечай сам; ничего не выдумывай и не приписывай найденное предмету вопроса. Вопрос пользователя: ':'';
   const mkHist=c=>msgs.filter(x=>x!==m&&!x.err&&x.t).map(x=>({role:x.r==='u'?'user':'assistant',content:toContent(x,anth,x===last?c:'')}));const hist=mkHist(ctx);
   const tail=(src.length?'\n\nИсточники:\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+' — '+s.url).join('\n'):'')+(serr?'\n\n⚠ Поиск не сработал: '+serr:'');
-  let got=false;
+  let got=false;window.GEN={stopped:0,pr:null,stop(){this.stopped=1;Native.cancel(this.pr&&this.pr.id)}};if(Chat.cmp&&Chat.cmp.upd)Chat.cmp.upd();
   try{
-   const run=h=>Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):''),think:typeof Tools!=='undefined'?Tools.think():0}),JSON.stringify(h)],t=>{if(t.charCodeAt(0)===2){if(typeof Cost!=='undefined')Cost.usage(m,t.slice(1));return}if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scr(box))});
+   const run=h=>{const pr=Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):''),think:typeof Tools!=='undefined'?Tools.think():0}),JSON.stringify(h)],t=>{if(t.charCodeAt(0)===2){if(typeof Cost!=='undefined')Cost.usage(m,t.slice(1));return}if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scr(box))});if(window.GEN)GEN.pr=pr;return pr};
    await run(hist);
    /* Пустой ответ при включённом поиске: повторяем один раз без результатов поиска */
-   if(!got&&ctx){src=[];serr='модель не ответила с результатами поиска, ответ без них';await run(mkHist(''))}
+   if(!got&&ctx&&!GEN.stopped){src=[];serr='модель не ответила с результатами поиска, ответ без них';await run(mkHist(''))}
+   if(!got&&GEN.stopped)throw new Error('Canceled');
    if(!got){m.err=1;m.t=bd.textContent='Пустой ответ от провайдера'}
    else{m.src=src.slice(0,5);m.serr=serr;mdRender(bd,m.t,m);scr(box);if(typeof Cost!=='undefined')Cost.done(m,pv,hist,sysPrompt());Hooks.run('chat:answer',m,bd)}
-  }catch(e){m.err=1;m.t=bd.textContent='Не удалось получить ответ: '+e.message}
+  }catch(e){
+   if(window.GEN&&GEN.stopped){
+    if(got&&m.t){mdRender(bd,m.t,m);m.stopped=1;stopTail(d)}
+    else{const i=msgs.indexOf(m);if(i>=0)msgs.splice(i,1);d.remove();if(!msgs.some(x=>x.t)&&!box.children.length)paint(box,msgs)}
+   }else{m.err=1;m.t=bd.textContent='Не удалось получить ответ: '+e.message}
+  }finally{window.GEN=null;if(Chat.cmp&&Chat.cmp.upd)Chat.cmp.upd()}
   return}
  await wait(1000);
  const full=L((tag||'')+REPLY+(S.web?' Использованы актуальные данные из интернета.':''));bd.textContent='';
@@ -151,17 +159,18 @@ function toggleWeb(){
 function composer(o){
  const w=el(`<div class="cmp"><div class="att"></div><div class="modes"></div><div class="lsn"><span class="eq"><i></i><i></i><i></i><i></i></span><span>Слушаю… нажмите микрофон, чтобы остановить</span></div><textarea rows="1" placeholder="${o.ph||'Сообщение'}" aria-label="Сообщение"></textarea><div class="cr"><button class="cb pl" data-plus data-action="composer:plus" aria-label="Функции и вложения">${ic('plus')}</button><button class="cb gl" data-w aria-label="Поиск в интернете">${ic('globe')}</button><button class="chip2" data-c></button><span style="flex:1"></span><button class="cb" data-v data-action="composer:voice" aria-label="Голосовой ввод">${ic('mic')}</button><button class="send" disabled data-action="composer:send" aria-label="Отправить">${ic('up')}</button></div><input type="file" hidden data-ig accept="image/*" multiple><input type="file" hidden data-if multiple><input type="file" hidden data-ic accept="image/*" capture="environment"></div>`);
  const ta=$('textarea',w),sd=$('.send',w),gl=$('.gl',w),ch=$('.chip2',w);let files=[],busy=0;
- const upd=()=>sd.disabled=busy||(!ta.value.trim()&&!files.length);
+ const UP=sd.innerHTML,STOP='<svg class="i" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></svg>';
+ const upd=()=>{const g=!!window.GEN;sd.disabled=g?false:(busy||(!ta.value.trim()&&!files.length));if(sd._g!==g){sd._g=g;sd.innerHTML=g?STOP:UP;sd.setAttribute('aria-label',g?'Остановить':'Отправить')}};
  const grow=()=>{const p=ta.offsetHeight;ta.style.height='auto';const h=Math.min(ta.scrollHeight,110);ta.style.height=p+'px';ta.offsetHeight;ta.style.height=h+'px';upd()};
  ta.oninput=grow;ta.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&matchMedia('(hover:hover)').matches){e.preventDefault();send()}};
- const send=()=>{if(sd.disabled)return;const t=ta.value.trim(),f=files.map(x=>x.f.name),fl=files.map(x=>x.f);files.forEach(x=>x.u&&URL.revokeObjectURL(x.u));ta.value='';files=[];$('.att',w).innerHTML='';ta.style.height='22px';upd();o.onSend(t,f,fl,typeof Tools!=='undefined'?Tools.take():null)};sd.onclick=send;
+ const send=()=>{if(window.GEN){window.GEN.stop();return}if(sd.disabled)return;const t=ta.value.trim(),f=files.map(x=>x.f.name),fl=files.map(x=>x.f);files.forEach(x=>x.u&&URL.revokeObjectURL(x.u));ta.value='';files=[];$('.att',w).innerHTML='';ta.style.height='22px';upd();o.onSend(t,f,fl,typeof Tools!=='undefined'?Tools.take():null)};sd.onclick=send;
  const addF=list=>{[...list].forEach(f=>{const im=f.type.startsWith('image/'),o2={f,u:im?URL.createObjectURL(f):''};files.push(o2);const c=el(`<div class="ap ${im?'im':''}">${im?'<img alt="">':`${ic('file')}<span><b></b><small></small></span>`}<button class="rm" aria-label="Удалить вложение">${ic('x')}</button></div>`);if(im){$('img',c).src=o2.u}else{$('b',c).textContent=f.name;$('small',c).textContent=fmt(f.size)}$('.rm',c).onclick=()=>{files=files.filter(x=>x!==o2);if(o2.u)URL.revokeObjectURL(o2.u);c.remove();upd()};$('.att',w).append(c)});upd()};
  const ins={g:$('[data-ig]',w),f:$('[data-if]',w),c:$('[data-ic]',w)};Object.values(ins).forEach(i=>i.onchange=()=>{addF(i.files);i.value=''});
  $('[data-plus]',w).onclick=()=>{if(typeof Tools!=='undefined'){Tools.open({pick:k=>ins[k].click(),tpl:()=>tpl()});return}const s=sheet(`<button class="pi2" data-k="g">${ic('img')}<span>Галерея</span></button><button class="pi2" data-k="f">${ic('file')}<span>Файлы</span></button><button class="pi2" data-k="c">${ic('cam')}<span>Камера</span></button><button class="btn ghost" data-x style="width:100%;margin-top:10px">Отмена</button>`);$$('[data-k]',s).forEach(b=>b.onclick=()=>{s.close();ins[b.dataset.k].click()});$('[data-x]',s).onclick=s.close};
  const tpl=()=>{const s=sheet(`<h2 style="margin-bottom:12px">Шаблоны промтов</h2><div id="tl"></div>`);tplList($('#tl',s),t=>{s.close();ta.value=(ta.value?ta.value+'\n':'')+t;grow();ta.focus()})};
  let lp;ta.addEventListener('pointerdown',()=>{lp=setTimeout(tpl,650)});['pointerup','pointermove','pointercancel'].forEach(e=>ta.addEventListener(e,()=>clearTimeout(lp)));
  const mic=$('[data-v]',w);let rec=null;mic.onclick=()=>{if(typeof Voice!=='undefined'&&Voice.native){Voice.toggle(mic,ta,grow);return}const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Голосовой ввод недоступен на этом устройстве');return}if(rec){rec.stop();return}rec=new SR();rec.lang=LANG==='en'?'en-US':'ru-RU';rec.onresult=e=>{ta.value+=(ta.value?' ':'')+e.results[0][0].transcript;grow()};rec.onerror=()=>toast('Нет доступа к микрофону');rec.onend=()=>{rec=null;mic.classList.remove('rec')};try{rec.start();mic.classList.add('rec')}catch(e){rec=null}};
- w.setText=t=>{ta.value=t;grow()};w.chip=()=>{ch.innerHTML=o.chip();ch.onclick=o.onChip||null};w.busy=b=>{busy=b;upd()};const g=()=>{gl.classList.toggle('on',!!S.web);gl.setAttribute('aria-pressed',S.web?'true':'false');gl.title=S.web?'Поиск в интернете включён':'Поиск в интернете выключен'};gl.onclick=()=>toggleWeb();bus.push(g);g();w.chip();if(typeof Tools!=='undefined')Tools.bind(w,o.ph);return w}
+ w.setText=t=>{ta.value=t;grow()};w.chip=()=>{ch.innerHTML=o.chip();ch.onclick=o.onChip||null};w.busy=b=>{busy=b;upd()};w.upd=upd;const g=()=>{gl.classList.toggle('on',!!S.web);gl.setAttribute('aria-pressed',S.web?'true':'false');gl.title=S.web?'Поиск в интернете включён':'Поиск в интернете выключен'};gl.onclick=()=>toggleWeb();bus.push(g);g();w.chip();if(typeof Tools!=='undefined')Tools.bind(w,o.ph);return w}
 /* ===== ЧАТ: единственный чат — с подключённым AI-провайдером ===== */
 function apiView(){Chx.load();const v=$('#v-api'),p=actProv();v.innerHTML='';
  if(!p){v.innerHTML=`<div class="top"><h1>Чат</h1></div><div class="warn">${ic('warn')}<h2>Подключите AI-провайдера, чтобы начать чат</h2><p class="sub">Чат работает только через вашего AI-провайдера. Добавьте название, API URL и ключ, модель выберите из списка.</p><button class="btn big" id="btn-connect-provider" data-action="provider:connect">Подключить AI-провайдера</button></div>`;

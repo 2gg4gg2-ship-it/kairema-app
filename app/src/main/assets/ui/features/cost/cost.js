@@ -6,7 +6,7 @@
    (хранятся в localStorage kairema.prices.v1) или равна 0 для моделей :free; 3) если тарифа нет, цена не показывается.
    Статистика: localStorage kairema.usage.v1 (по месяцам), ничего не уходит с устройства. Убрать модуль: удалить папку и строку в index.html
    (в app.js и chats.js вызовы защищены typeof или безвредны). */
-i18nAdd({"Расходы и токены":"Spend and tokens","Токены и примерная цена ответов":"Tokens and approximate cost of answers","Этот месяц":"This month","Ответов":"Answers","Токены":"Tokens","Вход":"Input","Выход":"Output","Примерная цена":"Approximate cost","По моделям":"By model","Прошлые месяцы":"Previous months","Пока нет данных: расходы считаются с этой версии":"No data yet: spending is counted from this version","Сбросить статистику":"Reset statistics","Статистика сброшена":"Statistics reset","Цены известны не для всех моделей: у остальных считаются только токены":"Prices are not known for every model: only tokens are counted for the rest","ток":"tok"});
+i18nAdd({"Лимит в месяц, $":"Monthly limit, $","Лимит расходов: израсходовано 80%":"Spending limit: 80% used","Лимит расходов на месяц исчерпан":"Monthly spending limit reached","без лимита":"no limit","Расходы и токены":"Spend and tokens","Токены и примерная цена ответов":"Tokens and approximate cost of answers","Этот месяц":"This month","Ответов":"Answers","Токены":"Tokens","Вход":"Input","Выход":"Output","Примерная цена":"Approximate cost","По моделям":"By model","Прошлые месяцы":"Previous months","Пока нет данных: расходы считаются с этой версии":"No data yet: spending is counted from this version","Сбросить статистику":"Reset statistics","Статистика сброшена":"Statistics reset","Цены известны не для всех моделей: у остальных считаются только токены":"Prices are not known for every model: only tokens are counted for the rest","ток":"tok"});
 const Cost=(()=>{
  const PK='kairema.prices.v1',UK='kairema.usage.v1';
  let prices={},use={};
@@ -14,6 +14,12 @@ const Cost=(()=>{
  try{use=JSON.parse(localStorage.getItem(UK)||'{}')||{}}catch(e){}
  const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
  const api={};
+ const BK='kairema.budget.v1';let bud={lim:0,w:{}};
+ try{const x=JSON.parse(localStorage.getItem(BK)||'{}');if(x&&typeof x==='object')bud={lim:+x.lim>0?+x.lim:0,w:x.w&&typeof x.w==='object'?x.w:{}}}catch(e){}
+ api.limit=()=>bud.lim;
+ api.setLimit=v=>{bud.lim=+v>0?+v:0;bud.w={};put(BK,bud)};
+ /* Предупреждение при 80% и 100% месячного лимита (по одному разу в месяц) */
+ const watch=(k,spent)=>{if(!(bud.lim>0))return;const r=spent/bud.lim,lv=r>=1?2:r>=0.8?1:0;if(lv>(bud.w[k]||0)){bud.w[k]=lv;put(BK,bud);if(typeof toast==='function')toast(L(lv===2?'Лимит расходов на месяц исчерпан':'Лимит расходов: израсходовано 80%'))}};
  /* Тарифы из списка моделей: pin/pout в долларах за 1 млн токенов */
  api.learn=(pid,list)=>{
   if(!pid||!Array.isArray(list))return;
@@ -38,7 +44,7 @@ const Cost=(()=>{
    const k=mk(),b=use[k]||(use[k]={n:0,i:0,o:0,c:0,u:0,by:{}});
    b.n++;b.i+=i;b.o+=o;if(c!=null)b.c+=c;else b.u++;
    const y=b.by[pv.model]||(b.by[pv.model]={n:0,i:0,o:0,c:0});y.n++;y.i+=i;y.o+=o;if(c!=null)y.c+=c;
-   put(UK,use)}catch(e){}};
+   put(UK,use);watch(k,b.c)}catch(e){}};
  const nf=n=>String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,' ');
  api.fmt=c=>{
   if(c==null)return '';
@@ -67,16 +73,18 @@ const Cost=(()=>{
   if($('[data-screen=cost]'))return;
   return page('cost',L('Расходы и токены'),(b,d)=>{
    const m=api.month(),keys=Object.keys(use).sort().reverse();
-   if(!m){b.innerHTML='<p class="ac-note">'+esc(L('Пока нет данных: расходы считаются с этой версии'))+'</p>';return}
+   const limHtml=`<div class="fld" style="margin:0 0 14px"><label>${esc(L('Лимит в месяц, $'))}</label><input data-lim type="number" min="0" step="0.5" inputmode="decimal" value="${api.limit()||''}" placeholder="${esc(L('без лимита'))}"></div>`;
+   const bindLim=()=>{const i=$('[data-lim]',b);if(i)i.onchange=()=>{api.setLimit(parseFloat(String(i.value).replace(',','.')));toast(api.limit()?'Лимит сохранён':'Лимит снят')}};
+   if(!m){b.innerHTML=limHtml+'<p class="ac-note">'+esc(L('Пока нет данных: расходы считаются с этой версии'))+'</p>';bindLim();return}
    const by=Object.entries(m.by).sort((a,c)=>(c[1].c-a[1].c)||(c[1].i+c[1].o)-(a[1].i+a[1].o)).slice(0,8);
-   b.innerHTML=`<h3 class="cs-h">${esc(L('Этот месяц'))} · ${esc(monthName(mk()))}</h3>
+   b.innerHTML=limHtml+`<h3 class="cs-h">${esc(L('Этот месяц'))} · ${esc(monthName(mk()))}</h3>
     <div class="cs-g">${stat('Примерная цена',api.fmt(m.c)||'0')}${stat('Ответов',nf(m.n))}${stat('Вход',nf(m.i)+' '+L('ток'))}${stat('Выход',nf(m.o)+' '+L('ток'))}</div>
     ${m.u?`<p class="ac-note">${esc(L('Цены известны не для всех моделей: у остальных считаются только токены'))}</p>`:''}
     <h3 class="cs-h">${esc(L('По моделям'))}</h3>
     <div class="cs-l">${by.map(([k,v])=>`<div class="cs-r"><span class="mo">${esc(k)}</span><span>${esc(nf(v.i+v.o))} ${esc(L('ток'))}${v.c?' · '+esc(api.fmt(v.c)):''}</span></div>`).join('')}</div>
     ${keys.length>1?`<h3 class="cs-h">${esc(L('Прошлые месяцы'))}</h3><div class="cs-l">${keys.slice(1,7).map(k=>`<div class="cs-r"><span class="mo">${esc(monthName(k))}</span><span>${esc(nf(use[k].i+use[k].o))} ${esc(L('ток'))}${use[k].c?' · '+esc(api.fmt(use[k].c)):''}</span></div>`).join('')}</div>`:''}
     <button class="btn ghost" data-rs style="width:100%;margin-top:18px">${esc(L('Сбросить статистику'))}</button>`;
-   $('[data-rs]',b).onclick=()=>{api.reset();toast('Статистика сброшена');d.r()}})};
+   bindLim();$('[data-rs]',b).onclick=()=>{api.reset();toast('Статистика сброшена');d.r()}})};
  Hooks.on('app:ready',()=>{P.chart=P.chart||'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>';SCREENS.cost=costPage});
  Hooks.on('settings:rendered',v=>{
   const ab=$('[data-go="about"]',v);if(!ab||$('[data-cost]',v))return;
