@@ -253,3 +253,4 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 #splash .intro-fb{display:none;width:min(46vw,220px);animation:sin .8s var(--ease) both}
 #splash .intro.on{opacity:1}#splash.fb .intro{display:none}#splash.fb .intro-fb{display:block}
 .full>.logo-img{width:92px;animation:sin .8s var(--ease) both}
+.more-old{display:block;margin:6px auto 12px;padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:var(--s1);color:var(--tx2);font:inherit;font-size:13px}

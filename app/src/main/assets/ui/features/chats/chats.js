@@ -225,3 +225,4 @@ Hooks.on('sync:register',Sy=>Sy.register('chat',{
   if(typeof CUR!=='undefined'&&CUR==='api'&&!Chx.busy)apiView()}}));
 i18nAdd(CHATS_EN);
 i18nAdd({"Введите название или пропустите: оно появится само по первым строкам вашего сообщения.":"Enter a name or skip: it will be set automatically from the first lines of your message.","Например, План поездки":"E.g. Trip plan","Пропустить":"Skip","Создать":"Create","Удалить все чаты":"Delete all chats","Удалить все чаты?":"Delete all chats?","Все переписки будут удалены без возможности восстановления.":"All conversations will be permanently deleted.","Удалить все":"Delete all","Все чаты удалены":"All chats deleted","Закрепить":"Pin","Открепить":"Unpin","Чат закреплён":"Chat pinned","Чат откреплён":"Chat unpinned"});
+i18nAdd({"Показать ранние":"Show earlier"});

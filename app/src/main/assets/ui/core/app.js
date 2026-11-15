@@ -50,7 +50,10 @@ function form(b,rules,btn){const chk=()=>{let ok=1;$$('[data-k]',b).forEach(i=>{
 const fld=(l,k,v,er,type='text',ph='')=>`<div class="fld"><label>${l}</label><input data-k="${k}" type="${type}" value="${esc(v||'')}" placeholder="${ph}" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="er">${er}</div></div>`;
 /* ===== ЧАТЫ: сообщения и ответ ИИ ===== */
 function msgEl(m,isNew,q){const d=el(`<div class="msg ${m.r} ${isNew?'new':''}"><span class="bd"></span></div>`);const bd=$('.bd',d);if(m.r==='a'&&!m.err&&!q&&m.t)mdRender(bd,m.t,m);else bd.innerHTML=hl(m.t,q);Hooks.run('msg:render',d,m);return d}
-function paint(box,msgs,q){box.innerHTML='';if(!msgs.length)box.innerHTML='<div class="empty"><p>Диалог пуст. Напишите первое сообщение.</p></div>';msgs.forEach(m=>box.append(msgEl(m,0,q)))}
+function paint(box,msgs,q){box.innerHTML='';if(!msgs.length)box.innerHTML='<div class="empty"><p>Диалог пуст. Напишите первое сообщение.</p></div>';let from=0;if(!q&&!window.PAINT_FULL&&msgs.length>80)from=msgs.length-60;
+ if(from){const more=el('<button class="more-old"></button>');const lab=()=>more.textContent=L('Показать ранние')+' ('+from+')';lab();
+  more.onclick=()=>{const h=box.scrollHeight,t=box.scrollTop,to=from,f=Math.max(0,from-60),fr=document.createDocumentFragment();for(let i=f;i<to;i++)fr.append(msgEl(msgs[i],0));from=f;more.after(fr);if(from)lab();else more.remove();box.scrollTop=t+(box.scrollHeight-h)};box.append(more)}
+ for(let i=from;i<msgs.length;i++)box.append(msgEl(msgs[i],0,q))}
 const scr=b=>b.scrollTop=1e6;
 async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=msgEl(m,1);box.append(d);const bd=$('.bd',d);bd.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';scr(box);
  const pv=actProv();

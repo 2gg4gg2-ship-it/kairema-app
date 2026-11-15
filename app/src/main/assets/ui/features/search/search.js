@@ -79,7 +79,7 @@ Srch.go=(id,mi,d)=>{
  const c=Chx.list.find(x=>x.id===id);if(!c)return;
  if(Chx.busy){toast('Дождитесь ответа');return}
  d.close();const cp=$('[data-screen=chats]');if(cp&&cp.close)cp.close();
- Chx.open(c);apiView();
+ Chx.open(c);window.PAINT_FULL=mi>=0?1:0;try{apiView()}finally{window.PAINT_FULL=0}
  if(mi>=0){
   const k=c.msgs.indexOf(c.msgs.filter(x=>x.t)[mi]);
   setTimeout(()=>{const box=$('.msgs'),e=box&&box.children[k];if(e){e.scrollIntoView({block:'center'});e.classList.add('srch-flash');setTimeout(()=>e.classList.remove('srch-flash'),2200)}},350)}};

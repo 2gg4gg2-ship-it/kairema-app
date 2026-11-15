@@ -111,7 +111,7 @@ const Tools=(()=>{
   if(!m.img)return;
   if(!m.img.b64&&m.img.path)m.img.b64=Media.load(m.img.path);
   const bd=$('.bd',d);bd.textContent='';bd.classList.add('imgmsg');
-  const im=new Image();im.className='genimg';im.alt=m.t||'';im.src='data:'+m.img.mime+';base64,'+m.img.b64;bd.append(im);
+  const im=new Image();im.className='genimg';im.alt=m.t||'';im.decoding='async';im.src='data:'+m.img.mime+';base64,'+m.img.b64;bd.append(im);
   if(typeof Sx!=='undefined')Sx.icons();
   const row=el(`<div class="img-act"><button type="button" data-s>${ic('dwn')}<span>${L('Сохранить')}</span></button><button type="button" data-h>${ic('shr')}<span>${L('Поделиться')}</span></button></div>`);
   const ext=(m.img.mime.split('/')[1]||'png').replace('jpeg','jpg'),name='kairema_'+Date.now()+'.'+ext;
