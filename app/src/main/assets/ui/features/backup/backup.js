@@ -24,7 +24,7 @@ const Backup=(()=>{
   const settings={};SET.forEach(k=>{const v=st.get(k);if(typeof v==='string')settings[k]=v});
   const chats=Chx.list.filter(c=>c.msgs.some(m=>m.t)).map(c=>({id:c.id,title:c.title,named:c.named?1:0,pinned:c.pinned?1:0,ts:c.ts,msgs:c.msgs.filter(m=>m.t).map(m=>serMsg(m,bud))}));
   const data={app:'kairema',v:1,ver:typeof APP_VERSION==='string'?APP_VERSION:'',t:new Date().toISOString(),
-   chats,memory:{items:S.memos.map(x=>({id:x[2],t:x[0],src:x[1],ts:x[3]}))},
+   chats,memory:{prof:S.prof||'',items:S.memos.map(x=>typeof Mem!=='undefined'?Mem.toItem(x):({id:x[2],t:x[0],src:x[1],ts:x[3]}))},
    providers:S.providers.map(p=>({id:p.id,name:p.name,model:p.model,url:p.url})),
    sproviders:S.sproviders.map(p=>({id:p.id,name:p.name,url:p.url})),settings};
   return{json:JSON.stringify(data),skipped:bud.skipped,chats:chats.length,mem:data.memory.items.length}};
@@ -63,7 +63,8 @@ const Backup=(()=>{
    Hooks.run('sync:touch','chat',id)});
   Chx.list.sort((a,b)=>b.ts-a.ts);Chx.persist();
   const items=d.memory&&Array.isArray(d.memory.items)?d.memory.items:[];
-  items.forEach(i=>{if(!i||typeof i.t!=='string'||!i.t.trim())return;if(S.memos.some(x=>(i.id&&x[2]===i.id)||x[0]===i.t))return;S.memos.push([i.t.slice(0,500),String(i.src||'').slice(0,200),'',0]);nm++});
+  items.forEach(i=>{if(!i||typeof i.t!=='string'||!i.t.trim())return;if(S.memos.some(x=>(i.id&&x[2]===i.id)||x[0]===i.t))return;S.memos.push(typeof Mem!=='undefined'?Mem.fromItem(i,''):[i.t.slice(0,500),String(i.src||'').slice(0,200),'',0]);nm++});
+  if(d.memory&&typeof d.memory.prof==='string'&&d.memory.prof.trim()&&!String(S.prof||'').trim()&&typeof Mem!=='undefined')Mem.setProfile(d.memory.prof);
   if(nm)Hooks.run('memory:changed');
   const addProv=(src,arr,chat)=>(Array.isArray(src)?src:[]).forEach(p=>{
    if(!p||!p.id||typeof p.url!=='string'||!/^https:\/\//.test(p.url)||arr.some(x=>x.id===p.id))return;
