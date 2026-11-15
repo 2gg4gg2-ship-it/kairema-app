@@ -5,6 +5,7 @@
    Нативная часть: Bridge.image (картинки), Bridge.chat (параметры размышления).
    Убрать модуль: удалить папку features/tools и строки в index.html; «+» вернётся к обычному списку вложений. */
 i18nAdd({"Функции и вложения":"Features and attachments","Прикрепить":"Attach","Функции":"Features","Фото из галереи":"Photo from gallery","Камера":"Camera","Файлы":"Files","Создать изображение":"Create an image","Опишите картинку, она создаётся сразу":"Describe the picture, it is created right away","Глубокое исследование":"Deep research","Несколько поисков и подробный отчёт с источниками":"Several searches and a detailed report with sources","Думать":"Think","Размышление перед ответом (Thinking)":"Reasoning before the answer (Thinking)","Быстрый ответ":"Quick answer","Без долгих размышлений (Instant)":"No long reasoning (Instant)","Поиск в интернете":"Web search","Шаблоны промтов":"Prompt templates","Опишите изображение":"Describe the image","О чём провести исследование?":"What should be researched?","Думает…":"Thinking…","Размышления":"Reasoning","Создаю изображение…":"Creating the image…","Не удалось создать изображение: ":"Could not create the image: ","Модель для картинок":"Image model","Укажите модель, которая умеет создавать изображения. Её можно изменить, нажав на метку «Создать изображение».":"Enter a model that can create images. You can change it by tapping the “Create an image” label.","Название модели":"Model name","Сохранить":"Save","Сохранено в «Загрузки»":"Saved to Downloads","Поделиться":"Share","Планирую исследование…":"Planning the research…","Для глубокого исследования подключите провайдера поиска (Настройки)":"Connect a search provider (Settings) for deep research","Создание изображений работает только в приложении":"Image creation works only in the app","Anthropic не создаёт изображения. Подключите другого провайдера, например OpenRouter или OpenAI":"Anthropic does not create images. Connect another provider, for example OpenRouter or OpenAI","Эта модель не создаёт изображения. Выберите модель с меткой «Картинки»":"This model does not create images. Choose a model tagged “Images”","Модель сама не размышляет: к запросу добавится просьба рассуждать по шагам":"The model does not reason natively: the request will ask it to think step by step","Модель сама не размышляет: к запросу добавится просьба ответить сразу и кратко":"The model does not reason natively: the request will ask for a short, direct answer"});
+i18nAdd({"Создать":"Create","Режим":"Mode","Фото":"Photo","Из галереи":"From gallery","Снять сейчас":"Take a photo","Файл":"File","PDF, текст, таблица":"PDF, text, spreadsheet","Изображение":"Image","Нарисовать по описанию":"Draw from a description","Отчёт с источниками":"Report with sources","Рассуждает перед ответом":"Reasons before answering","Попросим рассуждать по шагам":"We will ask it to reason step by step","Без долгих раздумий":"No long reasoning","Попросим ответить кратко":"We will ask for a short answer","Свежие данные из сети":"Fresh data from the web","Эта модель не рисует":"This model cannot draw","Нужен провайдер поиска":"Search provider needed","Эта модель не рисует. Выберите модель с меткой «Картинки»":"This model cannot draw. Pick a model tagged “Images”","Для исследования подключите провайдера поиска (Настройки)":"Connect a search provider (Settings) for research","Для поиска подключите провайдера поиска (Настройки)":"Connect a search provider (Settings) for search"});
 const Tools=(()=>{
  /* P (набор значков) создаётся в core/app.js позже модулей, поэтому дописываем значки при первом использовании */
  const icons=()=>{P.bolt=P.bolt||'<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>';P.wand=P.wand||'<path d="M5 19L15 9M14 4l1 2 2 1-2 1-1 2-1-2-2-1 2-1zM19 12l.7 1.3L21 14l-1.3.7L19 16l-.7-1.3L17 14l1.3-.7z"/>'};
@@ -38,28 +39,43 @@ const Tools=(()=>{
  api.setThink=v=>{api.thinkMode=v;try{st.set('kthink',v)}catch(e){}repaint()};
  /* Режим одного сообщения: берётся при отправке и сбрасывается */
  api.take=()=>{const m=api.mode;api.mode=null;repaint();return m};
- /* Меню «+» */
+ /* Меню «+»: плитки по 2 в ряд, три группы (Прикрепить, Создать, Режим).
+    Режимы переключаются, не закрывая окно, и видно, что включено. Пункты, которых модель не умеет, серые с причиной. */
  api.open=c=>{
   icons();
   if(typeof Sx!=='undefined')Sx.icons();
-  const rows=[
-   ['h','Прикрепить'],
-   ['img','Фото из галереи','',()=>c.pick('g')],
-   ['cam','Камера','',()=>c.pick('c')],
-   ['file','Файлы','',()=>c.pick('f')],
-   ['h','Функции'],
-   ...(canImg()?[['wand','Создать изображение','Опишите картинку, она создаётся сразу',()=>api.set('image'),api.mode==='image']]:[]),
-   ...(canSearch()?[['search','Глубокое исследование','Несколько поисков и подробный отчёт с источниками',()=>{if(!S.sproviders.some(x=>x.ok)){toast('Для глубокого исследования подключите провайдера поиска (Настройки)');return}api.set('deep')},api.mode==='deep']]:[]),
-   ['brain','Думать',canThink()?'Размышление перед ответом (Thinking)':'Модель сама не размышляет: к запросу добавится просьба рассуждать по шагам',()=>api.setThink(api.thinkMode==='think'?'auto':'think'),api.thinkMode==='think'],
-   ['bolt','Быстрый ответ',canThink()?'Без долгих размышлений (Instant)':'Модель сама не размышляет: к запросу добавится просьба ответить сразу и кратко',()=>api.setThink(api.thinkMode==='instant'?'auto':'instant'),api.thinkMode==='instant'],
-   ...(canSearch()?[['globe','Поиск в интернете','',()=>toggleWeb(),!!S.web]]:[]),
-   ['tpl','Шаблоны промтов','',()=>c.tpl()]];
-  const s=sheet('<div class="tl-list"></div>');const box=$('.tl-list',s);let i=0;
-  rows.forEach(r=>{
-   if(r[0]==='h'){box.append(el(`<div class="tl-h">${L(r[1])}</div>`));return}
-   const b=el(`<button type="button" class="sx-row tl-row ${r[4]?'on':''}" style="--i:${i++}"><span class="sx-i">${ic(r[0])}</span><span class="sx-t"><b></b><small></small></span><span class="tl-ck">${r[4]?ic('ok'):''}</span></button>`);
-   $('b',b).textContent=L(r[1]);const sm=$('small',b);if(r[2])sm.textContent=L(r[2]);else sm.remove();
-   b.onclick=()=>{s.close();setTimeout(r[3],120)};box.append(b)})};
+  const s=sheet('<div class="tm-grab"></div><div class="tm"></div>');
+  const box=$('.tm',s);let first=1;
+  const groups=()=>[
+   ['Прикрепить',[
+    {i:'img',n:'Фото',h:'Из галереи',run:()=>c.pick('g')},
+    {i:'cam',n:'Камера',h:'Снять сейчас',run:()=>c.pick('c')},
+    {i:'file',n:'Файл',h:'PDF, текст, таблица',run:()=>c.pick('f')}]],
+   ['Создать',[
+    {i:'wand',n:'Изображение',h:'Нарисовать по описанию',run:()=>api.set('image'),on:api.mode==='image',off:canImg()?'':'Эта модель не рисует',why:'Эта модель не рисует. Выберите модель с меткой «Картинки»'},
+    {i:'search',n:'Глубокое исследование',h:'Отчёт с источниками',run:()=>api.set('deep'),on:api.mode==='deep',off:canSearch()?'':'Нужен провайдер поиска',why:'Для исследования подключите провайдера поиска (Настройки)'}]],
+   ['Режим',[
+    {i:'brain',n:'Думать',h:canThink()?'Рассуждает перед ответом':'Попросим рассуждать по шагам',run:()=>api.setThink(api.thinkMode==='think'?'auto':'think'),on:api.thinkMode==='think',tg:1},
+    {i:'bolt',n:'Быстрый ответ',h:canThink()?'Без долгих раздумий':'Попросим ответить кратко',run:()=>api.setThink(api.thinkMode==='instant'?'auto':'instant'),on:api.thinkMode==='instant',tg:1},
+    {i:'globe',n:'Поиск в интернете',h:'Свежие данные из сети',run:()=>toggleWeb(),on:!!S.web,tg:1,off:canSearch()?'':'Нужен провайдер поиска',why:'Для поиска подключите провайдера поиска (Настройки)'}]]];
+  const draw=()=>{
+   box.innerHTML='';let i=0;
+   groups().forEach(([title,tiles])=>{
+    const g=el('<div class="tm-g"></div>');g.textContent=L(title);box.append(g);
+    const grid=el('<div class="tm-grid"></div>');
+    tiles.forEach(x=>{
+     const b=el(`<button type="button" class="tm-tile ${x.on?'on':''} ${x.off?'off':''} ${first?'st':''}" style="--i:${i++}"><span class="tm-i">${ic(x.i)}</span><span class="tm-n"></span><small class="tm-h"></small>${x.on?`<span class="tm-ck">${ic('ok')}</span>`:''}</button>`);
+     $('.tm-n',b).textContent=L(x.n);$('.tm-h',b).textContent=L(x.off||x.h);
+     if(x.tg)b.setAttribute('aria-pressed',x.on?'true':'false');
+     if(x.off)b.setAttribute('aria-disabled','true');
+     b.onclick=()=>{
+      if(x.off){toast(L(x.why||x.off));return}
+      if(x.tg){x.run();draw();return}
+      s.close();setTimeout(x.run,120)};
+     grid.append(b)});
+    box.append(grid)});
+   first=0};
+  draw()};
  /* Параметры для провайдера: 1 думать, -1 быстро, 0 как есть */
  api.think=()=>!canThink()?0:tm()==='think'?1:tm()==='instant'?-1:0;
  api.sysx=last=>{let s='';

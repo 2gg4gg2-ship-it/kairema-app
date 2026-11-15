@@ -68,22 +68,23 @@ with sync_playwright() as p:
     def menu():
         pg.evaluate("Tools.open({pick(){},tpl(){}})")
         pg.wait_for_timeout(300)
-        rows = pg.evaluate("[...document.querySelectorAll('.tl-row')].map(r=>[r.querySelector('b').textContent,(r.querySelector('small')||{}).textContent||''])")
+        rows = pg.evaluate("[...document.querySelectorAll('.tm-tile')].map(r=>[r.querySelector('.tm-n').textContent,r.querySelector('.tm-h').textContent,r.classList.contains('off')])")
         pg.evaluate("document.querySelectorAll('.sheet-bg').forEach(x=>x.close&&x.close())")
         pg.wait_for_timeout(500)
         return rows
     rows = menu(); names = [r[0] for r in rows]
-    check('cohere (текстовая): нет «Создать изображение»', 'Создать изображение' not in names, names)
+    off = lambda rs: {r[0] for r in rs if r[2]}
+    check('cohere (текстовая): плитка «Изображение» серая (0.26: не скрыта, но недоступна)', 'Изображение' in names and 'Изображение' in off(rows), rows)
     check('cohere: «Думать» и «Быстрый ответ» остаются', 'Думать' in names and 'Быстрый ответ' in names, names)
-    sub = dict(rows).get('Думать', '')
-    check('cohere: подпись «Думать» честно говорит, что сама не размышляет', 'не размышляет' in sub, sub)
+    sub = {r[0]: r[1] for r in rows}.get('Думать', '')
+    check('cohere: подпись «Думать» честно говорит, что модель сама не размышляет', 'по шагам' in sub, sub)
     pg.evaluate("S.providers[0].model='google/gemini-2.5-flash-image'")
-    names = [r[0] for r in menu()]
-    check('модель с картинками: «Создать изображение» появилась', 'Создать изображение' in names, names)
+    rows = menu()
+    check('модель с картинками: плитка «Изображение» доступна', 'Изображение' in [r[0] for r in rows] and 'Изображение' not in off(rows), rows)
     pg.evaluate("S.providers[0].model='deepseek/deepseek-r1'")
     rows = menu(); names = [r[0] for r in rows]
-    check('R1: нет картинок', 'Создать изображение' not in names, names)
-    check('R1: подпись про настоящее размышление', 'Thinking' in dict(rows).get('Думать', ''), rows)
+    check('R1: картинки недоступны', 'Изображение' in off(rows), rows)
+    check('R1: подпись про настоящее размышление', 'Рассуждает' in {r[0]: r[1] for r in rows}.get('Думать', ''), rows)
     # параметр запроса
     pg.evaluate("Tools.setThink('think')")
     check('R1: think=1 уходит провайдеру', pg.evaluate("Tools.think()") == 1)

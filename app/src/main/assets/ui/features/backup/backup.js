@@ -6,7 +6,7 @@
    Убрать модуль: удалить папку features/backup и строку в index.html. */
 i18nAdd({"Резервная копия":"Backup","Сохранить и восстановить данные":"Save and restore your data","Файл содержит чаты, память, шаблоны, настройки и список провайдеров. API-ключи в файл не попадают: после восстановления их нужно ввести заново.":"The file holds chats, memory, templates, settings and the provider list. API keys are not included: enter them again after restoring.","Сохранить в «Загрузки»":"Save to Downloads","Отправить файлом":"Send as a file","Восстановить из файла":"Restore from a file","Не удалось сохранить":"Could not save","Файл не похож на копию Kairema":"This file is not a Kairema backup","Файл слишком большой":"The file is too large","Восстановить копию?":"Restore the backup?","Данные добавятся к текущим, ничего не будет удалено.":"The data will be added to the current data; nothing is deleted.","Восстановить":"Restore","Копия восстановлена":"Backup restored","Не вошло в файл из-за размера: ":"Left out because of size: ","Чатов: ":"Chats: ","фактов памяти: ":"memory facts: ","провайдеров (без ключей): ":"providers (no keys): ","Вставьте ключи провайдеров заново, а тему и профиль увидите после перезапуска приложения":"Enter the provider keys again; the theme and profile apply after the app restarts"});
 const Backup=(()=>{
- const SET=['kairema.profile.v1','kairema.templates.v1','kairema.usage.v1','kairema.prices.v1','kth','kthink','ktrate','kact'];
+ const SET=['kairema.profile.v1','kairema.templates.v1','kairema.usage.v1','kairema.prices.v1','kth','kthink','kact'];
  const MAXIN=60e6,MEDIA=30e6;
  const api={};
  const ext=m=>(String(m||'image/png').split('/')[1]||'png').replace('jpeg','jpg').replace(/[^a-z0-9]/gi,'').slice(0,5)||'png';

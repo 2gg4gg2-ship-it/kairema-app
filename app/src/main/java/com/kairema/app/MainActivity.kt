@@ -24,8 +24,6 @@ import com.kairema.app.data.DbBridge
 import com.kairema.app.search.SearchBridge
 import com.kairema.app.share.Inbox
 import com.kairema.app.system.SystemBridge
-import com.kairema.app.tts.TtsBridge
-import com.kairema.app.voice.VoiceBridge
 
 /**
  * Оболочка: показывает интерфейс из assets/index.html.
@@ -36,9 +34,7 @@ class MainActivity : Activity() {
     private lateinit var web: WebView
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var cameraUri: Uri? = null
-    private var voice: VoiceBridge? = null
     private var sys: SystemBridge? = null
-    private var tts: TtsBridge? = null
     private var pendingChooser: WebChromeClient.FileChooserParams? = null
     private var askedMedia = false
 
@@ -119,8 +115,6 @@ class MainActivity : Activity() {
             web.addJavascriptInterface(it, "KairemaSysBridge")
             it.setup()
         }
-        voice = VoiceBridge(this, web).also { web.addJavascriptInterface(it, "KairemaVoiceBridge") }
-        tts = TtsBridge(this, web).also { web.addJavascriptInterface(it, "KairemaTtsBridge") }
         if (Build.VERSION.SDK_INT >= 33 && !granted(Manifest.permission.POST_NOTIFICATIONS)) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIFY)
         }
@@ -154,8 +148,6 @@ class MainActivity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        val ok = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
-        voice?.onPermission(requestCode, ok)
         if (requestCode == REQ_MEDIA) {
             val p = pendingChooser
             pendingChooser = null
@@ -176,17 +168,9 @@ class MainActivity : Activity() {
         sys?.push()
     }
 
-    override fun onDestroy() {
-        voice?.destroy()
-        tts?.shutdown()
-        super.onDestroy()
-    }
-
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == VoiceBridge.REQ_SPEECH) {
-            voice?.onResult(resultCode, data)
-        } else if (requestCode == REQ_FILE) {
+        if (requestCode == REQ_FILE) {
             val cam = cameraUri
             val result: Array<Uri>? = if (cam != null) {
                 if (resultCode == RESULT_OK) {

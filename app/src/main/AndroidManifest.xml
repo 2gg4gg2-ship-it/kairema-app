@@ -5,8 +5,7 @@
     <!-- Запуск команд в Termux (нужно выдать в настройках Android) -->
     <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
 
-    <!-- Голосовой ввод, камера и фото (разрешения запрашиваются при первом использовании) -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Камера и фото (разрешения запрашиваются при первом использовании) -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
@@ -15,21 +14,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
-    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
-    <!-- Видимость пакета Termux и службы распознавания речи (Android 11+) -->
+    <!-- Видимость пакета Termux (Android 11+) -->
     <queries>
         <package android:name="com.termux" />
-        <package android:name="com.google.android.googlequicksearchbox" />
-        <intent>
-            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
-        </intent>
-        <intent>
-            <action android:name="android.speech.RecognitionService" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.TTS_SERVICE" />
-        </intent>
     </queries>
 
     <application

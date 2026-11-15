@@ -27,7 +27,7 @@ const Roles=(()=>{
  const ds=x=>x.d?(en()?x.d[1]:x.d[0]):(x.kind==='role'?L('Своя роль'):L('Свой шаблон'));
  const body=x=>x.t?(en()?x.t[1]:x.t[0]):(x.kind==='role'?x.text:x.text);
  const sysOf=x=>x.sys||x.text;
- i18nAdd({"Роли и команды":"Roles and commands","Набирайте «/» в поле ввода":"Type “/” in the message box","Своя роль":"Custom role","Свой шаблон":"Custom template","Роль":"Role","Шаблон":"Template","Роль для этого чата снята":"Role removed for this chat","Роль включена для этого чата":"Role enabled for this chat","Встроенные":"Built-in","Мои":"Mine","Пока нет своих команд.":"No custom commands yet.","Новая команда":"New command","Название":"Name","Команда после «/» (буквы, цифры, - и _)":"Command after “/” (letters, digits, - and _)","Текст":"Text","Инструкция для модели или текст для вставки":"Instruction for the model or text to insert","Сохранить":"Save","Отмена":"Cancel","Такая команда уже есть":"This command already exists","Заполните название, команду и текст":"Fill in the name, command and text","Добавить команду":"Add command","Удалить":"Delete","Роль действует во всём чате: модель следует инструкции в каждом ответе. Шаблон вставляет готовый текст в поле ввода.":"A role applies to the whole chat: the model follows the instruction in every answer. A template inserts ready-made text into the message box."});
+ i18nAdd({"Шаблоны и роли":"Templates and roles","Шаблоны":"Templates","Поиск шаблона":"Search templates","Роли":"Roles","Действия":"Actions","Роли и команды":"Roles and commands","Набирайте «/» в поле ввода":"Type “/” in the message box","Своя роль":"Custom role","Свой шаблон":"Custom template","Роль":"Role","Шаблон":"Template","Роль для этого чата снята":"Role removed for this chat","Роль включена для этого чата":"Role enabled for this chat","Встроенные":"Built-in","Мои":"Mine","Пока нет своих команд.":"No custom commands yet.","Новая команда":"New command","Название":"Name","Команда после «/» (буквы, цифры, - и _)":"Command after “/” (letters, digits, - and _)","Текст":"Text","Инструкция для модели или текст для вставки":"Instruction for the model or text to insert","Сохранить":"Save","Отмена":"Cancel","Такая команда уже есть":"This command already exists","Заполните название, команду и текст":"Fill in the name, command and text","Добавить команду":"Add command","Удалить":"Delete","Роль действует во всём чате: модель следует инструкции в каждом ответе. Шаблон вставляет готовый текст в поле ввода.":"A role applies to the whole chat: the model follows the instruction in every answer. A template inserts ready-made text into the message box."});
  B.forEach(x=>{const o={};o[x.n[0]]=x.n[1];o[x.d[0]]=x.d[1];if(x.t)o[x.t[0]]=x.t[1];i18nAdd(o)});
  const all=()=>{
   const own=(typeof S!=='undefined'&&Array.isArray(S.userTpls)?S.userTpls:[]).map(u=>({id:'t:'+u.id,cmd:String(u.name||'').toLowerCase().replace(/\s+/g,'-').replace(/[^\p{L}\p{N}_-]/gu,'').slice(0,24),name:u.name,kind:'prompt',text:String(u.prompt||''),tpl:1}));
@@ -105,6 +105,40 @@ const Roles=(()=>{
    sec(L('Мои'),all().filter(x=>x.own));sec(L('Встроенные'),B);
    const add=el(`<button class="btn big" type="button" style="margin-top:16px">${esc(L('Добавить команду'))}</button>`);add.onclick=()=>addSheet(draw);b.append(add)};
   draw()});
+ /* --- окно «Шаблоны и роли» (кнопка слева от «Отправить» в поле ввода) ---
+    Список: роли, шаблоны (встроенные и свои из app.js: tplItems) и действия. Поиск появляется, если пунктов больше 8.
+    Шаблон подставляется в поле ввода, роль включается для этого чата, действие выполняется. */
+ api.pick=(cmp,ta)=>{
+  const v=cmp.closest('.view')||document;
+  const own=typeof tplItems==='function'?tplItems():[];
+  const items=[
+   ...all().filter(x=>x.kind==='role').map(x=>({k:'role',n:nm(x),d:ds(x),x})),
+   ...own.map(x=>({k:'prompt',n:x.n,d:x.d||x.c||'',text:x.t,mine:!!x.own})),
+   ...all().filter(x=>x.kind==='prompt'&&!x.tpl).map(x=>({k:'prompt',n:nm(x),d:ds(x),text:body(x),mine:!!x.own})),
+   ...all().filter(x=>x.kind==='action').map(x=>({k:'action',n:nm(x),d:ds(x),x}))];
+  const s=sheet(`<h2 class="tpk-h">${esc(L('Шаблоны и роли'))}</h2>${items.length>8?`<div class="tpk-s"><input type="search" data-q autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(L('Поиск шаблона'))}" aria-label="${esc(L('Поиск шаблона'))}"></div>`:''}<div class="tpk" role="listbox"></div>`);
+  const box=$('.tpk',s),q=$('[data-q]',s);
+  const tag=it=>it.k==='role'?L('Роль'):it.k==='action'?L('Действие'):L('Шаблон');
+  const pickIt=it=>{
+   s.close();
+   setTimeout(()=>{
+    if(it.k==='role'){set(chatId(),it.x.id);chip(v,cmp);toast(L('Роль включена для этого чата'))}
+    else if(it.k==='action'){it.x.run()}
+    else{cmp.setText(ta.value.trim()?ta.value.replace(/\s*$/,'\n')+it.text:it.text);try{ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length)}catch(e){}}},140)};
+  const draw=()=>{
+   const f=q?q.value.trim().toLowerCase():'';
+   box.innerHTML='';let i=0,shown=0;
+   [['role','Роли'],['prompt','Шаблоны'],['action','Действия']].forEach(([k,title])=>{
+    const arr=items.filter(it=>it.k===k&&(!f||(it.n+' '+it.d+' '+(it.text||'')).toLowerCase().includes(f)));
+    if(!arr.length)return;
+    box.append(el(`<div class="tpk-g">${esc(L(title))}</div>`));
+    arr.forEach(it=>{
+     const b=el(`<button type="button" class="tpk-i" role="option" style="--i:${Math.min(i++,12)}"><span class="tpk-m"><b></b><small></small></span><span class="tpk-k"></span></button>`);
+     $('b',b).textContent=it.n;const sm=$('small',b);if(it.d)sm.textContent=it.d;else sm.remove();
+     $('.tpk-k',b).textContent=it.mine?L('Мой'):tag(it);
+     b.onclick=()=>pickIt(it);box.append(b);shown++})});
+   if(!shown)box.append(el(`<p class="hint" style="margin:8px 4px">${esc(L('Ничего не найдено'))}</p>`))};
+  if(q)q.oninput=draw;draw()};
  Hooks.on('app:ready',()=>{SCREENS.roles=screen});
  Hooks.on('settings:rendered',v=>{
   const ab=$('[data-go="about"]',v);if(!ab||$('[data-roles]',v))return;
