@@ -1,10 +1,6 @@
 /* ===== КЛАВИАТУРА: класс .kb ставит system.js, когда Kotlin сообщил, что клавиатура открыта =====
    Окно сжимается Kotlin плавно, кадр за кадром вместе с клавиатурой системы (SystemBridge, WindowInsetsAnimation),
-   поэтому поле ввода едет вместе с ней. Здесь плавно убираем только нижнюю панель (она занимает 64px). */
-.kb nav{opacity:0;pointer-events:none}
-nav{transition:opacity .2s ease-out}
-.kb .view{bottom:0}
-.kb .cmp{margin-bottom:8px}
+   поэтому поле ввода едет вместе с ней. Нижняя панель остаётся на месте: Kotlin поднимает контейнер только на высоту клавиатуры сверх 64px панели, поэтому клавиатура её просто накрывает. Никаких переходов и прыжков по классу .kb нет. */
 .kb .sheet{max-height:100%;padding-bottom:20px}
-.view{transition-property:opacity,transform,visibility,bottom;transition-duration:.32s,.32s,0s,.24s;transition-delay:0s,0s,.32s,0s}
-.spg{transition-property:transform,bottom;transition-duration:.38s,.24s}
+/* Окна без нижней панели доходят до низа контейнера, а он на 64px ниже верха клавиатуры: поднимаем их над ней */
+.kb .spg,.kb .sheet-bg{bottom:64px}

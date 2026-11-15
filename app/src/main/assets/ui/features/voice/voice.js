@@ -17,7 +17,7 @@ const Voice=(()=>{
    else if(type==='partial'||type==='result'){put(text);last=text}
    else if(type==='noperm')toast('Разрешите микрофон: Настройки Android, Приложения, Kairema, Разрешения');
    else if(type==='silence')toast('Не расслышал, попробуйте ещё раз');
-   else if(type==='error')toast(text==='unavailable'?'Голосовой ввод недоступен: установите приложение Google или включите службу распознавания речи':'Ошибка голосового ввода');
+   else if(type==='error')toast(/^unavailable/.test(text)?L('Голосовой ввод недоступен: установите приложение Google или включите службу распознавания речи')+' ('+(text.split(':')[1]||'?')+')':'Ошибка голосового ввода');
    if(type==='end'||type==='noperm'||type==='error'){last='';fin()}},
   toggle(mic,ta,grow){
    if(cur){const me=cur;me.mic.classList.remove('rec');{const c=cm();if(c)c.classList.remove('listening')}try{B.stop()}catch(e){}setTimeout(()=>{if(cur===me)fin()},1800);return}

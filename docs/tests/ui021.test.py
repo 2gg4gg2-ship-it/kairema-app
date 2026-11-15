@@ -155,6 +155,26 @@ with sync_playwright() as p:
     check('откат: созданный файл удалён', '/w/new.txt' not in pg.evaluate("window.__fs"))
     check('обычная команда без файлов проходит как раньше', pg.evaluate("(async()=>{const r=await Term.exec('ls');return r.code===0&&!r.fd})()"))
 
+    # --- озвучка: язык по тексту ---
+    langs = pg.evaluate("['Привет, как дела','Привіт, як справи. Їжак','Hello there my friend','你好，今天天气很好','こんにちは、テストです','안녕하세요 테스트','Das ist Straße'].map(t=>Tts.lang(t))")
+    check('озвучка: язык по тексту ответа', langs == ['ru-RU','uk-UA','en-US','zh-CN','ja-JP','ko-KR','de-DE'], langs)
+
+    # --- источники компактно ---
+    pg.evaluate("(()=>{const d=document.createElement('div');mdRender(d,'текст',{src:[{title:'Сайт А',url:'https://a.example/x'},{title:'Сайт Б',url:'https://b.example/y'}]});document.body.append(d);d.id='srcT'})()")
+    sm = pg.evaluate("(()=>{const s=document.querySelector('#srcT details.srcs');return s?{open:s.open,t:s.querySelector('summary').textContent,n:s.querySelectorAll('.srcl a').length}:null})()")
+    check('источники: свёрнутая кнопка «Источники · 2» со списком внутри', sm and not sm['open'] and sm['t'].endswith('· 2') and sm['n'] == 2, sm)
+
+    # --- /compact: набранная команда выполняется, есть окно со статусом ---
+    pg.evaluate("document.querySelectorAll('.sheet-bg').forEach(x=>x.close&&x.close())")
+    pg.evaluate("show('api')")
+    pg.wait_for_timeout(500)
+    pg.fill('#v-api textarea', '/compact')
+    n_before = pg.evaluate("S.apiMsgs.length")
+    pg.evaluate("document.querySelector('#v-api .send').click()")
+    pg.wait_for_timeout(500)
+    check('/compact + отправить: окно со статусом, в модель ничего не ушло', pg.evaluate("!!document.querySelector('.sheet-bg .cx-t')") and pg.evaluate("S.apiMsgs.length") == n_before)
+    pg.screenshot(path=OUT + '/022_compact.png')
+
     # --- настройки и экран ---
     pg.evaluate("show('set')")
     pg.wait_for_timeout(500)

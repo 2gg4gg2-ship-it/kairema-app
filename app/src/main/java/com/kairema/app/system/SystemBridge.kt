@@ -41,6 +41,8 @@ class SystemBridge(
     private var animating = false // идёт анимация клавиатуры системы (API 30+): отступ ведёт она, а не слушатель
     private var shownBottom = 0 // нижний отступ, который сейчас выставлен контейнеру, px
     private var anim: ValueAnimator? = null // собственная плавная анимация для Android 8-10
+    private val navH: Int // высота нижней панели интерфейса (64dp), px: клавиатура её накрывает, а не поднимает
+        get() = Math.round(64f * web.resources.displayMetrics.density)
 
     /** Включить режим «на весь экран» и подписаться на размеры панелей. */
     @Suppress("DEPRECATION")
@@ -96,6 +98,11 @@ class SystemBridge(
         if (Build.VERSION.SDK_INT >= 30) {
             root.setWindowInsetsAnimationCallback(object :
                 WindowInsetsAnimation.Callback(WindowInsetsAnimation.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+                // До первой раскладки с новыми размерами: иначе отступ сначала прыгает на конечное значение, а потом едет плавно.
+                override fun onPrepare(animation: WindowInsetsAnimation) {
+                    if (animation.typeMask and WindowInsets.Type.ime() != 0) animating = true
+                }
+
                 override fun onStart(
                     animation: WindowInsetsAnimation,
                     bounds: WindowInsetsAnimation.Bounds
@@ -111,7 +118,7 @@ class SystemBridge(
                     if (animating) {
                         val ime = insets.getInsets(WindowInsets.Type.ime()).bottom
                         val nav = insets.getInsets(WindowInsets.Type.systemBars()).bottom
-                        setBottom(Math.max(nav, ime))
+                        setBottom(Math.max(nav, ime - navH))
                     }
                     return insets
                 }
@@ -137,7 +144,9 @@ class SystemBridge(
 
     /** Сдвинуть контейнер WebView: сверху под статус-бар, снизу под панель навигации или клавиатуру (что выше). */
     private fun applyPadding() {
-        val bottom = Math.max(navPx, Math.max(imePx, framePx))
+        // Нижняя панель интерфейса (64dp) лежит внутри WebView. Контейнер поднимается только на ту часть клавиатуры,
+        // которая выше этой панели: панель остаётся внизу под клавиатурой, а поле ввода едет ровно вместе с ней.
+        val bottom = Math.max(navPx, Math.max(imePx, framePx) - navH)
         push()
         if (animating) return // отступ ведёт анимация клавиатуры (onProgress), в конце onEnd вызовет нас снова
         if (Build.VERSION.SDK_INT >= 30) {

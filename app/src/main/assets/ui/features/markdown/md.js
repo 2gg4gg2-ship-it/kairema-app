@@ -74,12 +74,14 @@ function mdBlocks(root,text,final){
   root.append(p)}}
 function mdSources(bd,m){
  if(Array.isArray(m.src)&&m.src.length){
-  const d=mdTag('div','srcs'),t=mdTag('div','srct');t.textContent='Источники';d.append(t);
+  /* Компактно: маленькая кнопка «Источники · N», по нажатию раскрывается короткий список (details, без скриптов) */
+  const d=mdTag('details','srcs'),t=mdTag('summary','srct');t.textContent=L('Источники')+' · '+m.src.length;d.append(t);
+  const l=mdTag('div','srcl');
   m.src.forEach((s,k)=>{
    const r=mdTag('div');const label='['+(k+1)+'] '+(s.title||s.url);
    if(/^https?:\/\//.test(s.url||''))r.append(mdLink(label,s.url));else r.textContent=label;
-   d.append(r)});
-  bd.append(d)}
+   l.append(r)});
+  d.append(l);bd.append(d)}
  if(m.serr){const e=mdTag('div','srcs serr');e.textContent='⚠ Поиск не сработал: '+m.serr;bd.append(e)}}
 /* Полная отрисовка ответа в элемент bd. m нужен для источников (необязательно). */
 function mdRender(bd,text,m){

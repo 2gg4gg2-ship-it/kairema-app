@@ -82,6 +82,7 @@ class TtsBridge(private val act: Activity, private val web: WebView) {
             send("error", curId, "nolang")
             return
         }
+        pickVoice(t, loc)
         t.setSpeechRate(rate.coerceIn(0.5f, 2f))
         val chunks = split(text)
         if (chunks.isEmpty()) {
@@ -93,6 +94,26 @@ class TtsBridge(private val act: Activity, private val web: WebView) {
         chunks.forEachIndexed { i, c ->
             val mode = if (i == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
             t.speak(c, mode, Bundle(), "$curId#$i")
+        }
+    }
+
+    /**
+     * Выбор голоса именно этого языка. Без этого некоторые синтезаторы (особенно китайские прошивки) читают русский или
+     * украинский текст голосом по умолчанию, то есть по-английски или по-китайски. Предпочитаем установленный голос
+     * нужной страны, который не требует сети.
+     */
+    private fun pickVoice(t: TextToSpeech, loc: Locale) {
+        try {
+            val all = t.voices ?: return
+            val same = all.filter {
+                it.locale.language == loc.language && !(it.features ?: emptySet<String>()).contains("notInstalled")
+            }
+            if (same.isEmpty()) return
+            val best = same.minByOrNull {
+                (if (it.locale.country == loc.country) 0 else 2) + (if (it.isNetworkConnectionRequired) 1 else 0)
+            } ?: return
+            t.setVoice(best)
+        } catch (_: Exception) {
         }
     }
 

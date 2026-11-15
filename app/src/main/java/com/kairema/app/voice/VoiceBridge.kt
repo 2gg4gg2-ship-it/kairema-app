@@ -86,7 +86,7 @@ class VoiceBridge(private val act: Activity, private val web: WebView) {
     private fun begin() {
         if (!SpeechRecognizer.isRecognitionAvailable(act)) {
             // Нет службы распознавания внутри приложения: пробуем системное окно голосового ввода.
-            systemDialog()
+            systemDialog("norecog")
             return
         }
         rec?.destroy()
@@ -185,7 +185,8 @@ class VoiceBridge(private val act: Activity, private val web: WebView) {
             act.startActivityForResult(i, REQ_SPEECH)
             send("start", "")
         } catch (e: Exception) {
-            send("error", "unavailable")
+            // Причина уходит в интерфейс (в тосте), чтобы по ней было видно, на каком шаге сломалось
+            send("error", "unavailable:" + reason)
             send("end", "")
         }
     }

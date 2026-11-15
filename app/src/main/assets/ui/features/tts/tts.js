@@ -25,9 +25,27 @@ const Tts=(()=>{
   .replace(/[*_~]{1,3}/g,'')
   .replace(/\n{2,}/g,'.\n').replace(/[ \t]+/g,' ').trim();
  api.lang=t=>{
-  if(/[іїєґІЇЄҐ]/.test(t))return 'uk-UA';
-  const cy=(t.match(/[а-яё]/gi)||[]).length,la=(t.match(/[a-z]/gi)||[]).length;
-  return cy>=la&&cy>0?'ru-RU':(la>0?'en-US':(LANG==='en'?'en-US':'ru-RU'))};
+  /* Язык по письму и буквам первых 800 знаков: голос должен совпадать с языком ответа (ru, uk, en, zh, ja, ko, ar, de, fr, es ...) */
+  const x=String(t||'').slice(0,800),n=re=>(x.match(re)||[]).length;
+  const c={ja:n(/[\u3040-\u30ff]/g),ko:n(/[\uac00-\ud7af\u1100-\u11ff]/g),zh:n(/[\u4e00-\u9fff]/g),cy:n(/[\u0400-\u04ff]/g),ar:n(/[\u0600-\u06ff]/g),he:n(/[\u0590-\u05ff]/g),el:n(/[\u0370-\u03ff]/g),th:n(/[\u0e00-\u0e7f]/g),hi:n(/[\u0900-\u097f]/g),la:n(/[A-Za-z\u00c0-\u024f]/g)};
+  if(c.ja>0&&c.ja+c.zh>=Math.max(c.cy,c.ko,c.la)/2)return 'ja-JP';
+  let best='la',mx=c.la;for(const k of Object.keys(c)){if(k!=='ja'&&c[k]>mx){best=k;mx=c[k]}}
+  if(!mx)return LANG==='en'?'en-US':'ru-RU';
+  if(best==='cy')return /[іїєґІЇЄҐ]/.test(x)&&!/[ыэъёЫЭЪЁ]/.test(x)?'uk-UA':'ru-RU';
+  if(best==='zh')return 'zh-CN';
+  if(best==='ko')return 'ko-KR';
+  if(best==='ar')return 'ar-SA';
+  if(best==='he')return 'he-IL';
+  if(best==='el')return 'el-GR';
+  if(best==='th')return 'th-TH';
+  if(best==='hi')return 'hi-IN';
+  if(/[ñ¿¡]/.test(x))return 'es-ES';
+  if(/[ßäöüÄÖÜ]/.test(x))return 'de-DE';
+  if(/[ãõ]/.test(x))return 'pt-PT';
+  if(/[ąęłńśźżćĄĘŁŃŚŹŻĆ]/.test(x))return 'pl-PL';
+  if(/[éèêàùçâîôûëïœÉÈÊÀÙÇ]/.test(x))return 'fr-FR';
+  if(/[іїєґІЇЄҐ]/.test(x))return 'uk-UA';
+  return 'en-US'};
  const mark=on=>{if(api.btn){api.btn.classList.toggle('on',on);api.btn.innerHTML=ic(on?'stp':'spk');api.btn.setAttribute('aria-label',L(on?'Остановить':'Прослушать'))}};
  const end=why=>{const b=api.btn;mark(false);api.btn=null;api.id='';if(b)b._cb=null;const f=api._after;api._after=null;if(f)f(why)};
  api.stop=()=>{

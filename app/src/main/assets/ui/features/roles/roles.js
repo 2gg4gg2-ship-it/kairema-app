@@ -72,7 +72,13 @@ const Roles=(()=>{
   const cmp=$('.cmp',v),ta=cmp&&$('textarea',cmp);if(!ta)return;
   chip(v,cmp);
   ta.addEventListener('input',()=>show(v,cmp,ta));
-  ta.addEventListener('blur',()=>setTimeout(closePop,200))});
+  ta.addEventListener('blur',()=>setTimeout(closePop,200));
+  /* Набрали команду целиком (например /compact) и нажали отправить: выполняем действие, а не шлём текст модели */
+  const sd=$('.send',cmp);
+  if(sd)sd.addEventListener('click',e=>{
+   const m=/^\/([\p{L}\p{N}_-]+)$/u.exec(ta.value.trim());if(!m)return;
+   const x=actions.find(a=>a.cmd===m[1].toLowerCase());if(!x)return;
+   e.preventDefault();e.stopImmediatePropagation();ta.value='';cmp.setText('');closePop();x.run()},true)});
  /* --- экран «Роли и команды» --- */
  const addSheet=done=>{
   const s=sheet(`<h2 style="margin-bottom:10px">${esc(L('Новая команда'))}</h2><div data-seg></div><div class="fld" style="margin-top:12px"><label>${esc(L('Название'))}</label><input data-n type="text" maxlength="40" autocomplete="off"></div><div class="fld"><label>${esc(L('Команда после «/» (буквы, цифры, - и _)'))}</label><input data-c type="text" maxlength="24" autocomplete="off" autocapitalize="off" spellcheck="false"></div><div class="fld"><label>${esc(L('Текст'))}</label><textarea class="ta" data-t rows="4" maxlength="4000" placeholder="${esc(L('Инструкция для модели или текст для вставки'))}"></textarea></div><div class="two"><button class="btn ghost" data-x type="button">${esc(L('Отмена'))}</button><button class="btn" data-o type="button">${esc(L('Сохранить'))}</button></div>`);

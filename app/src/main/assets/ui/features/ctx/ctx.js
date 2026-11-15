@@ -4,8 +4,8 @@
    Ctx.view(msgs) возвращает список для запроса: [пересказ, «Понял»] + сообщения после пометки. Вызывается из core/app.js (respond, mkHist, защищено typeof).
    Подсказка «чат длинный» появляется после ответа, когда история больше ~100 000 знаков (около 30 000 токенов). Убрать модуль: удалить папку и строки в index.html. */
 const Ctx=(()=>{
- const LIM=100000,KEEP=2;
- i18nAdd({"Сжать контекст":"Compress context","Заменить старую часть чата кратким пересказом для модели":"Replace the older part of the chat with a short summary for the model","Контекст сжат":"Context compressed","Контекст сжат: старая часть чата заменена пересказом":"Context compressed: the older part of the chat is replaced by a summary","Чат длинный. Наберите /compact, чтобы сжать контекст":"The chat is long. Type /compact to compress the context","Пока нечего сжимать":"Nothing to compress yet","Сжимаю контекст…":"Compressing context…","Не удалось сжать":"Could not compress","Дождитесь ответа":"Wait for the answer","Действие":"Action"});
+ const LIM=100000,KEEP=1;
+ i18nAdd({"Сжать контекст":"Compress context","Заменить старую часть чата кратким пересказом для модели":"Replace the older part of the chat with a short summary for the model","Контекст сжат":"Context compressed","Контекст сжат: старая часть чата заменена пересказом":"Context compressed: the older part of the chat is replaced by a summary","Чат длинный. Наберите /compact, чтобы сжать контекст":"The chat is long. Type /compact to compress the context","Пока нечего сжимать":"Nothing to compress yet","Сжимаю контекст…":"Compressing context…","Не удалось сжать":"Could not compress","Дождитесь ответа":"Wait for the answer","Действие":"Action","Готово":"Done","ОК":"OK","Нужно хотя бы два ваших вопроса в чате. Сжимать пока нечего.":"You need at least two of your questions in the chat. Nothing to compress yet.","Старая часть чата заменена коротким пересказом. Модель теперь получает пересказ и последний вопрос с ответом, а не всю историю. На экране весь чат остался как был.":"The older part of the chat is replaced by a short summary. The model now gets the summary and the last question with its answer instead of the whole history. The chat on screen is unchanged.","Пересказ:":"Summary:","Нужен подключённый провайдер ИИ в приложении.":"A connected AI provider in the app is required.","Дождитесь окончания ответа и повторите.":"Wait for the answer to finish and try again."});
  const SUMMARY_SYS='You write compact summaries of chat conversations so that the conversation can continue with less text. Keep: the user goals, decisions made, facts and names, file names, commands, code decisions, open questions. Drop small talk. Write in the language of the conversation. Output only the summary, at most 400 words.';
  const mark=ms=>{for(let i=ms.length-1;i>=0;i--)if(ms[i].x&&ms[i].x.cx)return i;return -1};
  const api={};
@@ -28,11 +28,17 @@ const Ctx=(()=>{
   for(let i=from;i<to;i++){const m=ms[i];if(!m.t||m.err)continue;out+=(m.r==='u'?'User: ':'Assistant: ')+String(m.t).slice(0,4000)+'\n\n'}
   return out.length>60000?out.slice(0,20000)+'\n[…]\n'+out.slice(-38000):out};
  api.run=async()=>{
-  if(Chx.busy){toast(L('Дождитесь ответа'));return}
+  /* Окно со статусом: видно, что команда сработала и чем кончилось */
+  const win=(title,text,spin)=>{
+   const s=sheet('<h2 style="margin-bottom:10px"></h2><p class="sub cx-t" style="margin:0 0 14px"></p><pre class="cx-s" hidden></pre><button class="btn" data-o type="button"></button>');
+   $('h2',s).textContent=title;$('.cx-t',s).textContent=text;
+   if(spin)$('.cx-t',s).prepend(el('<span class="spin" style="margin-right:8px"></span>'));
+   $('[data-o]',s).textContent=L('ОК');$('[data-o]',s).onclick=s.close;return s};
+  if(Chx.busy){win(L('Сжать контекст'),L('Дождитесь окончания ответа и повторите.'));return}
   const ms=S.apiMsgs,c=api.cut(ms);
-  if(c<0){toast(L('Пока нечего сжимать'));return}
-  const pv=actProv();if(!pv||!Native.on){toast(L('Не удалось сжать'));return}
-  Chx.busy=1;toast(L('Сжимаю контекст…'));
+  if(c<0){win(L('Сжать контекст'),L('Нужно хотя бы два ваших вопроса в чате. Сжимать пока нечего.'));return}
+  const pv=actProv();if(!pv||!Native.on){win(L('Не удалось сжать'),L('Нужен подключённый провайдер ИИ в приложении.'));return}
+  Chx.busy=1;const w=win(L('Сжимаю контекст…'),L('Сжимаю контекст…'),1);$('[data-o]',w).disabled=true;
   try{
    const from=mark(ms)+1,text=transcript(ms,from,c);
    let out='';
@@ -42,8 +48,9 @@ const Ctx=(()=>{
    const last=ms[c-1];last.x=Object.assign({},last.x,{cx:out.slice(0,8000)});
    Chx.save(Chx.cur);
    const v=$('#v-api');if(v&&typeof apiView==='function'){Chx.busy=0;apiView()}
-   toast(L('Контекст сжат: старая часть чата заменена пересказом'))}
-  catch(e){toast(L('Не удалось сжать')+(e&&e.message&&e.message!=='empty'?': '+e.message:''))}
+   $('h2',w).textContent=L('Контекст сжат');$('.cx-t',w).textContent=L('Старая часть чата заменена коротким пересказом. Модель теперь получает пересказ и последний вопрос с ответом, а не всю историю. На экране весь чат остался как был.');
+   const pre=$('.cx-s',w);pre.hidden=false;pre.textContent=L('Пересказ:')+'\n'+out.slice(0,700)+(out.length>700?'…':'');$('[data-o]',w).disabled=false}
+  catch(e){$('h2',w).textContent=L('Не удалось сжать');$('.cx-t',w).textContent=(e&&e.message&&e.message!=='empty'?e.message:L('Не удалось сжать'));$('[data-o]',w).disabled=false}
   finally{Chx.busy=0}};
  if(typeof Roles!=='undefined'&&Roles.actions)Roles.actions.push({id:'a:compact',cmd:'compact',kind:'action',n:['Сжать контекст','Compress context'],d:['Заменить старую часть чата кратким пересказом для модели','Replace the older part of the chat with a short summary for the model'],run:api.run});
  /* Пометка на экране и подсказка про длинный чат */

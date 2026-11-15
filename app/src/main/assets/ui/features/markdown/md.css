@@ -28,4 +28,10 @@
 .msg.a .bd.md pre,.msg.a .bd.md pre code{font-family:var(--mono)}
 .msg.a .bd.md h3,.msg.a .bd.md h4,.msg.a .bd.md h5,.msg.a .bd.md h6{font-weight:600}
 .md .srcs{margin-top:.9em;padding-top:.6em;border-top:1px solid var(--line);font-size:.9em;color:var(--tx2)}
-.md .srcs>div{margin:.15em 0}.md .srct{font-weight:650;color:var(--tx)}.md .serr{color:var(--err)}
+.md .srcs{border-top:0;padding-top:0;margin-top:.6em}
+.md details.srcs>summary{display:inline-flex;align-items:center;gap:6px;list-style:none;cursor:pointer;height:28px;padding:0 11px;border-radius:14px;background:var(--s2);border:1px solid var(--line);font:600 12.5px var(--body);color:var(--tx2)}
+.md details.srcs>summary::-webkit-details-marker{display:none}
+.md details.srcs>summary::after{content:'▾';font-size:10px}.md details.srcs[open]>summary::after{content:'▴'}
+.md .srcl{margin-top:6px;padding:6px 10px;border:1px solid var(--line);border-radius:12px;background:var(--s1);font-size:12.5px;line-height:1.4}
+.md .srcl>div{margin:.2em 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.md .srct{font-weight:650}.md .serr{color:var(--err)}
