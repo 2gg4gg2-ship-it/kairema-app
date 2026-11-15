@@ -6,6 +6,9 @@
 const Auth=(()=>{
  const SKEY='kairema.session.v1',CKEY='kairema.sb.v1',AKEY='kairema.accounts.v1',subs=[];
  let sess=null,loaded=false,accs=null;
+ const outs=[];
+ /* Перед выходом или сменой аккаунта модули (sync) отправляют несохранённое в облако и очищают телефон. force=true: не ждать отправки. */
+ const runOut=async force=>{for(const f of outs.slice())await f(!!force)};
  const aload=()=>{if(accs)return;try{const a=JSON.parse(st.get(AKEY)||'[]');accs=Array.isArray(a)?a.filter(x=>x&&x.id&&x.email):[]}catch(e){accs=[]}};
  const asave=()=>st.set(AKEY,JSON.stringify(accs));
  const remember=()=>{aload();if(!sess)return;const rec={id:sess.user.id,email:sess.user.email,refresh:sess.refresh||'',last:Date.now()},i=accs.findIndex(x=>x.id===rec.id);if(i>=0)accs[i]=rec;else accs.push(rec);asave()};
@@ -64,7 +67,8 @@ const Auth=(()=>{
    catch(e){if(/Нет соединения/.test(e.message))return null;sess=null;save();emit();return null}},
   /* Выход: сессия закрывается на телефоне, а аккаунт остаётся в списке для быстрого входа (токен на сервере не отзывается).
      Полностью убрать аккаунт с телефона и отозвать токен: forget(id). */
-  async signOut(){load();sess=null;save();emit()},
+  beforeSignOut(f){outs.push(f)},
+  async signOut(force){load();if(sess)await runOut(force);sess=null;save();emit()},
   /* Аккаунты этого телефона: [{id,email,last,stale}] (stale: быстрый вход недоступен, нужен код). Свежие сверху. */
   devices(){aload();return accs.slice().sort((a,b)=>(b.last||0)-(a.last||0)).map(x=>({id:x.id,email:x.email,last:x.last||0,stale:!x.refresh}))},
   /* Быстрый вход в аккаунт из списка без кода. При отказе сервера ставит stale и бросает ошибку с e.stale=true и e.email. */
@@ -72,6 +76,7 @@ const Auth=(()=>{
    load();aload();const a=accs.find(x=>x.id===id);if(!a)throw new Error('Аккаунт не найден на этом телефоне');
    const stale=()=>{a.refresh='';asave();const e=new Error('Вход устарел. Войдите по коду');e.stale=true;e.email=a.email;return e};
    if(!a.refresh)throw stale();
+   if(sess&&sess.user.id!==id)await runOut(false);
    let j;
    try{j=await call('/token?grant_type=refresh_token',{refresh_token:a.refresh})}
    catch(e){if(/Нет соединения|Слишком много/.test(e.message))throw e;throw stale()}
@@ -81,6 +86,6 @@ const Auth=(()=>{
    load();aload();const a=accs.find(x=>x.id===id);if(!a)return;
    accs=accs.filter(x=>x!==a);asave();
    let t=null;
-   if(sess&&sess.user.id===id){t=sess.access;sess=null;save();emit()}
+   if(sess&&sess.user.id===id){await runOut(false);t=sess.access;sess=null;save();emit()}
    else if(a.refresh){try{const j=await call('/token?grant_type=refresh_token',{refresh_token:a.refresh});t=j&&j.access_token}catch(e){}}
    if(t){try{await call('/logout?scope=local',{},t)}catch(e){}}}}})();

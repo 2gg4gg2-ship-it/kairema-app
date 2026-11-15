@@ -26,12 +26,21 @@ const Sync=(()=>{
    throw new Error(m||('Ошибка сервера '+r.status))}
   return method==='GET'?r.json():null}
  const markAll=()=>{for(const kind in ad)ad[kind].ids().forEach(x=>{dirty[kk(kind,x.id)]={d:0,ts:x.ts||Date.now()}})};
+ const localCount=()=>{let n=0;for(const kind in ad)n+=ad[kind].ids().length;return n};
+ const wipeLocal=()=>{for(const kind in ad){try{ad[kind].clear()}catch(e){}}dirty={}};
+ const refreshAll=()=>{for(const kind in ad){try{if(ad[kind].refresh)ad[kind].refresh()}catch(e){}}};
+ /* Первый вход этого аккаунта на телефоне. Данных на телефоне нет: просто загружаем облако.
+    Данные есть (гостевой режим), а в облаке пусто: они переходят в аккаунт.
+    Данные есть и в облаке уже есть история: спрашиваем, добавить ли чаты с телефона (иначе они удаляются). */
  async function ensureUser(u){
   if(meta.uid===u.id)return true;
-  if(!meta.uid){meta.uid=u.id;markAll();meta.cursor='';save();return true}
-  const c=api.chooser?await api.chooser(u):null;
-  if(!c)return false;
-  if(c==='wipe'){for(const kind in ad)ad[kind].clear();dirty={}}else markAll();
+  if(!localCount()){meta.uid=u.id;dirty={};meta.cursor='';save();return true}
+  const has=(await rest('GET','?select=id&limit=1')).length>0;
+  if(has){
+   const c=api.chooser?await api.chooser(u):null;
+   if(!c)return false;
+   if(c==='wipe'){wipeLocal();refreshAll()}else markAll()}
+  else markAll();
   meta.uid=u.id;meta.cursor='';save();return true}
  async function pull(){
   let cur=meta.cursor,n=500;const ch={},idx={};
@@ -80,9 +89,17 @@ const Sync=(()=>{
   touch(kind,id){load();dirty[kk(kind,id)]={d:0,ts:Date.now()};save();if(Auth.user())schedule()},
   remove(kind,id){load();dirty[kk(kind,id)]={d:1,ts:Date.now()};save();if(Auth.user())schedule()},
   run,
+  /* Выход или смена аккаунта: отправить несохранённое в облако, затем очистить телефон (облако остаётся).
+     Нет связи и есть неотправленное: ошибка с unsynced=true; force=true очищает без отправки. */
+  async leave(force){
+   load();const u=Auth.user();
+   if(!force&&u&&meta.uid===u.id&&Object.keys(dirty).length){
+    try{await push()}catch(e){const x=new Error('Нет связи: часть чатов не отправлена в облако и пропадёт');x.unsynced=true;throw x}}
+   wipeLocal();meta.uid='';meta.cursor='';meta.last=0;meta.err='';save();refreshAll();emit()},
   status(){load();return{running,last:meta.last,err:meta.err,pending:Object.keys(dirty).length,uid:meta.uid}},
   onChange(f){subs.push(f);return()=>{const i=subs.indexOf(f);if(i>=0)subs.splice(i,1)}},
   chooser:null};
+ Auth.beforeSignOut(f=>api.leave(f));
  Hooks.on('sync:touch',api.touch);
  Hooks.on('sync:delete',api.remove);
  Hooks.on('app:ready',()=>{Hooks.run('sync:register',api);run()});

@@ -1,6 +1,6 @@
 /* ===== СИНХРОНИЗАЦИЯ: интерфейс (модуль sync) =====
    Блок состояния на экране «Аккаунт» и вопрос при входе под другим аккаунтом. */
-i18nAdd({"Синхронизировать сейчас":"Sync now","Другой аккаунт":"Another account","Чаты и память на этом телефоне принадлежат другому аккаунту. Что сделать?":"Chats and memory on this phone belong to another account. What should we do?","Добавить к этому аккаунту":"Add to this account","Очистить телефон и загрузить данные аккаунта":"Clear the phone and load the account data"});
+i18nAdd({"В этом аккаунте уже есть чаты. Добавить к ним чаты с этого телефона?":"This account already has chats. Add the chats from this phone to them?","Добавить чаты с телефона":"Add chats from this phone","Не добавлять, удалить с телефона":"Do not add, delete from this phone","Синхронизировать сейчас":"Sync now","Другой аккаунт":"Another account","Чаты и память на этом телефоне принадлежат другому аккаунту. Что сделать?":"Chats and memory on this phone belong to another account. What should we do?","Добавить к этому аккаунту":"Add to this account","Очистить телефон и загрузить данные аккаунта":"Clear the phone and load the account data"});
 const syncEn=(ru,en)=>LANG==='en'?en:ru;
 function syncText(){
  const s=Sync.status();
@@ -19,7 +19,7 @@ Hooks.on('account:rendered',(b)=>{
  const out=$('[data-out]',b);out?b.insertBefore(box,out):b.append(box)});
 Sync.chooser=()=>new Promise(res=>{
  let fin=false;const end=v=>{if(fin)return;fin=true;res(v)};
- const s=sheet(`<h2 style="margin-bottom:6px">Другой аккаунт</h2><p class="sub" style="margin:0 0 16px">Чаты и память на этом телефоне принадлежат другому аккаунту. Что сделать?</p><button class="btn" data-m style="width:100%">Добавить к этому аккаунту</button><button class="btn ghost" data-w style="width:100%;margin-top:10px">Очистить телефон и загрузить данные аккаунта</button>`);
+ const s=sheet(`<h2 style="margin-bottom:6px">Чаты с этого телефона</h2><p class="sub" style="margin:0 0 16px">В этом аккаунте уже есть чаты. Добавить к ним чаты с этого телефона?</p><button class="btn" data-m style="width:100%">Добавить чаты с телефона</button><button class="btn ghost" data-w style="width:100%;margin-top:10px">Не добавлять, удалить с телефона</button>`);
  $('[data-m]',s).onclick=()=>{end('merge');s.close()};
  $('[data-w]',s).onclick=()=>{end('wipe');s.close()};
  const iv=setInterval(()=>{if(!s.isConnected){clearInterval(iv);end(null)}},500)});

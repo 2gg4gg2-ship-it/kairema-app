@@ -2,13 +2,20 @@
    Экран «Аккаунт» (вход, профиль), стартовое окно «с аккаунтом / без аккаунта», строка «Аккаунт» в настройках.
    Способы входа рисуются из реестра AuthMethods (auth-methods.js), здесь их нет.
    Убрать модуль: удалить папку features/auth и его строки в index.html. */
-i18nAdd({"Как хотите начать?":"How would you like to start?","Без аккаунта чаты и память хранятся только на этом телефоне: они сохраняются при обновлении приложения, но пропадут, если его удалить. С аккаунтом всё хранится ещё и в облаке и возвращается после переустановки.":"Without an account, chats and memory are stored only on this phone: they survive app updates but are lost if you delete the app. With an account everything is also kept in the cloud and comes back after reinstalling.","Войти в аккаунт":"Sign in","Продолжить без аккаунта":"Continue without an account","Не вошли: данные только на этом телефоне":"Not signed in: data stays on this phone","Сменить аккаунт":"Switch account","Аккаунт остаётся в списке этого телефона, войти в него можно без кода.":"The account stays in this phone's list, you can sign in again without a code."});
+i18nAdd({"Как хотите начать?":"How would you like to start?","Без аккаунта чаты и память хранятся только на этом телефоне: они сохраняются при обновлении приложения, но пропадут, если его удалить. С аккаунтом всё хранится ещё и в облаке и возвращается после переустановки.":"Without an account, chats and memory are stored only on this phone: they survive app updates but are lost if you delete the app. With an account everything is also kept in the cloud and comes back after reinstalling.","Войти в аккаунт":"Sign in","Продолжить без аккаунта":"Continue without an account","Не вошли: данные только на этом телефоне":"Not signed in: data stays on this phone","Сменить аккаунт":"Switch account","Аккаунт остаётся в списке этого телефона, войти в него можно без кода.":"The account stays in this phone's list, you can sign in again without a code.","Чаты и память аккаунта исчезнут с телефона, но останутся в облаке: войдёте снова, и всё вернётся. Дальше приложение работает без аккаунта.":"Chats and memory of the account will disappear from this phone but stay in the cloud: sign in again and everything comes back. After that the app works without an account.","Нет связи":"No connection","Часть чатов не отправлена в облако и пропадёт. Выйти всё равно?":"Some chats were not uploaded to the cloud and will be lost. Sign out anyway?","Выйти всё равно":"Sign out anyway"});
 i18nAdd({"Аккаунт":"Account","Войти по коду или паролю":"Sign in with a code or password","Вы вошли":"Signed in","Вы вышли":"Signed out","Выйти":"Sign out","Выйти из аккаунта?":"Sign out?","Чаты на этом телефоне останутся. Войти можно в любой момент.":"Chats on this phone will stay. You can sign in again at any time.","По коду":"By code","По паролю":"By password","Почта":"Email","Пароль":"Password","Введите корректную почту":"Enter a valid email","Минимум 6 знаков":"At least 6 characters","Введите почту. Мы отправим на неё код для входа. Если аккаунта нет, он создастся.":"Enter your email. We will send a sign-in code to it. If there is no account yet, it will be created.","Получить код":"Get code","Отправляем…":"Sending…","Код из письма":"Code from the email","Только цифры, 6–10 знаков":"Digits only, 6–10 characters","Отправить код ещё раз":"Send the code again","Код отправлен ещё раз":"Code sent again","Изменить почту":"Change email","Создать аккаунт":"Create account","Входим…":"Signing in…","Аккаунт создан. Подтвердите почту по письму и войдите":"Account created. Confirm your email from the message and sign in","Для аккаунтов нужен бесплатный проект Supabase. Вставьте адрес проекта и публичный ключ (anon key).":"Accounts need a free Supabase project. Paste the project address and the public key (anon key).","Адрес проекта":"Project address","Адрес вида https://xxxx.supabase.co":"Address like https://xxxx.supabase.co","Публичный ключ (anon key)":"Public key (anon key)","Ключ слишком короткий":"The key is too short","Сохранить":"Save","Войти":"Sign in"});
 const ACC_MAIL=/^\S+@\S+\.\S+$/;
 const accBusy=(btn,t)=>{btn.disabled=true;btn.innerHTML='<span class="spin"></span>'+t};
 const accEn=(ru,en)=>LANG==='en'?en:ru;
+/* Выйти: чаты и память аккаунта исчезают с телефона (в облаке остаются), дальше приложение работает как гостевое. */
+async function accLeave(cb){
+ try{await Auth.signOut()}
+ catch(e){
+  if(e.unsynced){ask('Нет связи','Часть чатов не отправлена в облако и пропадёт. Выйти всё равно?','Выйти всё равно',async()=>{await Auth.signOut(true);toast('Вы вышли');if(cb)cb()});return}
+  toast(e.message);return}
+ toast('Вы вышли');if(cb)cb()}
 function accConfirmOut(after){
- ask('Выйти из аккаунта?','Чаты на этом телефоне останутся. Аккаунт остаётся в списке этого телефона, войти в него можно без кода.','Выйти',async()=>{await Auth.signOut();toast('Вы вышли');if(after)after()})}
+ ask('Выйти из аккаунта?','Чаты и память аккаунта исчезнут с телефона, но останутся в облаке: войдёте снова, и всё вернётся. Дальше приложение работает без аккаунта.','Выйти',()=>accLeave(after))}
 function accountPage(){
  if($('[data-screen=account]'))return;
  const S2={mode:0,sent:false,email:'',srv:false,cd:0};
@@ -36,7 +43,7 @@ function accMe(b,d,S2){
  $('[data-out]',b).onclick=()=>accConfirmOut(()=>d.close());
  if(Auth.devices().length>1&&typeof AuthDevice!=='undefined'){
   const sw=el('<button class="btn ghost" data-sw style="width:100%;margin-bottom:10px">Сменить аккаунт</button>');
-  sw.onclick=()=>AuthDevice.sheet({pick:()=>{toast('Вы вошли');d.r()},stale:em=>{Auth.signOut().then(()=>{S2.email=em;S2.sent=false;d.r()})},other:()=>{Auth.signOut().then(()=>d.r())}});
+  sw.onclick=()=>AuthDevice.sheet({pick:()=>{toast('Вы вошли');d.r()},stale:em=>accLeave(()=>{S2.email=em;S2.sent=false;d.r()}),other:()=>accLeave(()=>d.r())});
   b.insertBefore(sw,$('[data-out]',b))}
  Hooks.run('account:rendered',b,d);
  accSrvLink(b,d,S2)}
