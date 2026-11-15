@@ -11,22 +11,33 @@ import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import android.widget.FrameLayout
 
 /**
- * Системные панели и тема телефона.
- * Приложение рисуется на весь экран (под статус-баром); размеры панелей и тема передаются в интерфейс:
- * Sys.insets(верх, низ) и Sys.system(тёмная). Интерфейс в ответ вызывает bars(тёмная), чтобы значки
- * статус-бара были видны на любом фоне. В JS доступен как KairemaSysBridge.
+ * Системные панели, клавиатура и тема телефона.
+ *
+ * Раньше отступы под статус-бар и клавиатуру угадывал JavaScript (таймеры, «запомненная высота»),
+ * отсюда задержки, лишнее место и перекрытие часов. Теперь всё считает Kotlin и применяет сам:
+ * WebView лежит в контейнере (root), и его отступы сверху и снизу равны настоящим размерам системных панелей
+ * и клавиатуры. Когда клавиатура открывается или закрывается, система присылает новые размеры,
+ * контейнер сжимается ровно на высоту клавиатуры, поле ввода поднимается и опускается вместе с ней.
+ * Интерфейсу уходит только признак «клавиатура открыта»: Sys.insets(0, 0, высотаКлавиатурыDp).
+ * Интерфейс в ответ вызывает bars(тёмная), чтобы значки статус-бара были видны на любом фоне.
+ * В JS доступен как KairemaSysBridge.
  */
-class SystemBridge(private val act: Activity, private val web: WebView) {
+class SystemBridge(
+    private val act: Activity,
+    private val web: WebView,
+    private val root: FrameLayout
+) {
 
-    private var top = 0
-    private var bottom = 0 // панель навигации
-    private var imeInset = 0 // клавиатура по данным WindowInsets
-    private var kbLayout = 0 // клавиатура по размеру окна (запасной способ)
-    private var kb = 0 // итоговая высота клавиатуры в dp
+    private var padTop = 0 // статус-бар и вырез, px
+    private var navPx = 0 // панель навигации, px
+    private var imePx = 0 // клавиатура по данным WindowInsets, px
+    private var framePx = 0 // клавиатура по размеру видимой области (запасной способ), px
 
     /** Включить режим «на весь экран» и подписаться на размеры панелей. */
+    @Suppress("DEPRECATION")
     fun setup() {
         val w = act.window
         w.statusBarColor = Color.TRANSPARENT
@@ -40,71 +51,74 @@ class SystemBridge(private val act: Activity, private val web: WebView) {
         if (Build.VERSION.SDK_INT >= 30) {
             w.setDecorFitsSystemWindows(false)
         } else {
-            @Suppress("DEPRECATION")
             w.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
                 View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
                 View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
         }
-        web.setOnApplyWindowInsetsListener { _, ins ->
-            val d = web.resources.displayMetrics.density
+        root.setOnApplyWindowInsetsListener { _, ins ->
             if (Build.VERSION.SDK_INT >= 30) {
                 val bars = ins.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
                 val ime = ins.getInsets(WindowInsets.Type.ime())
-                top = Math.round(bars.top / d)
-                bottom = Math.round(bars.bottom / d)
-                imeInset = Math.round(ime.bottom / d)
+                padTop = bars.top
+                navPx = bars.bottom
+                imePx = ime.bottom
+                applyPadding()
+                WindowInsets.CONSUMED
             } else {
-                @Suppress("DEPRECATION")
-                top = Math.round(ins.systemWindowInsetTop / d)
-                @Suppress("DEPRECATION")
-                bottom = Math.round(ins.stableInsetBottom / d)
-                @Suppress("DEPRECATION")
-                imeInset = Math.max(0, Math.round((ins.systemWindowInsetBottom - ins.stableInsetBottom) / d))
+                padTop = ins.systemWindowInsetTop
+                navPx = ins.stableInsetBottom
+                imePx = Math.max(0, ins.systemWindowInsetBottom - ins.stableInsetBottom)
+                applyPadding()
+                ins.consumeSystemWindowInsets()
             }
-            recalc()
-            ins
         }
-        // Запасной способ: в режиме «на весь экран» окно не сжимается, а WindowInsets на некоторых прошивках
-        // не доходят до WebView. Высоту клавиатуры тогда видно по тому, насколько поднялся низ видимой области.
+        // Запасной способ: если на прошивке WindowInsets не доходят, клавиатуру видно по тому,
+        // насколько поднялся низ видимой области окна.
         val decor = w.decorView
         decor.viewTreeObserver.addOnGlobalLayoutListener(ViewTreeObserver.OnGlobalLayoutListener {
             val r = Rect()
             decor.getWindowVisibleDisplayFrame(r)
             val h = decor.height
             val diff = if (h > 0) h - r.bottom else 0
-            val k = if (diff > h * 0.15) Math.round(diff / web.resources.displayMetrics.density) else 0
-            if (k != kbLayout) {
-                kbLayout = k
-                recalc()
+            val k = if (diff > h * 0.15) diff else 0
+            if (k != framePx) {
+                framePx = k
+                applyPadding()
             }
         })
-        web.requestApplyInsets()
+        root.requestApplyInsets()
     }
 
     private fun isNight(): Boolean =
         (act.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 
-    private fun recalc() {
-        val k = Math.max(imeInset, kbLayout)
-        if (k != kb) kb = k
+    /** Сдвинуть контейнер WebView: сверху под статус-бар, снизу под панель навигации или клавиатуру (что выше). */
+    private fun applyPadding() {
+        val bottom = Math.max(navPx, Math.max(imePx, framePx))
+        if (root.paddingTop != padTop || root.paddingBottom != bottom) {
+            root.setPadding(0, padTop, 0, bottom)
+        }
         push()
     }
 
-    /** Передать в интерфейс размеры панелей, высоту клавиатуры и тему (после загрузки страницы и при их изменении). */
+    /** Передать интерфейсу признак клавиатуры и тему (после загрузки страницы и при изменениях). */
     fun push() {
-        val js = "window.Sys&&(Sys.insets($top,$bottom,$kb),Sys.system(${isNight()}))"
+        val d = web.resources.displayMetrics.density
+        val kbDp = Math.round(Math.max(imePx, framePx) / d)
+        val js = "window.Sys&&(Sys.insets(0,0,$kbDp),Sys.system(${isNight()}))"
         web.post { web.evaluateJavascript(js, null) }
     }
 
     @JavascriptInterface
     fun dark(): Boolean = isNight()
 
-    /** Значки статус-бара и панели навигации: светлые на тёмном фоне, тёмные на светлом. */
+    /** Цвет фона и значки статус-бара: светлые на тёмном фоне, тёмные на светлом. */
     @JavascriptInterface
     fun bars(darkTheme: Boolean) {
         act.runOnUiThread {
             val bg = Color.parseColor(if (darkTheme) "#0B0B0C" else "#FAFAFA")
             web.setBackgroundColor(bg)
+            root.setBackgroundColor(bg)
             if (Build.VERSION.SDK_INT >= 30) {
                 val c = act.window.insetsController ?: return@runOnUiThread
                 val mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or

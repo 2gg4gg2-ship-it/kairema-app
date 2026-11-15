@@ -23,7 +23,7 @@ const Caps=(()=>{
    if(typeof m.think==='boolean'){r.kt=1;if(m.think)r.think.push(m.id)}});
   if(!r.ki&&!r.kt){/* провайдер ничего не сообщил: эвристика по именам */
    list.forEach(m=>{if(IMG.test(m.id)&&!NOTCHAT.test(m.id))r.img.push(m.id)})}
-  db[pid]=r;save()};
+  r.t=Date.now();db[pid]=r;save()};
  const rec=p=>(p&&db[p.id])||null;
  /* Умеет ли выбранная модель размышлять (Thinking / Instant) */
  api.think=p=>{
@@ -31,7 +31,6 @@ const Caps=(()=>{
   const r=rec(p);
   if(r&&r.kt)return r.think.includes(p.model);
   return THINK.test(p.model)&&!NOTCHAT.test(p.model)&&!IMG.test(p.model)};
- /* Есть ли у провайдера модель для картинок */
  /* Возможности одной модели из списка: true или false. Данные провайдера точнее имени; имя используется, когда провайдер молчит. */
  api.of=m=>{
   const id=String(m.id||''),chat=!NOTCHAT.test(id);
@@ -39,11 +38,26 @@ const Caps=(()=>{
    img:typeof m.img==='boolean'?m.img:(IMG.test(id)&&chat),
    think:typeof m.think==='boolean'?m.think:(THINK.test(id)&&chat&&!IMG.test(id)),
    vis:typeof m.vis==='boolean'?m.vis:(VIS.test(id)&&chat&&!IMG.test(id))}};
+ /* Умеет ли ВЫБРАННАЯ модель создавать изображения. Раньше проверялся провайдер целиком, поэтому кнопка «Создать изображение»
+    появлялась у любой модели OpenRouter (например, у текстовой cohere/north-mini-code). Теперь только если:
+    1) провайдер сообщил, что у этой модели есть картинки на выходе (OpenRouter: output_modalities), или
+    2) провайдер ничего не сообщил, а имя модели похоже на модель для картинок (gpt-image-1, dall-e-3, flux ...). */
  api.image=p=>{
-  if(!p||/anthropic\.com/.test(p.url||''))return false;
-  if(p.imgModel)return true;
+  if(!p||!p.model||/anthropic\.com/.test(p.url||''))return false;
   const r=rec(p);
-  if(r&&(r.ki||r.img.length))return r.img.length>0;
-  if(r)return false;
-  return /openrouter\.ai|openai\.com/.test(p.url||'')};
+  if(r&&r.ki)return r.img.includes(p.model);
+  return IMG.test(p.model)&&!NOTCHAT.test(p.model)};
+ /* Читает ли модель встроенное размышление (reasoning). От этого зависит только подпись в меню и параметр запроса:
+    сами режимы «Думать» и «Быстрый ответ» работают у любой модели через инструкцию в запросе. */
+ api.native=api.think;
+ /* Список моделей провайдера устарел или ещё не загружался: тихо обновляем данные о возможностях (OpenRouter отдаёт их в списке). */
+ api.refresh=async()=>{
+  try{
+   if(typeof actProv!=='function'||typeof fetchModelList!=='function'||!Native.on)return;
+   const p=actProv();if(!p)return;
+   const r=db[p.id];
+   if(r&&r.t&&Date.now()-r.t<864e5)return;
+   delete MCACHE[p.id];await fetchModelList(p);
+   if(typeof Tools!=='undefined'&&Tools.refresh)Tools.refresh()}catch(e){}};
+ if(typeof Hooks!=='undefined')Hooks.on('app:ready',()=>setTimeout(api.refresh,1500));
  return api})();

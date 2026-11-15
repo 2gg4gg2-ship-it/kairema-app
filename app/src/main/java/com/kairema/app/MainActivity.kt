@@ -17,9 +17,12 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import com.kairema.app.bridge.Bridge
+import com.kairema.app.bridge.Guard
 import com.kairema.app.data.DbBridge
 import com.kairema.app.search.SearchBridge
+import com.kairema.app.share.Inbox
 import com.kairema.app.system.SystemBridge
 import com.kairema.app.tts.TtsBridge
 import com.kairema.app.voice.VoiceBridge
@@ -57,7 +60,10 @@ class MainActivity : Activity() {
 
         web.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
+                // Токен защиты моста уходит только в главный фрейм; затем размеры, тема и входящее «Поделиться».
+                web.evaluateJavascript(Guard.script(), null)
                 sys?.push()
+                if (Inbox.has()) web.evaluateJavascript(INBOX_JS, null)
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -105,7 +111,11 @@ class MainActivity : Activity() {
         web.addJavascriptInterface(Bridge(this, web), "KairemaBridge")
         web.addJavascriptInterface(DbBridge(this), "KairemaDb")
         web.addJavascriptInterface(SearchBridge(this), "KairemaSearch")
-        sys = SystemBridge(this, web).also {
+        // Контейнер для WebView: его отступы = системные панели и клавиатура (считает SystemBridge).
+        val root = FrameLayout(this)
+        root.setBackgroundColor(bg)
+        root.addView(web, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        sys = SystemBridge(this, web, root).also {
             web.addJavascriptInterface(it, "KairemaSysBridge")
             it.setup()
         }
@@ -114,7 +124,8 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= 33 && !granted(Manifest.permission.POST_NOTIFICATIONS)) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIFY)
         }
-        setContentView(web)
+        setContentView(root)
+        Inbox.accept(this, intent)
         web.loadUrl("file:///android_asset/ui/index.html")
     }
 
@@ -150,6 +161,13 @@ class MainActivity : Activity() {
             pendingChooser = null
             if (p != null) launchChooser(p)
         }
+    }
+
+    // Приложение уже открыто, а в него снова «поделились»: забираем текст и просим интерфейс его показать.
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (Inbox.accept(this, intent)) web.evaluateJavascript(INBOX_JS, null)
     }
 
     // Тема телефона сменилась: сообщаем интерфейсу (uiMode обрабатывается без пересоздания окна).
@@ -222,6 +240,7 @@ class MainActivity : Activity() {
         const val REQ_FILE = 1
         const val REQ_MEDIA = 7103
         const val REQ_NOTIFY = 7105
+        const val INBOX_JS = "window.Inbox&&Inbox.check()"
         const val BACK_JS = """(function(){
             var a=document.querySelectorAll('.pbg,.sheet-bg,.spg');
             if(!a.length)return false;

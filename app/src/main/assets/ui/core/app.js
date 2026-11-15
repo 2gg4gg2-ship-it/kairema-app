@@ -80,14 +80,18 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
  const full=L((tag||'')+REPLY+(S.web?' Использованы актуальные данные из интернета.':''));bd.textContent='';
  for(const w of full.split(' ')){bd.textContent+=(bd.textContent?' ':'')+w;scr(box);await wait(reduce?0:30)}m.t=full}
 /* ===== NATIVE: мост к Android (ключи в Keystore, запросы к провайдерам) ===== */
-const NB=window.KairemaBridge,Native=(()=>{const pend={};let n=0;
- window.KairemaNative={chunk(id,t){const p=pend[id];if(p&&p.on)p.on(t)},done(id,err){const p=pend[id];if(!p)return;delete pend[id];err?p.rej(new Error(err)):p.res()}};
+const NB=window.KairemaBridge,Native=(()=>{const pend={};let n=0,tok='';
+ /* Токен приложения (Kotlin: bridge/Guard.kt). Присылается главной странице при загрузке; фреймы предпросмотра HTML его не видят.
+    Методы из GUARD требуют токен первым аргументом. Пока токена нет (браузер, тесты с подменой моста), аргументы идут как есть. */
+ const GUARD=new Set(['saveKey','deleteKey','termux','termuxRequestPermission','termuxStatus','shell','verify','models','chat','image','search','inboxTake']);
+ const call=(fn,...a)=>GUARD.has(fn)&&tok?NB[fn](tok,...a):NB[fn](...a);
+ window.KairemaNative={chunk(id,t){const p=pend[id];if(p&&p.on)p.on(t)},done(id,err){const p=pend[id];if(!p)return;delete pend[id];err?p.rej(new Error(err)):p.res()},tok(t){if(!tok&&typeof t==='string')tok=t}};
  return{on:!!NB,
-  saveKey:(id,k)=>{if(NB)NB.saveKey(id,k)},
-  deleteKey:id=>{if(NB)NB.deleteKey(id)},
-  run(fn,args,on){let id;const p=new Promise((res,rej)=>{id='r'+(++n);pend[id]={res,rej,on};try{NB[fn](id,...args)}catch(e){delete pend[id];rej(e)}});p.id=id;return p},
+  saveKey:(id,k)=>{if(NB)call('saveKey',id,k)},
+  deleteKey:id=>{if(NB)call('deleteKey',id)},
+  run(fn,args,on){let id;const p=new Promise((res,rej)=>{id='r'+(++n);pend[id]={res,rej,on};try{call(fn,id,...args)}catch(e){delete pend[id];rej(e)}});p.id=id;return p},
   cancel:id=>{if(NB&&id){try{NB.cancel(id)}catch(e){}}},
-  sync:(fn,...a)=>{try{return NB?NB[fn](...a):null}catch(e){return null}}}})();
+  sync:(fn,...a)=>{try{return NB?call(fn,...a):null}catch(e){return null}}}})();
 const TXT_EXT=/\.(txt|md|markdown|json|jsonl|csv|tsv|xml|html?|css|js|mjs|ts|tsx|jsx|py|kt|kts|java|c|h|cpp|hpp|cs|go|rs|rb|php|sh|bat|ps1|ya?ml|toml|ini|cfg|conf|log|sql|swift|gradle|properties|gitignore|env|vue|svelte|lua|dart|tex|srt|svg)$/i;
 const b64=buf=>{let s='';const u=new Uint8Array(buf),n=0x8000;for(let i=0;i<u.length;i+=n)s+=String.fromCharCode.apply(null,u.subarray(i,i+n));return btoa(s)};
 async function imgPart(f){

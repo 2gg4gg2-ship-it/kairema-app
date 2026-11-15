@@ -7,6 +7,7 @@ import com.kairema.app.search.WebRelevance
 import com.kairema.app.data.SecureKeys
 import com.kairema.app.service.KeepAliveService
 import com.kairema.app.share.Share
+import com.kairema.app.share.Inbox
 import com.kairema.app.terminal.Shell
 import com.kairema.app.terminal.TermuxRunner
 import okhttp3.Call
@@ -59,11 +60,22 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     @JavascriptInterface
     fun printHtml(title: String, html: String) = sx.print(title, html)
 
+    // Методы, помеченные Guard, первым аргументом получают токен приложения (см. Guard.kt).
     @JavascriptInterface
-    fun saveKey(id: String, key: String) = SecureKeys.save(ctx, id, key)
+    fun saveKey(t: String, id: String, key: String) {
+        if (!Guard.ok(t)) return
+        SecureKeys.save(ctx, id, key)
+    }
 
     @JavascriptInterface
-    fun deleteKey(id: String) = SecureKeys.delete(ctx, id)
+    fun deleteKey(t: String, id: String) {
+        if (!Guard.ok(t)) return
+        SecureKeys.delete(ctx, id)
+    }
+
+    /** Забрать текст, принятый из «Поделиться» другого приложения (JSON или пустая строка). */
+    @JavascriptInterface
+    fun inboxTake(t: String): String = if (Guard.ok(t)) Inbox.take() else ""
 
     @JavascriptInterface
     fun hasKey(id: String): Boolean = SecureKeys.load(ctx, id) != null
@@ -77,31 +89,44 @@ class Bridge(private val ctx: Context, private val web: WebView) {
 
     /** Команда в Termux. Результат приходит целиком после завершения, в конце метка кода выхода. */
     @JavascriptInterface
-    fun termux(reqId: String, cmd: String, timeoutSec: Int) {
+    fun termux(t: String, reqId: String, cmd: String, timeoutSec: Int) {
+        if (!Guard.ok(t)) {
+            done(reqId, "отказано: запрос не из приложения")
+            return
+        }
         track(reqId)
         tm.run(reqId, cmd, timeoutSec.toLong(), { push(reqId, it) }, { done(reqId, it) })
     }
 
     /** Показывает системное окно запроса разрешения для Termux. */
     @JavascriptInterface
-    fun termuxRequestPermission() {
+    fun termuxRequestPermission(t: String) {
+        if (!Guard.ok(t)) return
         tm.requestPermission()
     }
 
     /** Проверка Termux: JSON с полями installed и permission. */
     @JavascriptInterface
-    fun termuxStatus(): String = tm.status()
+    fun termuxStatus(t: String): String = if (Guard.ok(t)) tm.status() else "{}"
 
     /** Команда в оболочке Android. Вывод идёт кусками, в конце метка кода выхода. */
     @JavascriptInterface
-    fun shell(reqId: String, cmd: String, timeoutSec: Int) {
+    fun shell(t: String, reqId: String, cmd: String, timeoutSec: Int) {
+        if (!Guard.ok(t)) {
+            done(reqId, "отказано: запрос не из приложения")
+            return
+        }
         track(reqId)
         sh.run(reqId, cmd, timeoutSec.toLong(), { push(reqId, it) }, { done(reqId, it) })
     }
 
     /** Проверка ключа и модели: открываем поток ответа, смотрим код и сразу закрываем. */
     @JavascriptInterface
-    fun verify(reqId: String, provider: String) {
+    fun verify(t: String, reqId: String, provider: String) {
+        if (!Guard.ok(t)) {
+            done(reqId, "отказано: запрос не из приложения")
+            return
+        }
         pool.execute {
             try {
                 val msgs = JSONArray().put(JSONObject().put("role", "user").put("content", "ping"))
@@ -116,7 +141,11 @@ class Bridge(private val ctx: Context, private val web: WebView) {
 
     /** Проверка ключа и список моделей, доступных по нему. Ответ: JSON-массив id одним куском. */
     @JavascriptInterface
-    fun models(reqId: String, provider: String) {
+    fun models(t: String, reqId: String, provider: String) {
+        if (!Guard.ok(t)) {
+            done(reqId, "отказано: запрос не из приложения")
+            return
+        }
         pool.execute {
             try {
                 push(reqId, fetchModels(reqId, JSONObject(provider)))
@@ -129,7 +158,11 @@ class Bridge(private val ctx: Context, private val web: WebView) {
 
     /** Отправка сообщений провайдеру, ответ приходит в интерфейс кусками. */
     @JavascriptInterface
-    fun chat(reqId: String, provider: String, messages: String) {
+    fun chat(t: String, reqId: String, provider: String, messages: String) {
+        if (!Guard.ok(t)) {
+            done(reqId, "отказано: запрос не из приложения")
+            return
+        }
         track(reqId)
         pool.execute {
             try {
@@ -206,7 +239,11 @@ class Bridge(private val ctx: Context, private val web: WebView) {
 
     /** Создание изображения. OpenRouter: chat/completions с modalities, остальные: /images/generations. Ответ: JSON {mime, b64}. */
     @JavascriptInterface
-    fun image(reqId: String, provider: String, prompt: String) {
+    fun image(t: String, reqId: String, provider: String, prompt: String) {
+        if (!Guard.ok(t)) {
+            done(reqId, "отказано: запрос не из приложения")
+            return
+        }
         track(reqId)
         pool.execute {
             try {
@@ -289,7 +326,11 @@ class Bridge(private val ctx: Context, private val web: WebView) {
 
     /** Поиск в интернете: Tavily, Brave Search или Serper. Ответ приходит одним куском JSON. */
     @JavascriptInterface
-    fun search(reqId: String, provider: String, query: String) {
+    fun search(t: String, reqId: String, provider: String, query: String) {
+        if (!Guard.ok(t)) {
+            done(reqId, "отказано: запрос не из приложения")
+            return
+        }
         track(reqId)
         pool.execute {
             try {

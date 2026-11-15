@@ -4,25 +4,28 @@
    (в поле ввода появляется синяя метка), «Думать» и «Быстрый ответ» (Thinking / Instant) действуют, пока включены.
    Нативная часть: Bridge.image (картинки), Bridge.chat (параметры размышления).
    Убрать модуль: удалить папку features/tools и строки в index.html; «+» вернётся к обычному списку вложений. */
-i18nAdd({"Функции и вложения":"Features and attachments","Прикрепить":"Attach","Функции":"Features","Фото из галереи":"Photo from gallery","Камера":"Camera","Файлы":"Files","Создать изображение":"Create an image","Опишите картинку, она создаётся сразу":"Describe the picture, it is created right away","Глубокое исследование":"Deep research","Несколько поисков и подробный отчёт с источниками":"Several searches and a detailed report with sources","Думать":"Think","Размышление перед ответом (Thinking)":"Reasoning before the answer (Thinking)","Быстрый ответ":"Quick answer","Без долгих размышлений (Instant)":"No long reasoning (Instant)","Поиск в интернете":"Web search","Шаблоны промтов":"Prompt templates","Опишите изображение":"Describe the image","О чём провести исследование?":"What should be researched?","Думает…":"Thinking…","Размышления":"Reasoning","Создаю изображение…":"Creating the image…","Не удалось создать изображение: ":"Could not create the image: ","Модель для картинок":"Image model","Укажите модель, которая умеет создавать изображения. Её можно изменить, нажав на метку «Создать изображение».":"Enter a model that can create images. You can change it by tapping the “Create an image” label.","Название модели":"Model name","Сохранить":"Save","Сохранено в «Загрузки»":"Saved to Downloads","Поделиться":"Share","Планирую исследование…":"Planning the research…","Для глубокого исследования подключите провайдера поиска (Настройки)":"Connect a search provider (Settings) for deep research","Создание изображений работает только в приложении":"Image creation works only in the app","Anthropic не создаёт изображения. Подключите другого провайдера, например OpenRouter или OpenAI":"Anthropic does not create images. Connect another provider, for example OpenRouter or OpenAI"});
+i18nAdd({"Функции и вложения":"Features and attachments","Прикрепить":"Attach","Функции":"Features","Фото из галереи":"Photo from gallery","Камера":"Camera","Файлы":"Files","Создать изображение":"Create an image","Опишите картинку, она создаётся сразу":"Describe the picture, it is created right away","Глубокое исследование":"Deep research","Несколько поисков и подробный отчёт с источниками":"Several searches and a detailed report with sources","Думать":"Think","Размышление перед ответом (Thinking)":"Reasoning before the answer (Thinking)","Быстрый ответ":"Quick answer","Без долгих размышлений (Instant)":"No long reasoning (Instant)","Поиск в интернете":"Web search","Шаблоны промтов":"Prompt templates","Опишите изображение":"Describe the image","О чём провести исследование?":"What should be researched?","Думает…":"Thinking…","Размышления":"Reasoning","Создаю изображение…":"Creating the image…","Не удалось создать изображение: ":"Could not create the image: ","Модель для картинок":"Image model","Укажите модель, которая умеет создавать изображения. Её можно изменить, нажав на метку «Создать изображение».":"Enter a model that can create images. You can change it by tapping the “Create an image” label.","Название модели":"Model name","Сохранить":"Save","Сохранено в «Загрузки»":"Saved to Downloads","Поделиться":"Share","Планирую исследование…":"Planning the research…","Для глубокого исследования подключите провайдера поиска (Настройки)":"Connect a search provider (Settings) for deep research","Создание изображений работает только в приложении":"Image creation works only in the app","Anthropic не создаёт изображения. Подключите другого провайдера, например OpenRouter или OpenAI":"Anthropic does not create images. Connect another provider, for example OpenRouter or OpenAI","Эта модель не создаёт изображения. Выберите модель с меткой «Картинки»":"This model does not create images. Choose a model tagged “Images”","Модель сама не размышляет: к запросу добавится просьба рассуждать по шагам":"The model does not reason natively: the request will ask it to think step by step","Модель сама не размышляет: к запросу добавится просьба ответить сразу и кратко":"The model does not reason natively: the request will ask for a short, direct answer"});
 const Tools=(()=>{
  /* P (набор значков) создаётся в core/app.js позже модулей, поэтому дописываем значки при первом использовании */
  const icons=()=>{P.bolt=P.bolt||'<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>';P.wand=P.wand||'<path d="M5 19L15 9M14 4l1 2 2 1-2 1-1 2-1-2-2-1 2-1zM19 12l.7 1.3L21 14l-1.3.7L19 16l-.7-1.3L17 14l1.3-.7z"/>'};
  const api={mode:null,thinkMode:'auto',binds:[]};
  try{api.thinkMode=st.get('kthink')||'auto'}catch(e){}
  /* Возможности выбранной модели (features/caps): Thinking/Instant только если модель размышляет, картинки если есть модель для них */
+ /* Встроенное размышление у модели (меняет подпись в меню и параметры запроса). Сами режимы доступны у любой модели. */
  const canThink=()=>typeof Caps==='undefined'||Caps.think(actProv());
- const canImg=()=>typeof Caps==='undefined'||Caps.image(actProv());
+ /* Картинки: только если ВЫБРАННАЯ модель их создаёт (Caps.image проверяет модель, а не провайдера) */
+ const canImg=()=>typeof Caps!=='undefined'&&Caps.image(actProv());
  const canSearch=()=>S.sproviders.some(x=>x.ok);
- const tm=()=>canThink()?api.thinkMode:'auto';
+ const tm=()=>api.thinkMode;
  api.can={think:canThink,image:canImg,search:canSearch};
  const blue=()=>api.mode==='image'||api.mode==='deep';
  /* Метки в поле ввода */
  api.paint=w=>{
   icons();
+  if(api.mode==='image'&&!canImg())api.mode=null;
   const box=$('.modes',w.el),ta=$('textarea',w.el);if(!box)return;box.innerHTML='';
   const add=(cls,icon,txt,off,body)=>{const c=el(`<span class="mchip ${cls}"><button type="button" class="mc-b">${ic(icon)}<b></b></button><button type="button" class="mc-x" aria-label="Убрать">${ic('x')}</button></span>`);$('b',c).textContent=L(txt);$('.mc-x',c).onclick=off;if(body)$('.mc-b',c).onclick=body;box.append(c)};
-  if(api.mode==='image'&&canImg())add('blue','img','Создать изображение',()=>api.set(null),()=>api.askImgModel(actProv()));
+  if(api.mode==='image'&&canImg())add('blue','img','Создать изображение',()=>api.set(null));
   if(api.mode==='deep')add('blue','search','Глубокое исследование',()=>api.set(null));
   if(tm()==='think')add('plain','brain','Думать',()=>api.setThink('auto'));
   if(tm()==='instant')add('plain','bolt','Быстрый ответ',()=>api.setThink('auto'));
@@ -47,8 +50,8 @@ const Tools=(()=>{
    ['h','Функции'],
    ...(canImg()?[['wand','Создать изображение','Опишите картинку, она создаётся сразу',()=>api.set('image'),api.mode==='image']]:[]),
    ...(canSearch()?[['search','Глубокое исследование','Несколько поисков и подробный отчёт с источниками',()=>{if(!S.sproviders.some(x=>x.ok)){toast('Для глубокого исследования подключите провайдера поиска (Настройки)');return}api.set('deep')},api.mode==='deep']]:[]),
-   ...(canThink()?[['brain','Думать','Размышление перед ответом (Thinking)',()=>api.setThink(api.thinkMode==='think'?'auto':'think'),api.thinkMode==='think'],
-   ['bolt','Быстрый ответ','Без долгих размышлений (Instant)',()=>api.setThink(api.thinkMode==='instant'?'auto':'instant'),api.thinkMode==='instant']]:[]),
+   ['brain','Думать',canThink()?'Размышление перед ответом (Thinking)':'Модель сама не размышляет: к запросу добавится просьба рассуждать по шагам',()=>api.setThink(api.thinkMode==='think'?'auto':'think'),api.thinkMode==='think'],
+   ['bolt','Быстрый ответ',canThink()?'Без долгих размышлений (Instant)':'Модель сама не размышляет: к запросу добавится просьба ответить сразу и кратко',()=>api.setThink(api.thinkMode==='instant'?'auto':'instant'),api.thinkMode==='instant'],
    ...(canSearch()?[['globe','Поиск в интернете','',()=>toggleWeb(),!!S.web]]:[]),
    ['tpl','Шаблоны промтов','',()=>c.tpl()]];
   const s=sheet('<div class="tl-list"></div>');const box=$('.tl-list',s);let i=0;
@@ -58,7 +61,7 @@ const Tools=(()=>{
    $('b',b).textContent=L(r[1]);const sm=$('small',b);if(r[2])sm.textContent=L(r[2]);else sm.remove();
    b.onclick=()=>{s.close();setTimeout(r[3],120)};box.append(b)})};
  /* Параметры для провайдера: 1 думать, -1 быстро, 0 как есть */
- api.think=()=>tm()==='think'?1:tm()==='instant'?-1:0;
+ api.think=()=>!canThink()?0:tm()==='think'?1:tm()==='instant'?-1:0;
  api.sysx=last=>{let s='';
   if(last&&last.deep)s+='\n\nDeep research mode: write a thorough, well-structured report: a title, a short summary, sections with ## headings, key findings in **bold**, a comparison table when useful, and a conclusion. Cite sources as [1], [2] using the provided search results. Be specific and avoid filler.';
   if(tm()==='think')s+='\n\nThink carefully and reason step by step before giving the final answer.';
@@ -96,7 +99,8 @@ const Tools=(()=>{
   const pv=actProv();
   if(!Native.on){toast('Создание изображений работает только в приложении');return}
   if(/anthropic\.com/.test(pv.url)){toast('Anthropic не создаёт изображения. Подключите другого провайдера, например OpenRouter или OpenAI');return}
-  let model=pv.imgModel;if(!model){model=await api.askImgModel(pv);if(!model)return}
+  if(!canImg()){toast('Эта модель не создаёт изображения. Выберите модель с меткой «Картинки»');return}
+  const model=pv.model;
   const m={r:'a',t:'🖼 '+prompt};ch.msgs.push(m);
   const d=msgEl(m,1);box.append(d);const bd=$('.bd',d);bd.innerHTML=`<span class="imgload"><i></i>${L('Создаю изображение…')}</span>`;scr(box);
   try{let raw='';await Native.run('image',[JSON.stringify({id:pv.id,url:pv.url,model}),prompt],t=>{raw+=t});
