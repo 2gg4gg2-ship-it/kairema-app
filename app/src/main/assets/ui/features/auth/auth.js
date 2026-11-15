@@ -84,7 +84,7 @@ const Auth=(()=>{
   /* Убрать аккаунт с телефона и отозвать его вход на сервере (если получится). */
   async forget(id){
    load();aload();const a=accs.find(x=>x.id===id);if(!a)return;
-   accs=accs.filter(x=>x!==a);asave();
+   accs=accs.filter(x=>x!==a);asave();Hooks.run('auth:forgot',id);
    let t=null;
    if(sess&&sess.user.id===id){await runOut(false);t=sess.access;sess=null;save();emit()}
    else if(a.refresh){try{const j=await call('/token?grant_type=refresh_token',{refresh_token:a.refresh});t=j&&j.access_token}catch(e){}}

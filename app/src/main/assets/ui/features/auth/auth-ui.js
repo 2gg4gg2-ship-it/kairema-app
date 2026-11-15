@@ -69,15 +69,32 @@ function accWelcome(){
   $('[data-no]',s).onclick=s.close;
   $('[data-in]',s).onclick=()=>{s.close();openScreen('account')}},500)}
 /* После выхода телефон как при первом запуске: профиль (имя, username, почта) очищается вместе с чатами. Язык остаётся. */
+/* Провайдеры и API-ключи в облако не уходят. При выходе список провайдеров прячется за аккаунтом (kairema.prov.<id>), сами ключи остаются в защищённом хранилище Android.
+   При входе в этот же аккаунт на этом телефоне провайдеры возвращаются. Другой аккаунт их не видит. «Убрать аккаунт» стирает всё. */
+const accProvKey=id=>'kairema.prov.'+id;
 Hooks.on('sync:left',()=>{
+ const u=Auth.user();
  S.p.name='';S.p.user='';S.p.email='';saveProfile();
- /* Ключи API и провайдеры не хранятся в облаке и принадлежат аккаунту на этом телефоне: после выхода удаляются вместе с ключами. */
- [...S.providers,...S.sproviders].forEach(p=>{try{Native.deleteKey(p.id)}catch(e){}});
+ if(u){try{st.set(accProvKey(u.id),JSON.stringify({c:S.providers,s:S.sproviders,w:S.web?1:0}))}catch(e){}}
  S.providers=[];S.sproviders=[];saveProviders();S.web=false;st.set('kw','0');
  if(typeof CUR!=='undefined'&&CUR==='set')setView()});
+let accRestored=null;
+function accRestoreProviders(u){
+ if(!u||accRestored===u.id)return;accRestored=u.id;
+ let d=null;try{d=JSON.parse(st.get(accProvKey(u.id))||'null')}catch(e){}
+ if(!d)return;
+ const add=(arr,src)=>(Array.isArray(src)?src:[]).forEach(p=>{if(p&&p.id&&!arr.some(x=>x.id===p.id))arr.push(p)});
+ add(S.providers,d.c);add(S.sproviders,d.s);
+ if(d.w){S.web=true;st.set('kw','1')}
+ saveProviders();try{localStorage.removeItem(accProvKey(u.id))}catch(e){}
+ if(typeof CUR!=='undefined'&&CUR==='set')setView()}
+Hooks.on('auth:forgot',id=>{
+ let d=null;try{d=JSON.parse(st.get(accProvKey(id))||'null')}catch(e){}
+ if(d)[...(d.c||[]),...(d.s||[])].forEach(p=>{try{Native.deleteKey(p.id)}catch(e){}});
+ try{localStorage.removeItem(accProvKey(id))}catch(e){}});
 /* Подключение к ядру: строка в настройках, экран и выход. */
 Hooks.on('app:ready',()=>{SCREENS.account=accountPage;accWelcome()});
-Auth.onChange(()=>{if(typeof CUR!=='undefined'&&CUR==='set')setView()});
+Auth.onChange(()=>{const u=Auth.user();if(u)accRestoreProviders(u);else accRestored=null;if(typeof CUR!=='undefined'&&CUR==='set')setView()});
 Hooks.on('settings:rendered',v=>{
  const u=Auth.user(),pf=$('.pf',v);
  if(pf){

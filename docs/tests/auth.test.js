@@ -50,10 +50,16 @@ const set=(sel,v)=>{const i=q(sel);i.value=v;i.dispatchEvent(new w.Event('input'
  await sleep(600);assert(!q('[data-screen=account]'),'page closed after login');
  console.log('settings row after login:',q('[data-acc] small').textContent);assert.equal(q('[data-acc] small').textContent,'me@x.io');assert(q('[data-act=out]'));
  assert.equal(q('.pf small').textContent,'me@x.io','profile card shows the account');assert.equal(q('.pf b').textContent,'me');
+ ev("profPage()");await sleep(200);
+ assert(q('[data-screen=profile] [data-k=name]'),'profile page opens');assert(!q('[data-screen=profile] [data-k=email]'),'no email field in profile');assert.equal(q('[data-screen=profile] .phd small').textContent,'me@x.io');
+ q('[data-screen=profile] [data-k=name]').value='Иван';q('[data-screen=profile] [data-k=name]').dispatchEvent(new w.Event('input',{bubbles:true}));await sleep(50);q('[data-screen=profile] [data-s]').click();await sleep(400);
+ assert.equal(ev("S.p.name"),'Иван','profile saves without email');
   // sign out: аккаунт остаётся в списке телефона, токен на сервере не отзывается
-  q('[data-act=out]').click();await sleep(100);
+  ev("S.providers.push({id:'p1',name:'x',ok:true})");
+ q('[data-act=out]').click();await sleep(100);
   const okb=qa('.sheet-bg.on button').find(x=>/Выйти/.test(x.textContent)&&!x.classList.contains('ghost'))||qa('.sheet-bg.on button').pop();okb.click();await sleep(300);
   assert.equal(ev("Auth.user()"),null);assert(!reqs.some(r=>r.path==='/logout'),'signOut does not revoke');
+ assert.equal(ev("S.providers.length"),0,'providers hidden after sign out');assert(w.localStorage.getItem('kairema.prov.u-me@x.io'),'providers stashed for the account');
   assert.equal(w.localStorage.getItem('kairema.session.v1'),null);
   assert.equal(ev("Auth.devices().length"),1);assert.equal(ev("Auth.devices()[0].email"),'me@x.io');
   // экран входа: только почта (без пароля и вкладок), кнопка аккаунтов телефона
@@ -66,6 +72,7 @@ const set=(sel,v)=>{const i=q(sel);i.value=v;i.dispatchEvent(new w.Event('input'
   const n0=reqs.length;qa('.ad-pick')[0].click();await sleep(300);
   assert.equal(ev("Auth.user().email"),'me@x.io');
   assert(reqs.slice(n0).some(r=>r.path.startsWith('/token?grant_type=refresh_token')&&r.b.refresh_token==='rt-me@x.io'),'refresh used');
+  assert.equal(ev("S.providers.length"),1,'providers back after sign in');assert.equal(ev("S.providers[0].id"),'p1');assert.equal(w.localStorage.getItem('kairema.prov.u-me@x.io'),null);
   assert(!reqs.slice(n0).some(r=>r.path==='/otp'),'no code needed');
   await sleep(500);assert(!q('[data-screen=account]'),'page closed after quick login');
   // второй аккаунт по коду
