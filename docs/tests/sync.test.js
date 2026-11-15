@@ -75,8 +75,8 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  const D=device('u2',guest('гость 2'));await sleep(1500);D.q('.sheet-bg.on [data-m]').click();await sleep(1500);
  assert(server.rows.some(r=>r.user_id==='u2'&&r.data&&r.data.t==='гость 2'),'merged into u2');assert.equal(D.ev("S.memos.length"),2);
  // 4. выход: телефон очищается, облако остаётся, uid сброшен
- D.ev("S.p.name='Иван';saveProfile()");await D.ev("Auth.signOut()");
- assert.equal(D.ev("S.p.name"),'','name cleared after sign out');
+ D.ev("S.p.name='Иван';saveProfile();S.providers.push({id:'p1',name:'x',ok:true})");await D.ev("Auth.signOut()");
+ assert.equal(D.ev("S.p.name"),'','name cleared after sign out'); assert.equal(D.ev("S.providers.length"),0,'providers cleared after sign out');
  assert.equal(D.ev("S.memos.length"),0,'phone cleared after sign out');assert.equal(D.ev("Sync.status().uid"),'');
  assert(server.rows.some(r=>r.user_id==='u2'&&r.data&&r.data.t==='гость 2'),'cloud kept');
  // 5. выход без связи: неотправленное -> ошибка, force очищает

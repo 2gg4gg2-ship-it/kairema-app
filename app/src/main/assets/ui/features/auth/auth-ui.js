@@ -69,7 +69,12 @@ function accWelcome(){
   $('[data-no]',s).onclick=s.close;
   $('[data-in]',s).onclick=()=>{s.close();openScreen('account')}},500)}
 /* После выхода телефон как при первом запуске: профиль (имя, username, почта) очищается вместе с чатами. Язык остаётся. */
-Hooks.on('sync:left',()=>{S.p.name='';S.p.user='';S.p.email='';saveProfile();if(typeof CUR!=='undefined'&&CUR==='set')setView()});
+Hooks.on('sync:left',()=>{
+ S.p.name='';S.p.user='';S.p.email='';saveProfile();
+ /* Ключи API и провайдеры не хранятся в облаке и принадлежат аккаунту на этом телефоне: после выхода удаляются вместе с ключами. */
+ [...S.providers,...S.sproviders].forEach(p=>{try{Native.deleteKey(p.id)}catch(e){}});
+ S.providers=[];S.sproviders=[];saveProviders();S.web=false;st.set('kw','0');
+ if(typeof CUR!=='undefined'&&CUR==='set')setView()});
 /* Подключение к ядру: строка в настройках, экран и выход. */
 Hooks.on('app:ready',()=>{SCREENS.account=accountPage;accWelcome()});
 Auth.onChange(()=>{if(typeof CUR!=='undefined'&&CUR==='set')setView()});
@@ -79,5 +84,10 @@ Hooks.on('settings:rendered',v=>{
   const r=el(`<button class="sr" style="--i:1" data-acc><span class="si c">${ic('user')}</span><span class="m"><b>Аккаунт</b><small></small></span>${ic('chevR')}</button>`);
   $('small',r).textContent=u?u.email:accEn('Не вошли: данные только на этом телефоне','Not signed in: data stays on this phone');
   r.onclick=()=>openScreen('account');pf.insertAdjacentElement('afterend',r)}
+ /* Карточка профиля: в аккаунте показывает почту (имя, если указано). */
+ if(pf&&u){
+  const nm=S.p.name||u.email.split('@')[0];
+  $('b',pf).textContent=nm;$('small',pf).textContent=u.email;
+  const ic0=$('.ini',pf);if(ic0)ic0.textContent=(nm[0]||'?').toUpperCase()}
  const o=$('[data-act=out]',v);
  if(o){if(u)o.onclick=()=>accConfirmOut();else o.remove()}});

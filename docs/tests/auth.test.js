@@ -49,6 +49,7 @@ const set=(sel,v)=>{const i=q(sel);i.value=v;i.dispatchEvent(new w.Event('input'
  assert.equal(JSON.parse(w.localStorage.getItem('kairema.session.v1')).user.email,'me@x.io');
  await sleep(600);assert(!q('[data-screen=account]'),'page closed after login');
  console.log('settings row after login:',q('[data-acc] small').textContent);assert.equal(q('[data-acc] small').textContent,'me@x.io');assert(q('[data-act=out]'));
+ assert.equal(q('.pf small').textContent,'me@x.io','profile card shows the account');assert.equal(q('.pf b').textContent,'me');
   // sign out: аккаунт остаётся в списке телефона, токен на сервере не отзывается
   q('[data-act=out]').click();await sleep(100);
   const okb=qa('.sheet-bg.on button').find(x=>/Выйти/.test(x.textContent)&&!x.classList.contains('ghost'))||qa('.sheet-bg.on button').pop();okb.click();await sleep(300);
