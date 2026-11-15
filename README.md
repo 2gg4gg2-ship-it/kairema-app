@@ -8,6 +8,7 @@ Android-приложение: ИИ-чат с вашим провайдером (
 ```
 .github/workflows/build.yml   сборка debug APK и распаковка обновлений
 settings.gradle.kts           настройки Gradle
+docs/MAP.md                   карта репозитория: какие файлы открыть под задачу (индекс обновляет docs/tools/make_map.py)
 app/
   build.gradle.kts            зависимости, версия, applicationId
   src/main/
@@ -115,4 +116,4 @@ app/
 Загрузите `kairema.zip` в корень репозитория. Сборка сама распакует его в папки
 выше, удалит zip и соберёт APK (раздел Actions → Artifacts).
 
-Текущая версия: 0.26.4
+Текущая версия: 0.26.5
