@@ -68,6 +68,8 @@ function accWelcome(){
   const s=sheet('<h2 style="margin-bottom:6px">Как хотите начать?</h2><p class="sub" style="margin:0 0 16px">Без аккаунта чаты и память хранятся только на этом телефоне: они сохраняются при обновлении приложения, но пропадут, если его удалить. С аккаунтом всё хранится ещё и в облаке и возвращается после переустановки.</p><button class="btn" data-in style="width:100%">Войти в аккаунт</button><button class="btn ghost" data-no style="width:100%;margin-top:10px">Продолжить без аккаунта</button>');
   $('[data-no]',s).onclick=s.close;
   $('[data-in]',s).onclick=()=>{s.close();openScreen('account')}},500)}
+/* После выхода телефон как при первом запуске: профиль (имя, username, почта) очищается вместе с чатами. Язык остаётся. */
+Hooks.on('sync:left',()=>{S.p.name='';S.p.user='';S.p.email='';saveProfile();if(typeof CUR!=='undefined'&&CUR==='set')setView()});
 /* Подключение к ядру: строка в настройках, экран и выход. */
 Hooks.on('app:ready',()=>{SCREENS.account=accountPage;accWelcome()});
 Auth.onChange(()=>{if(typeof CUR!=='undefined'&&CUR==='set')setView()});

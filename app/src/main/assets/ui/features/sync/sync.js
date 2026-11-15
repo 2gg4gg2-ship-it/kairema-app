@@ -95,7 +95,7 @@ const Sync=(()=>{
    load();const u=Auth.user();
    if(!force&&u&&meta.uid===u.id&&Object.keys(dirty).length){
     try{await push()}catch(e){const x=new Error('Нет связи: часть чатов не отправлена в облако и пропадёт');x.unsynced=true;throw x}}
-   wipeLocal();meta.uid='';meta.cursor='';meta.last=0;meta.err='';save();refreshAll();emit()},
+   wipeLocal();meta.uid='';meta.cursor='';meta.last=0;meta.err='';save();Hooks.run('sync:left');refreshAll();emit()},
   status(){load();return{running,last:meta.last,err:meta.err,pending:Object.keys(dirty).length,uid:meta.uid}},
   onChange(f){subs.push(f);return()=>{const i=subs.indexOf(f);if(i>=0)subs.splice(i,1)}},
   chooser:null};
