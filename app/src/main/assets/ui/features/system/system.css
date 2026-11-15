@@ -1,10 +1,10 @@
 /* ===== КЛАВИАТУРА: класс .kb ставит system.js, когда Kotlin сообщил, что клавиатура открыта =====
-   Окно уже сжато Kotlin ровно на высоту клавиатуры (отступ контейнера WebView), поэтому здесь ничего не смещается:
-   только прячем нижнюю панель, чтобы поле ввода встало вплотную к клавиатуре. */
-.kb nav{display:none}
+   Окно сжимается Kotlin плавно, кадр за кадром вместе с клавиатурой системы (SystemBridge, WindowInsetsAnimation),
+   поэтому поле ввода едет вместе с ней. Здесь плавно убираем только нижнюю панель (она занимает 64px). */
+.kb nav{opacity:0;pointer-events:none}
+nav{transition:opacity .2s ease-out}
 .kb .view{bottom:0}
 .kb .cmp{margin-bottom:8px}
 .kb .sheet{max-height:100%;padding-bottom:20px}
-/* Окно сжимается и расширяется вместе с клавиатурой мгновенно, поэтому анимация нижней границы (она была в 0.19) только давала задержку */
-.view{transition-property:opacity,transform,visibility}
-.spg{transition-property:transform}
+.view{transition-property:opacity,transform,visibility,bottom;transition-duration:.32s,.32s,0s,.24s;transition-delay:0s,0s,.32s,0s}
+.spg{transition-property:transform,bottom;transition-duration:.38s,.24s}

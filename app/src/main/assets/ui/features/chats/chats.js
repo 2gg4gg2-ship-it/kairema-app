@@ -32,6 +32,7 @@ Chx.ser=(m,local)=>{
   if(m.img.path)o.img={mime:m.img.mime,path:m.img.path}}
  if(Array.isArray(m.src)&&m.src.length)o.src=m.src.slice(0,5).map(z=>({title:String(z.title||'').slice(0,200),url:String(z.url||'').slice(0,500)}));
  if(m.serr)o.serr=String(m.serr).slice(0,200);
+ if(m.x&&(m.x.cx||m.x.vs))o.x=m.x;
  if(ps.length)o.parts=ps;
  if(nn.length)o.n=nn;
  return o};
@@ -42,6 +43,7 @@ Chx.hyd=o=>{
  if(o.err)m.err=1;
  if(Array.isArray(o.src)&&o.src.length)m.src=o.src.filter(z=>z&&typeof z.url==='string').slice(0,5);
  if(o.serr)m.serr=String(o.serr);
+ if(o.x&&typeof o.x==='object'){const x={};if(typeof o.x.cx==='string')x.cx=o.x.cx.slice(0,8000);if(Array.isArray(o.x.vs)&&o.x.vs.length>1){x.vs=o.x.vs.slice(0,8).filter(v=>v&&typeof v.t==='string').map(v=>({t:v.t,src:Array.isArray(v.src)?v.src.slice(0,5):undefined,serr:v.serr,cost:v.cost}));x.vi=Math.max(0,Math.min(x.vs.length-1,+o.x.vi||0))}if(x.cx||(x.vs&&x.vs.length>1))m.x=x}
  if(o.cost&&typeof o.cost==='object')m.cost={i:+o.cost.i||0,o:+o.cost.o||0,c:typeof o.cost.c==='number'?o.cost.c:null,e:o.cost.e?1:0};
  if(Chx.db()&&o.img&&safe(o.img.path))m.img={mime:String(o.img.mime||'image/png'),path:o.img.path};
  if(Array.isArray(o.parts)&&o.parts.length)m.parts=o.parts.filter(p=>p&&(p.k==='text'||(Chx.db()&&(p.k==='image'||p.k==='pdf')&&safe(p.path))));

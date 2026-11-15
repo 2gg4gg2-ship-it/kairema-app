@@ -32,6 +32,8 @@ p:{name:'',user:'',email:'',lang:0},
 memos:[],
 tpls:TPLS
 };
+/* Реестр добавок к системной инструкции: модули кладут функции в window.SYSX (роли чата и др.), каждая возвращает строку или '' */
+const sysExtra=ms=>{let s='';(window.SYSX||[]).forEach(f=>{try{s+=f(ms)||''}catch(e){}});return s};
 const Chat={cmp:null,send(t){const c=this.cmp;if(!c||Chx.busy)return false;c.setText(t);$('.send',c).click();return true}};let PEND='';let GQ='',FLT=0;
 const copy=(t,m)=>{(typeof Sx!=='undefined'?Sx.copy(t):(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject())).then(()=>toast(m),()=>toast('Не удалось скопировать'))};
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
@@ -69,11 +71,11 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
    else{bd.textContent='Ищу в интернете…';let raw='';
     try{await Native.run('search',[JSON.stringify({id:sp.id,url:sp.url}),(last.q||last.t).slice(0,300)],t=>{raw+=t});src=JSON.parse(raw||'[]')}catch(e){serr=e.message}}}
   const ctx=src.length?'Результаты поиска в интернете ('+new Date().toLocaleDateString('ru-RU')+'):\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+'\n'+s.url+'\n'+s.snippet).join('\n\n')+'\n\nПравила: это результаты автоматического поиска по тексту вопроса, они могут не относиться к делу (например, если вопрос про тебя, это приложение или нашу беседу). Используй только то, что прямо отвечает на вопрос, и ссылайся номерами [1], [2]. Если результаты не по теме, молча игнорируй их и отвечай сам; ничего не выдумывай и не приписывай найденное предмету вопроса. Вопрос пользователя: ':'';
-  const mkHist=c=>msgs.filter(x=>x!==m&&!x.err&&x.t).map(x=>({role:x.r==='u'?'user':'assistant',content:toContent(x,anth,x===last?c:'')}));const hist=mkHist(ctx);
+  const mkHist=c=>(typeof Ctx!=='undefined'?Ctx.view(msgs):msgs).filter(x=>x!==m&&!x.err&&x.t).map(x=>({role:x.r==='u'?'user':'assistant',content:toContent(x,anth,x===last?c:'')}));const hist=mkHist(ctx);
   const tail=(src.length?'\n\nИсточники:\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+' — '+s.url).join('\n'):'')+(serr?'\n\n⚠ Поиск не сработал: '+serr:'');
   let got=false;window.GEN={stopped:0,pr:null,stop(){this.stopped=1;Native.cancel(this.pr&&this.pr.id)}};if(Chat.cmp&&Chat.cmp.upd)Chat.cmp.upd();
   try{
-   const run=h=>{const pr=Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):''),think:typeof Tools!=='undefined'?Tools.think():0}),JSON.stringify(h)],t=>{if(t.charCodeAt(0)===2){if(typeof Cost!=='undefined')Cost.usage(m,t.slice(1));return}if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scr(box))});if(window.GEN)GEN.pr=pr;return pr};
+   const run=h=>{const pr=Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):'')+sysExtra(msgs),think:typeof Tools!=='undefined'?Tools.think():0}),JSON.stringify(h)],t=>{if(t.charCodeAt(0)===2){if(typeof Cost!=='undefined')Cost.usage(m,t.slice(1));return}if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scr(box))});if(window.GEN)GEN.pr=pr;return pr};
    await run(hist);
    /* Пустой ответ при включённом поиске: повторяем один раз без результатов поиска */
    if(!got&&ctx&&!GEN.stopped){src=[];serr='модель не ответила с результатами поиска, ответ без них';await run(mkHist(''))}

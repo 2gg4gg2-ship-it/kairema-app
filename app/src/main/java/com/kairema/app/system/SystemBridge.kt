@@ -7,7 +7,10 @@ import android.graphics.Rect
 import android.os.Build
 import android.view.View
 import android.view.ViewTreeObserver
+import android.animation.ValueAnimator
 import android.view.WindowInsets
+import android.view.WindowInsetsAnimation
+import android.view.animation.DecelerateInterpolator
 import android.view.WindowInsetsController
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
@@ -35,6 +38,9 @@ class SystemBridge(
     private var navPx = 0 // панель навигации, px
     private var imePx = 0 // клавиатура по данным WindowInsets, px
     private var framePx = 0 // клавиатура по размеру видимой области (запасной способ), px
+    private var animating = false // идёт анимация клавиатуры системы (API 30+): отступ ведёт она, а не слушатель
+    private var shownBottom = 0 // нижний отступ, который сейчас выставлен контейнеру, px
+    private var anim: ValueAnimator? = null // собственная плавная анимация для Android 8-10
 
     /** Включить режим «на весь экран» и подписаться на размеры панелей. */
     @Suppress("DEPRECATION")
@@ -86,7 +92,44 @@ class SystemBridge(
                 applyPadding()
             }
         })
+        // Android 11+: клавиатура сама сообщает каждый кадр своего движения, нижний отступ едет вместе с ней.
+        if (Build.VERSION.SDK_INT >= 30) {
+            root.setWindowInsetsAnimationCallback(object :
+                WindowInsetsAnimation.Callback(WindowInsetsAnimation.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+                override fun onStart(
+                    animation: WindowInsetsAnimation,
+                    bounds: WindowInsetsAnimation.Bounds
+                ): WindowInsetsAnimation.Bounds {
+                    if (animation.typeMask and WindowInsets.Type.ime() != 0) animating = true
+                    return bounds
+                }
+
+                override fun onProgress(
+                    insets: WindowInsets,
+                    runningAnimations: MutableList<WindowInsetsAnimation>
+                ): WindowInsets {
+                    if (animating) {
+                        val ime = insets.getInsets(WindowInsets.Type.ime()).bottom
+                        val nav = insets.getInsets(WindowInsets.Type.systemBars()).bottom
+                        setBottom(Math.max(nav, ime))
+                    }
+                    return insets
+                }
+
+                override fun onEnd(animation: WindowInsetsAnimation) {
+                    if (animation.typeMask and WindowInsets.Type.ime() != 0) {
+                        animating = false
+                        applyPadding()
+                    }
+                }
+            })
+        }
         root.requestApplyInsets()
+    }
+
+    private fun setBottom(px: Int) {
+        shownBottom = px
+        if (root.paddingTop != padTop || root.paddingBottom != px) root.setPadding(0, padTop, 0, px)
     }
 
     private fun isNight(): Boolean =
@@ -95,10 +138,36 @@ class SystemBridge(
     /** Сдвинуть контейнер WebView: сверху под статус-бар, снизу под панель навигации или клавиатуру (что выше). */
     private fun applyPadding() {
         val bottom = Math.max(navPx, Math.max(imePx, framePx))
-        if (root.paddingTop != padTop || root.paddingBottom != bottom) {
-            root.setPadding(0, padTop, 0, bottom)
-        }
         push()
+        if (animating) return // отступ ведёт анимация клавиатуры (onProgress), в конце onEnd вызовет нас снова
+        if (Build.VERSION.SDK_INT >= 30) {
+            setBottom(bottom)
+        } else {
+            smooth(bottom)
+        }
+    }
+
+    /** Android 8-10: система не присылает кадры анимации клавиатуры, поэтому отступ плавно доезжает сам. */
+    private fun smooth(target: Int) {
+        if (target == shownBottom && anim == null) return
+        anim?.cancel()
+        val from = shownBottom
+        if (from == target || root.height == 0) {
+            anim = null
+            setBottom(target)
+            return
+        }
+        anim = ValueAnimator.ofInt(from, target).apply {
+            duration = 220
+            interpolator = DecelerateInterpolator(1.6f)
+            addUpdateListener { setBottom(it.animatedValue as Int) }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(a: android.animation.Animator) {
+                    anim = null
+                }
+            })
+            start()
+        }
     }
 
     /** Передать интерфейсу признак клавиатуры и тему (после загрузки страницы и при изменениях). */

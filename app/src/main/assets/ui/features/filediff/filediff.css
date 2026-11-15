@@ -1,0 +1,10 @@
+.fd-c{white-space:pre-wrap;word-break:break-all;font-size:12px;color:var(--tx2);background:var(--s2);border-radius:10px;padding:8px 10px;margin:0 0 10px;max-height:90px;overflow:auto}
+.fd-list{max-height:48vh;overflow:auto}
+.fd-p{font-size:12px;font-weight:600;word-break:break-all;margin:8px 0 4px}
+.fd-d{margin:0;font-family:var(--mono,monospace);font-size:11.5px;line-height:1.45;background:var(--s2);border-radius:10px;padding:6px 8px;overflow:auto;white-space:pre}
+.fd-l{display:block;min-height:1.45em}
+.fd-l.add{background:rgba(48,170,90,.22);display:block}
+.fd-l.del{background:rgba(220,70,70,.22);display:block}
+.fd-g{display:block;color:var(--tx2);text-align:center}
+.fd-chip{margin-left:6px}
+.fd-row{width:100%;text-align:left}

@@ -153,7 +153,7 @@ const Agent=(()=>{
    log.textContent+=(log.textContent?'\n':'')+'▶ '+c.split('\n')[0].slice(0,120)+'\n';
    const r=await Term.exec(c,{onChunk:t=>{log.dataset.live=t.slice(-600)}});
    log.textContent+=((r.out||'').slice(-600)||'(пусто)')+(r.err||r.code!==0?'\n['+(r.err||('код '+r.code))+']':'')+'\n';
-   Term.record(c,r);rep+=report(c,r)}
+   Term.record(c,r);if(r.fd&&typeof FileDiff!=='undefined')FileDiff.chip(log,r.fd);rep+=report(c,r)}
   busy=false;
   if(!left)return;
   left--;paint();
@@ -188,7 +188,7 @@ Hooks.on('md:code',(pre,code,lang)=>{
   const r=await Term.exec(cmd,{onChunk:t=>{res.textContent=t.slice(-4000)||'…'}});
   const shown=((r.out||'').slice(-4000)||'(пусто)')+(r.err||r.code!==0?'\n'+(r.err?'['+r.err+']':'[код выхода: '+r.code+']'):'');
   res.textContent=shown;b.disabled=false;
-  Term.record(cmd,r);
+  Term.record(cmd,r);if(r.fd&&typeof FileDiff!=='undefined')FileDiff.chip(res,r.fd);
   const failed=!!r.err||r.code!==0;
   const body='```bash\n$ '+cmd+'\n'+(r.out||'').slice(-3000)+'\n```\n'+(r.err?r.err:('exit code: '+r.code));
   const msg=(failed?'The command failed. Explain the error and suggest a fix.\n\n':'Result of the command I ran:\n\n')+body;
