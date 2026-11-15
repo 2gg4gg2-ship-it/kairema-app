@@ -8,7 +8,7 @@ const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,virtua
  beforeParse(w){
   w.matchMedia=()=>({matches:false,addEventListener(){},addListener(){}});
   w.HTMLElement.prototype.scrollTo=function(){};w.HTMLElement.prototype.scrollIntoView=function(){};
-  const sess=email=>({access_token:'at-'+email,refresh_token:'rt-'+email,expires_in:EXP,user:{id:'u1',email}});
+  const sess=email=>({access_token:'at-'+email,refresh_token:'rt-'+email,expires_in:EXP,user:{id:'u-'+email,email}});
   w.fetch=async(url,o)=>{
    const b=JSON.parse(o.body||'{}'),path=url.replace('https://abc.supabase.co/auth/v1','');reqs.push({path,b,h:o.headers});
    const R=(s,j)=>({ok:s<300,status:s,json:async()=>j});
@@ -36,7 +36,7 @@ const set=(sel,v)=>{const i=q(sel);i.value=v;i.dispatchEvent(new w.Event('input'
  set('[data-k=url]','http://bad');set('[data-k=key]','short');assert(sv().disabled);
  set('[data-k=url]','https://abc.supabase.co/');set('[data-k=key]','sb_publishable_1234567890abcdef');assert(!sv().disabled);
  sv().click();await sleep(100);
- assert(q('[data-screen=account] .segc'),'login view after saving server');
+ assert(q('[data-screen=account] [data-k=email]'),'login view after saving server');
  // code flow
  set('[data-k=email]','me@x.io');q('[data-screen=account] [data-s]').click();await sleep(150);
  assert(reqs.some(r=>r.path==='/otp'&&r.b.email==='me@x.io'&&r.b.create_user===true));
@@ -49,24 +49,41 @@ const set=(sel,v)=>{const i=q(sel);i.value=v;i.dispatchEvent(new w.Event('input'
  assert.equal(JSON.parse(w.localStorage.getItem('kairema.session.v1')).user.email,'me@x.io');
  await sleep(600);assert(!q('[data-screen=account]'),'page closed after login');
  console.log('settings row after login:',q('[data-acc] small').textContent);assert.equal(q('[data-acc] small').textContent,'me@x.io');assert(q('[data-act=out]'));
- // sign out
- q('[data-act=out]').click();await sleep(100);
- const okb=qa('.sheet-bg.on button').find(x=>/Выйти/.test(x.textContent)&&!x.classList.contains('ghost'))||qa('.sheet-bg.on button').pop();okb.click();await sleep(300);
- assert.equal(ev("Auth.user()"),null);assert(reqs.some(r=>r.path==='/logout'&&r.h.Authorization==='Bearer at-me@x.io'));
- assert.equal(w.localStorage.getItem('kairema.session.v1'),null);
- // password flow: sign up, wrong password, sign in
- q('[data-acc]').click();await sleep(150);
- qa('[data-screen=account] .segc button')[1].click();await sleep(50);
- set('[data-k=email]','new@x.io');set('[data-k=pw]','secret1');
- q('[data-screen=account] [data-up]').click();await sleep(200);
- assert.equal(ev("Auth.user().email"),'new@x.io');
- await ev("Auth.signOut()");
- await assert.rejects(ev("Auth.signIn('new@x.io','wrong')"),/Неверная почта или пароль/);
- await ev("Auth.signIn('new@x.io','secret1')");assert.equal(ev("Auth.user().email"),'new@x.io');
- await assert.rejects(ev("Auth.signUp('new@x.io','secret1')"),/уже зарегистрирована/);
- mode='confirm';assert.equal((await ev("Auth.signOut().then(()=>Auth.signUp('c@x.io','secret1'))")).confirm,true);
- // refresh token when nearly expired
- EXP=30;await ev("Auth.signOut()");await ev("Auth.signIn('new@x.io','secret1')");
- assert.equal(await ev("Auth.token()"),'at-new');assert(reqs.some(r=>r.path.startsWith('/token?grant_type=refresh_token')));console.log('refresh ok');
+  // sign out: аккаунт остаётся в списке телефона, токен на сервере не отзывается
+  q('[data-act=out]').click();await sleep(100);
+  const okb=qa('.sheet-bg.on button').find(x=>/Выйти/.test(x.textContent)&&!x.classList.contains('ghost'))||qa('.sheet-bg.on button').pop();okb.click();await sleep(300);
+  assert.equal(ev("Auth.user()"),null);assert(!reqs.some(r=>r.path==='/logout'),'signOut does not revoke');
+  assert.equal(w.localStorage.getItem('kairema.session.v1'),null);
+  assert.equal(ev("Auth.devices().length"),1);assert.equal(ev("Auth.devices()[0].email"),'me@x.io');
+  // экран входа: только почта (без пароля и вкладок), кнопка аккаунтов телефона
+  q('[data-acc]').click();await sleep(150);
+  assert(!q('[data-screen=account] .segc'),'no tabs');assert(!q('[data-k=pw]'),'no password field');
+  assert(q('[data-k=email]'),'email only');assert(q('[data-dv]'),'device accounts button');
+  // быстрый вход без кода
+  q('[data-dv]').click();await sleep(100);
+  assert(qa('.ad-pick').some(x=>/me@x.io/.test(x.textContent)));
+  const n0=reqs.length;qa('.ad-pick')[0].click();await sleep(300);
+  assert.equal(ev("Auth.user().email"),'me@x.io');
+  assert(reqs.slice(n0).some(r=>r.path.startsWith('/token?grant_type=refresh_token')&&r.b.refresh_token==='rt-me@x.io'),'refresh used');
+  assert(!reqs.slice(n0).some(r=>r.path==='/otp'),'no code needed');
+  await sleep(500);assert(!q('[data-screen=account]'),'page closed after quick login');
+  // второй аккаунт по коду
+  await ev("Auth.signOut()");
+  q('[data-acc]').click();await sleep(150);
+  set('[data-k=email]','new@x.io');q('[data-screen=account] [data-s]').click();await sleep(150);
+  assert(!q('[data-dv]'),'device button hidden on code step');
+  set('[data-k=code]','123456');q('[data-screen=account] [data-s]').click();await sleep(300);
+  assert.equal(ev("Auth.user().email"),'new@x.io');assert.equal(ev("Auth.devices().length"),2);
+  // старый пароль-API остаётся для совместимости
+  await ev("Auth.signOut()");users['new@x.io']='secret1';
+  await assert.rejects(ev("Auth.signIn('new@x.io','wrong')"),/Неверная почта или пароль/);
+  await ev("Auth.signIn('new@x.io','secret1')");assert.equal(ev("Auth.user().email"),'new@x.io');
+  // забыть аккаунт: отзыв и удаление из списка
+  const n1=reqs.length;await ev("Auth.forget(Auth.user().id)");
+  assert(reqs.slice(n1).some(r=>r.path==='/logout?scope=local'),'forget revokes');assert.equal(ev("Auth.user()"),null);
+  assert.equal(ev("Auth.devices().length"),1);
+  // refresh token when nearly expired
+  EXP=30;await ev("Auth.signIn('new@x.io','secret1')");
+  assert.equal(await ev("Auth.token()"),'at-new');assert(reqs.some(r=>r.path.startsWith('/token?grant_type=refresh_token')));console.log('refresh ok');
  // persistence: new Auth module instance reads storage (simulate restart)
  console.log('ERRORS:',errs.length?errs:'none');process.exit(0)})().catch(e=>{console.log('FAIL',e.stack.split('\n').slice(0,4).join(' | '),errs);process.exit(1)});

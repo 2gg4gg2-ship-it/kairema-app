@@ -3,3 +3,12 @@
 .ac-me{display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .ac-me b{display:block;overflow-wrap:anywhere}
 .ac-link{background:none;border:0;color:var(--tx2);font:inherit;font-size:13px;text-decoration:underline;padding:10px 2px;cursor:pointer}
+.ac-or{display:flex;align-items:center;gap:10px;margin:18px 0 12px;color:var(--tx2);font-size:12px}
+.ac-or:before,.ac-or:after{content:"";flex:1;height:1px;background:var(--ln,rgba(128,128,128,.25))}
+.ac-h{margin:0 2px 10px;font-size:17px}
+.ad-row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.ad-row.busy{opacity:.5;pointer-events:none}
+.ad-pick{flex:1;display:flex;align-items:center;gap:12px;min-width:0;text-align:left;background:none;border:1px solid var(--ln,rgba(128,128,128,.25));border-radius:14px;padding:10px 12px;color:inherit;font:inherit;cursor:pointer}
+.ad-pick .m{min-width:0}.ad-pick b{display:block;overflow-wrap:anywhere;font-weight:600}.ad-pick small{color:var(--tx2)}
+.ad-i{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--tx,#888);color:var(--bg,#000);font-weight:700}
+.ad-x{flex:none;background:none;border:0;color:var(--tx2);font-size:16px;padding:10px;cursor:pointer}
