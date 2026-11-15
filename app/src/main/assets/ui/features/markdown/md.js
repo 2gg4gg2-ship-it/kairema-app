@@ -74,14 +74,21 @@ function mdBlocks(root,text,final){
   root.append(p)}}
 function mdSources(bd,m){
  if(Array.isArray(m.src)&&m.src.length){
-  /* Компактно: маленькая кнопка «Источники · N», по нажатию раскрывается короткий список (details, без скриптов) */
+  /* Компактно: маленькая кнопка «Источники · N», по нажатию список плавно раскрывается и закрывается.
+     details остаётся (доступность и сохранение вида без скриптов), но open ставится вручную: при закрытии
+     сначала играет анимация (класс op снят), потом open убирается. */
   const d=mdTag('details','srcs'),t=mdTag('summary','srct');t.textContent=L('Источники')+' · '+m.src.length;d.append(t);
-  const l=mdTag('div','srcl');
+  const l=mdTag('div','srcl'),w=mdTag('div','srci');
   m.src.forEach((s,k)=>{
    const r=mdTag('div');const label='['+(k+1)+'] '+(s.title||s.url);
    if(/^https?:\/\//.test(s.url||''))r.append(mdLink(label,s.url));else r.textContent=label;
-   l.append(r)});
-  d.append(l);bd.append(d)}
+   w.append(r)});
+  l.append(w);d.append(l);bd.append(d);
+  let tm=0;
+  t.addEventListener('click',e=>{
+   e.preventDefault();clearTimeout(tm);
+   if(d.classList.contains('op')){d.classList.remove('op');tm=setTimeout(()=>{d.open=false},300)}
+   else{d.open=true;void l.offsetHeight;d.classList.add('op')}})}
  if(m.serr){const e=mdTag('div','srcs serr');e.textContent='⚠ Поиск не сработал: '+m.serr;bd.append(e)}}
 /* Полная отрисовка ответа в элемент bd. m нужен для источников (необязательно). */
 function mdRender(bd,text,m){

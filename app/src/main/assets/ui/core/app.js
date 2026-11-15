@@ -277,17 +277,17 @@ function templateSheet(t){
  setTimeout(()=>g('name').focus(),350)}
 function aboutPage(){page('about','О приложении',b=>{b.innerHTML=`<div class="ab"><h2>О Kairema AI</h2><p>Kairema AI — персональный ИИ-ассистент для общения, обучения, работы и решения повседневных задач.</p><p>Приложение помогает получать ответы на вопросы, разбираться в сложных темах, писать и редактировать тексты, работать с кодом и находить новые идеи.</p><p>Kairema AI объединяет возможности искусственного интеллекта в одном удобном интерфейсе. Пользователь может подключать собственных AI-провайдеров, вести диалоги и настраивать приложение под свои потребности.</p><p>Наша цель — создать удобного, быстрого и доступного ИИ-ассистента, который даёт пользователю больше возможностей и контроля.</p><p>Версия: ${APP_VERSION}</p><p>Разработчик: Kairema AI Team</p></div>`})}
 /* ===== ПРОФИЛЬ ===== */
-function profPage(){page('profile','Мой профиль',(b,d)=>{const p=S.p;b.innerHTML=`<div class="phd in">${ini(p,'big')}<span class="m"><b>${esc(p.name||'Гость')}</b><small>${esc(typeof Auth!=='undefined'&&Auth.user()?Auth.user().email:(p.user?'@'+p.user:''))}</small></span></div>
- <div class="sh">Данные профиля</div><div class="pfld">${fld('Имя','name',p.name,'Введите имя')}${fld('Username','user',p.user,'3–20 символов: латиница, цифры, _')}</div>
+function profPage(){page('profile','Мой профиль',(b,d)=>{const p=S.p;b.innerHTML=`<div class="phd in">${ini(p,'big')}<span class="m"><b>${esc(p.name||'Гость')}</b><small>${esc(typeof Auth!=='undefined'&&Auth.user()?Auth.user().email:'')}</small></span></div>
+ <div class="sh">Данные профиля</div><div class="pfld">${fld('Имя','name',p.name,'Введите имя')}</div>
  <div class="sh">Язык интерфейса</div><div id="lg" style="margin:14px 0 4px"></div><button class="btn big" id="btn-save-profile" data-action="profile:save" data-s>Сохранить</button>`;
- let lang=p.lang;$('#lg',b).replaceWith(seg(['Русский','English'],lang,i=>{lang=i;S.p.lang=i;saveProfile();applyLang(i)}));const sv=$('[data-s]',b);form(b,{name:v=>v.length>0,user:v=>!v||/^[a-z0-9_]{3,20}$/i.test(v)},sv);
- sv.onclick=()=>{const g=k=>$(`[data-k=${k}]`,b).value.trim();Object.assign(S.p,{name:g('name'),user:g('user'),lang});saveProfile();toast('Профиль сохранён');d.close();setView()}})}
+ let lang=p.lang;$('#lg',b).replaceWith(seg(['Русский','English'],lang,i=>{lang=i;S.p.lang=i;saveProfile();applyLang(i)}));const sv=$('[data-s]',b);form(b,{name:v=>v.length>0},sv);
+ sv.onclick=()=>{const g=k=>$(`[data-k=${k}]`,b).value.trim();Object.assign(S.p,{name:g('name'),lang});saveProfile();toast('Профиль сохранён');d.close();setView()}})}
 function logout(){ask('Выйти из аккаунта?','Чаты останутся на сервере. Войти можно в любой момент.','Выйти',()=>{const f=el(`<div class="full out"><img class="brandimg logo-img" src="core/brand/logo.png" alt="Kairema"><h1 style="margin:22px 0 6px">Вы вышли</h1><p class="sub" style="margin-bottom:24px">Войдите, чтобы продолжить</p><button class="btn" style="width:100%;max-width:320px">Войти</button></div>`);app.append(f);raf(()=>f.classList.remove('out'));$('.btn',f).onclick=()=>{f.classList.add('out');setTimeout(()=>f.remove(),500);$$('.spg').forEach(x=>x.remove());show('api')}})}
 /* ===== НАСТРОЙКИ ===== */
 function setView(){const v=$('#v-set'),p=S.p,TN=['Тёмная','Светлая','Авто'],TK=['dark','light','auto'],ok=[...S.providers,...S.sproviders].filter(x=>x.ok).length;let i=0;
  const row=(ic1,ttl,sb,att,circ,end)=>`<button class="sr" style="--i:${i++}" ${att}><span class="si ${circ?'c':''}">${ic(ic1)}</span><span class="m"><b>${ttl}</b><small>${sb}</small></span>${end===undefined?ic('chevR'):end}</button>`;
  v.innerHTML=`<div class="top"><h1>Настройки</h1></div><div class="scroll st">
- <button class="card pf" style="--i:0" data-go="prof">${ini(p)}<span class="m"><b>${esc(p.name||'Гость')}</b><small>${esc(p.user?'@'+p.user:'Нажмите, чтобы указать имя')}</small></span>${ic('chevR')}</button>
+ <button class="card pf" style="--i:0" data-go="prof">${ini(p)}<span class="m"><b>${esc(p.name||'Гость')}</b><small>${esc(p.name?'Мой профиль':'Нажмите, чтобы указать имя')}</small></span>${ic('chevR')}</button>
  <div class="sh">ИИ и персонализация</div>
  ${row('brain','Память ИИ','Ваши данные и контекст','data-go="mem"')}${row('doc','Шаблоны промтов','Быстрые команды для ИИ','data-go="tpl"')}
  <div class="sh">Провайдеры</div>

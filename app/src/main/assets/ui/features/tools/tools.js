@@ -39,13 +39,15 @@ const Tools=(()=>{
  api.setThink=v=>{api.thinkMode=v;try{st.set('kthink',v)}catch(e){}repaint()};
  /* Режим одного сообщения: берётся при отправке и сбрасывается */
  api.take=()=>{const m=api.mode;api.mode=null;repaint();return m};
- /* Меню «+»: плитки по 2 в ряд, три группы (Прикрепить, Создать, Режим).
-    Режимы переключаются, не закрывая окно, и видно, что включено. Пункты, которых модель не умеет, серые с причиной. */
+ /* Меню «+»: плитки по 2 в ряд, три группы (Прикрепить, Создать, Режим). Окно в половину высоты, дальше прокрутка внутри.
+    Любой выбор (в том числе «Думать», «Быстрый ответ», «Поиск») сразу закрывает окно, включённое видно по метке в поле ввода
+    и по галочке при следующем открытии. Пункты, которых модель не умеет, серые с причиной и окно не закрывают.
+    Окно строится один раз (без перерисовок): так оно не подлагивает. */
  api.open=c=>{
   icons();
   if(typeof Sx!=='undefined')Sx.icons();
-  const s=sheet('<div class="tm-grab"></div><div class="tm"></div>');
-  const box=$('.tm',s);let first=1;
+  const s=sheet('<div class="tm-grab"></div><div class="tm"></div>');s.classList.add('tmw');
+  const box=$('.tm',s);
   const groups=()=>[
    ['Прикрепить',[
     {i:'img',n:'Фото',h:'Из галереи',run:()=>c.pick('g')},
@@ -64,17 +66,15 @@ const Tools=(()=>{
     const g=el('<div class="tm-g"></div>');g.textContent=L(title);box.append(g);
     const grid=el('<div class="tm-grid"></div>');
     tiles.forEach(x=>{
-     const b=el(`<button type="button" class="tm-tile ${x.on?'on':''} ${x.off?'off':''} ${first?'st':''}" style="--i:${i++}"><span class="tm-i">${ic(x.i)}</span><span class="tm-n"></span><small class="tm-h"></small>${x.on?`<span class="tm-ck">${ic('ok')}</span>`:''}</button>`);
+     const b=el(`<button type="button" class="tm-tile ${x.on?'on':''} ${x.off?'off':''}"><span class="tm-i">${ic(x.i)}</span><span class="tm-n"></span><small class="tm-h"></small>${x.on?`<span class="tm-ck">${ic('ok')}</span>`:''}</button>`);
      $('.tm-n',b).textContent=L(x.n);$('.tm-h',b).textContent=L(x.off||x.h);
      if(x.tg)b.setAttribute('aria-pressed',x.on?'true':'false');
      if(x.off)b.setAttribute('aria-disabled','true');
      b.onclick=()=>{
       if(x.off){toast(L(x.why||x.off));return}
-      if(x.tg){x.run();draw();return}
       s.close();setTimeout(x.run,120)};
      grid.append(b)});
-    box.append(grid)});
-   first=0};
+    box.append(grid)})};
   draw()};
  /* Параметры для провайдера: 1 думать, -1 быстро, 0 как есть */
  api.think=()=>!canThink()?0:tm()==='think'?1:tm()==='instant'?-1:0;
