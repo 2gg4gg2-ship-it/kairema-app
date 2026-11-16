@@ -133,9 +133,9 @@
 | `features/ctx/ctx.js` | 61 | СЖАТИЕ КОНТЕКСТА ===== Команда «/compact» (список «/» из модуля roles): старая часть чата заменяется кратким пересказом, который уходит модели вместо длинной истории. |
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 150 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
-| `features/help/help-data.js` | 152 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (значок), t (название), s (подпись на карточке), lead (что это одной фразой), b (блоки). |
-| `features/help/help.css` | 60 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
-| `features/help/help.js` | 65 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
+| `features/help/help-data.js` | 137 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
+| `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
+| `features/help/help.js` | 89 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
 | `features/markdown/md.css` | 42 | Стили разметки ответов ИИ (модуль markdown). |
 | `features/markdown/md.js` | 111 | MARKDOWN → DOM для ответов ИИ ===== Безопасно: всё строится через createElement и textContent, innerHTML не используется. |
