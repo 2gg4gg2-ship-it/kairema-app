@@ -35,10 +35,12 @@ app/
         auth/                 аккаунт: вход по коду на почту и по паролю (необязательный)
         memory/               память: профиль и факты (категории, закрепление), подбор под вопрос, извлечение моделью, экран; memory.js, memory-ai.js, memory-ui.js, memory.css (необязательный)
         sync/                 облачная синхронизация чатов и памяти через Supabase; SQL в schema.sql (необязательный)
+        help/                 «Справка»: полная инструкция простыми словами (тексты в help-data.js, экран в help.js), карточка в Настройках, «?» в терминале и памяти (необязательный)
         terminal/             терминал: настоящая оболочка Android, кнопка «Выполнить» под командами ИИ (необязательный)
     java/com/kairema/app/
       MainActivity.kt         окно, WebView, кнопка «Назад», выбор файлов
       bridge/Bridge.kt        мост JS <-> Kotlin (провайдеры, чат)
+      assets/terminal/        kairema-wrap.sh (запуск команды с запоминанием папки) и kairemarc.sh (помощники ll, la, tree, calc, help)
       terminal/Shell.kt       запуск команд в /system/bin/sh, вывод кусками
       terminal/TermuxRunner.kt   запуск команд в Termux через RUN_COMMAND, TermuxResultReceiver.kt принимает результат
       data/SecureKeys.kt      API-ключи в Android Keystore
@@ -116,4 +118,4 @@ app/
 Загрузите `kairema.zip` в корень репозитория. Сборка сама распакует его в папки
 выше, удалит zip и соберёт APK (раздел Actions → Artifacts).
 
-Текущая версия: 0.26.5
+Текущая версия: 0.27.0

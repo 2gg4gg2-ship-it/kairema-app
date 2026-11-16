@@ -47,7 +47,8 @@
 | Аккаунт, вход, облако | `features/auth/*`, `features/sync/*`, `features/sync/schema.sql`, `docs/AUTH_SETUP.md` | Supabase по REST |
 | Синхронизировать новый тип данных | `features/sync/sync.js` (`register`) и свой `Hooks.on('sync:register', …)` | Образцы: `chats.js`, `memory.js` |
 | Резервная копия (экспорт/импорт) | `features/backup/backup.js` | Добавляй новые данные сюда тоже |
-| Терминал, команды из ответов, агент | `features/terminal/*`, `terminal/Shell.kt`, `TermuxRunner.kt`, `features/filediff/*` | Опасные команды требуют подтверждения |
+| Терминал, команды из ответов, агент | `features/terminal/*` (`term-compat.js` разбор ответов любых моделей), `terminal/Shell.kt`, `assets/terminal/*.sh`, `TermuxRunner.kt`, `features/filediff/*` | Опасные команды требуют подтверждения |
+| Справка (инструкция в приложении) | `features/help/help-data.js` (тексты), `help.js`, `help.css` | Поменял функцию, поправь её раздел справки |
 | Файлы из ответов (таблицы, HTML, PDF, CSV) | `features/artifacts/*` | Предпросмотр HTML в `<iframe sandbox="allow-scripts">` |
 | «Поделиться», входящее из других приложений | `features/share/*`, `features/inbox/*`, `share/*.kt` | |
 | Клавиатура, статус-бар, отступы, тема | `features/system/*`, `system/SystemBridge.kt` | CSS-переменные `--sat --sab --kb`, класс `.kb` |
@@ -132,6 +133,9 @@
 | `features/ctx/ctx.js` | 61 | СЖАТИЕ КОНТЕКСТА ===== Команда «/compact» (список «/» из модуля roles): старая часть чата заменяется кратким пересказом, который уходит модели вместо длинной истории. |
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 150 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
+| `features/help/help-data.js` | 152 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (значок), t (название), s (подпись на карточке), lead (что это одной фразой), b (блоки). |
+| `features/help/help.css` | 60 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
+| `features/help/help.js` | 65 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
 | `features/markdown/md.css` | 42 | Стили разметки ответов ИИ (модуль markdown). |
 | `features/markdown/md.js` | 111 | MARKDOWN → DOM для ответов ИИ ===== Безопасно: всё строится через createElement и textContent, innerHTML не используется. |
@@ -154,11 +158,12 @@
 | `features/sync/sync.js` | 109 | СИНХРОНИЗАЦИЯ: облачное хранение данных пользователя (таблица sync_items в Supabase) ===== Каждый модуль данных подключает свой «вид» (kind) событием 'sync:register': Hoo |
 | `features/system/system.css` | 7 | КЛАВИАТУРА: класс .kb ставит system.js, когда Kotlin сообщил, что клавиатура открыта ===== Окно сжимается Kotlin плавно, кадр за кадром вместе с клавиатурой системы (Syst |
 | `features/system/system.js` | 26 | СИСТЕМА: статус-бар, клавиатура, системная тема ===== Отступы под статус-бар, панель навигации и клавиатуру теперь применяет Kotlin (com.kairema.app.system.SystemBridge): |
+| `features/terminal/term-compat.js` | 110 | ТЕРМИНАЛ: совместимость с любыми моделями (от самых слабых до лучших) ===== Слабые модели не всегда оформляют команды правильно: забывают язык у блока, пишут «$ ls» вмест |
 | `features/terminal/terminal.css` | 53 | Стили модуля terminal. |
-| `features/terminal/terminal.js` | 200 | ТЕРМИНАЛ: настоящая оболочка Android и запуск команд из ответов ИИ ===== Команды выполняет Kotlin (Shell.kt, /system/bin/sh). |
+| `features/terminal/terminal.js` | 248 | ТЕРМИНАЛ: настоящая оболочка Android и запуск команд из ответов ИИ ===== Команды выполняет Kotlin (Shell.kt, /system/bin/sh). |
 | `features/tools/tools.css` | 47 | Меню «+», метки режимов в поле ввода, размышления, изображения |
 | `features/tools/tools.js` | 139 | ФУНКЦИИ ЧАТА: меню «+», режимы ответа, создание изображений, глубокое исследование ===== Кнопка «+» в поле ввода открывает список: вложения (галерея, камера, файлы) и фун |
-| `index.html` | 73 |  |
+| `index.html` | 77 |  |
 
 ### Индекс файлов Kotlin (`app/src/main/java/com/kairema/app`)
 
@@ -178,7 +183,7 @@
 | `share/Share.kt` | 166 | Копирование, «Поделиться» (Telegram и другие приложения), сохранение в Загрузки и печать в PDF. |
 | `share/ShareFiles.kt` | 72 | Отдаёт другим приложениям файлы из временной папки cache/share (только чтение). |
 | `system/SystemBridge.kt` | 218 | Системные панели, клавиатура и тема телефона. |
-| `terminal/Shell.kt` | 90 | Настоящая оболочка Android (/system/bin/sh) для терминала. |
+| `terminal/Shell.kt` | 146 | Настоящая оболочка Android (/system/bin/sh) для терминала. |
 | `terminal/TermuxResultReceiver.kt` | 14 | Принимает результат команды от Termux и передаёт его в TermuxRunner. |
 | `terminal/TermuxRunner.kt` | 154 | Запуск команд в Termux (если он установлен). |
 
@@ -196,7 +201,7 @@
 | Событие | Слушают (`Hooks.on`) | Запускают (`Hooks.run`) |
 |---|---|---|
 | `account:rendered` | sync-ui.js | auth-ui.js |
-| `app:ready` | about.js, auth-ui.js, backup.js, caps.js, cost.js, filediff.js, inbox.js, memory-ui.js, memory.js, roles.js, search.js, sync.js | app.js |
+| `app:ready` | about.js, auth-ui.js, backup.js, caps.js, cost.js, filediff.js, help.js, inbox.js, memory-ui.js, memory.js, roles.js, search.js, sync.js | app.js |
 | `auth:forgot` | auth-ui.js | auth.js |
 | `chat:answer` | branch.js, cost.js, ctx.js, memory-ai.js, memory-ui.js, share.js, terminal.js | app.js, tools.js |
 | `chat:rendered` | branch.js, roles.js, scroller.js, share.js | app.js |
@@ -205,7 +210,7 @@
 | `memory:auto` | — | memory-ai.js |
 | `memory:changed` | memory.js | app.js, backup.js, memory-ai.js, memory-ui.js |
 | `msg:render` | branch.js, cost.js, ctx.js, share.js, tools.js | app.js |
-| `settings:rendered` | auth-ui.js, backup.js, cost.js, filediff.js, roles.js | app.js |
+| `settings:rendered` | auth-ui.js, backup.js, cost.js, filediff.js, help.js, roles.js | app.js |
 | `sync:delete` | search.js, sync.js | chats.js, memory.js, sync.js |
 | `sync:left` | auth-ui.js | sync.js |
 | `sync:register` | chats.js, memory.js, sync.js | sync.js |
@@ -231,10 +236,11 @@
 - `kairema.sync.meta.v1`: sync.js
 - `kairema.templates.v1`: app.js, backup.js
 - `kairema.term.backend.v1`: terminal.js
+- `kairema.term.caps.v1`: term-compat.js
 - `kairema.term.hist.v1`: terminal.js
 - `kairema.usage.v1`: backup.js, cost.js
 - `kairema.welcome.v1`: auth-ui.js
 
 ### Экраны (`SCREENS.<имя>`, открываются через `openScreen`)
-`about`, `account`, `api`, `backup`, `cost`, `filediff`, `memory`, `onboarding`, `profile`, `providers`, `roles`, `settings`, `templates`, `terminal`
+`about`, `account`, `api`, `backup`, `cost`, `filediff`, `help`, `memory`, `onboarding`, `profile`, `providers`, `roles`, `settings`, `templates`, `terminal`
 <!-- AUTO:END -->

@@ -6,14 +6,17 @@ i18nAdd({"Всё":"All","Последний вывод":"Last output","Выде�
 let TERMUX_WAIT=25;
 const Term=(()=>{
  const KH='kairema.term.hist.v1',MARK='\u0001',CAP=30000;
- let log=[],cur=null,redraw=null,hist=[],st='off',mark='off',backend='android';
+ let log=[],cur=null,redraw=null,hist=[],st='off',mark='off',backend='android',probing=0;
  const KB='kairema.term.backend.v1';
  try{if(localStorage.getItem(KB)==='termux')backend='termux'}catch(e){}
  const T2=(a,b)=>LANG==='en'?b:a;
  try{hist=JSON.parse(localStorage.getItem(KH)||'[]')||[]}catch(e){}
  const saveH=()=>{try{localStorage.setItem(KH,JSON.stringify(hist.slice(-50)))}catch(e){}};
- const view=r=>{const i=r.indexOf(MARK);return i<0?r:r.slice(0,i).replace(/\n$/,'')};
- const danger=c=>/(^|[\s;&|])(rm\s+(-\w*[rR]|-\w*f)|dd\s|mkfs|chmod\s+-\w*R|chown\s+-\w*R|mv\s+.*\s\/|>\s*\/dev\/)|\/data\/data|\/sdcard|\/storage|:\(\)\s*\{/i.test(c);
+ /* Служебные пути обёртки (Shell.kt) в сообщениях оболочки не нужны ни человеку, ни модели. */
+ const noise=s=>s.replace(/\S*\.kcmd_\w+\.sh(?::\s*\d+)?:\s*/g,'').replace(/\S*\.kwrap\.sh(?::\s*\d+)?:\s*/g,'');
+ const view=r=>{const i=r.indexOf(MARK);return noise(i<0?r:r.slice(0,i).replace(/\n$/,''))};
+ const DG2=/(^|[\s;&|])(sudo\s|su(\s|$)|reboot|shutdown|killall|pm\s+(uninstall|clear|disable)|(curl|wget)\b[^|;\n]*\|\s*(sudo\s+)?(sh|bash))/i;
+ const danger=c=>DG2.test(c)||/(^|[\s;&|])(rm\s+(-\w*[rR]|-\w*f)|dd\s|mkfs|chmod\s+-\w*R|chown\s+-\w*R|mv\s+.*\s\/|>\s*\/dev\/)|\/data\/data|\/sdcard|\/storage|:\(\)\s*\{/i.test(c);
  /* Запуск команды. Возвращает {code,out,err?}. onChunk получает весь вывод к этому моменту. */
  async function exec(cmd,o={}){
   if(!Native.on){await wait(250);return{code:0,out:'(демо: вне приложения команды не выполняются)',demo:true}}
@@ -24,9 +27,13 @@ const Term=(()=>{
   try{await p}catch(e){return{code:-1,out:view(raw),err:e.message}}
   const i=raw.indexOf('\n'+MARK+'exit:');
   const code=i<0?-1:parseInt(raw.slice(i+7),10);
-  return{code:isNaN(code)?-1:code,out:i<0?raw:raw.slice(0,i)}}
+  return{code:isNaN(code)?-1:code,out:noise(i<0?raw:raw.slice(0,i))}}
  const add=(c,t)=>{const e={c,t};log.push(e);if(log.length>400)log.shift();if(redraw)redraw();return e};
  const upd=e=>{if(e.el&&e.el.isConnected){e.el.textContent=e.t;const o=e.el.parentNode;if(o)scr(o)}};
+ /* Что отправляем модели после команды: сама команда, вывод (сжатый), код выхода и подсказка при «не найдено». */
+ const feedback=(cmd,r)=>{const tc=typeof TermCompat!=='undefined',h=tc?TermCompat.hint(cmd,r,backend):'',o=tc?TermCompat.compact(r.out||'',2500):(r.out||'').slice(-2500);return '```bash\n$ '+cmd+'\n'+o+'\n```\n'+(r.err?r.err:'exit code: '+r.code)+(h?'\n'+h:'')};
+ /* Один раз узнаём, какие команды есть в оболочке Android, и говорим об этом модели. */
+ async function probe(){if(typeof TermCompat==='undefined'||!Native.on||backend!=='android'||probing||!TermCompat.stale(backend))return;probing=1;try{const r=await exec(TermCompat.probeCmd,{timeout:20});TermCompat.saveCaps(backend,r.out)}catch(e){}probing=0}
  const exitText=r=>r.err?'['+r.err+']':(LANG==='en'?'[exit code: ':'[код выхода: ')+r.code+']';
  const tick=()=>{if(redraw)redraw()};
  /* Запуск из терминала. */
@@ -67,9 +74,40 @@ const Term=(()=>{
   else if(!/termux-ok/.test(r.out||''))add('e',exitText(r));
   else add('o','✓ '+T2('Termux отвечает. Если python или git не нашлись, в Termux выполните: pkg install python git curl','Termux responds. If python or git are missing, run in Termux: pkg install python git curl'));
   tick()}
+ /* Самопроверка: короткий набор команд на выбранной оболочке; каждая строка в терминале показывает ✓ или ✗. */
+ async function selfTest(){
+  if(cur||st!=='on')return;
+  const tm=backend==='termux',L2=T2,Q=[];
+  const q=(a,b,cmd,ok,o)=>Q.push({n:L2(a,b),cmd,ok,o:o||{}});
+  q('Вывод команды','Command output','echo kairema-ok',r=>/kairema-ok/.test(r.out)&&r.code===0);
+  q('Код выхода передаётся','Exit code is passed','sh -c "exit 7"',r=>r.code===7);
+  q('Неизвестная команда даёт ошибку','Unknown command fails','nonexistent_kai_cmd',r=>r.code!==0);
+  q('Ошибки попадают в вывод','Errors reach the output','ls /no/such/dir_kai 2>&1',r=>r.code!==0&&r.out.trim().length>0);
+  q('Конвейер и перенаправление','Pipe and redirect',"printf 'b\\na\\n' | sort > kt_t.txt; cat kt_t.txt",r=>r.out.trim()==='a\nb');
+  q('Русские буквы','Cyrillic text','echo привет',r=>/привет/.test(r.out));
+  q('Запись и чтение файла','Write and read a file','echo kai-data > kt_f.txt && cat kt_f.txt',r=>/kai-data/.test(r.out));
+  q('Многострочная команда','Multi-line command','a=5\nb=6\necho $((a*b))',r=>r.out.trim()==='30');
+  q('Ввод закрыт, команда не зависает','Input closed, no hanging','cat',(r,ms)=>ms<8000,{timeout:10});
+  q('Большой вывод','Large output','seq 1 3000 | tail -1',r=>r.out.trim()==='3000');
+  if(!tm){
+   q('Папка запоминается (шаг 1)','Folder is remembered (step 1)','mkdir -p kt_dir && cd kt_dir',r=>r.code===0);
+   q('Папка запоминается (шаг 2)','Folder is remembered (step 2)','pwd',r=>/kt_dir\s*$/.test(r.out));
+   q('Остановка по времени','Stop on timeout','sleep 30',(r,ms)=>ms<12000&&r.code!==0,{timeout:3})}
+  add('c','› '+L2('Самопроверка терминала','Terminal self-test'));
+  cur={};tick();let pass=0;
+  for(const c of Q){
+   const t0=Date.now();let r;
+   try{r=await exec(c.cmd,{timeout:c.o.timeout||20,onStart:id=>{cur.id=id}})}catch(e){r={code:-1,out:'',err:e.message}}
+   let good=false;try{good=!!c.ok(r,Date.now()-t0)}catch(e){}
+   if(good)pass++;
+   add(good?'o':'e',(good?'✓ ':'✗ ')+c.n+(good?'':'   → '+((r.err||r.out||'').trim().replace(/\s+/g,' ').slice(0,90)||('код '+r.code))))}
+  try{await exec('cd .. 2>/dev/null; rm -rf kt_dir kt_t.txt kt_f.txt',{timeout:10})}catch(e){}
+  cur=null;
+  add(pass===Q.length?'o':'e',(pass===Q.length?'✅ ':'⚠ ')+L2('Пройдено ','Passed ')+pass+L2(' из ',' of ')+Q.length+(pass===Q.length?'':L2('. Пришлите этот вывод ИИ или разработчику.','. Send this output to the AI or the developer.')));
+  tick();return{pass,total:Q.length}}
  const stop=()=>{if(cur&&cur.id)Native.cancel(cur.id)};
  /* Сессия: зелёная = работает, красная = выключена, жёлтая = очищена. */
- const activate=quiet=>{const was=st;st='on';mark='on';if(!quiet&&was!=='on')add('o','● сессия запущена');tick()};
+ const activate=quiet=>{const was=st;st='on';mark='on';if(!quiet&&was!=='on')add('o','● сессия запущена');tick();probe()};
  const deactivate=()=>{stop();st='off';mark='off';add('','— сессия остановлена');tick()};
  const clear=()=>{log=[];mark='clr';tick();toast('Сессия очищена')};
  const DIAG=`echo "== Система"; getprop ro.product.model; getprop ro.build.version.release; getprop ro.build.version.sdk; uname -m; id
@@ -78,11 +116,11 @@ echo "== Запуск файла из папки приложения"; printf '
 echo "== Папка"; pwd; echo "Папка библиотек: $KAIREMA_LIB"; ls $KAIREMA_LIB 2>&1 | head -5
 echo "== Сеть"; ping -c 1 -W 2 1.1.1.1 2>&1 | tail -2
 echo "== Место"; df -h . 2>&1 | tail -2`;
- return{exec,run,record,stop,clear,activate,deactivate,setBackend,checkTermux,get backend(){return backend},get st(){return st},get mark(){return mark},danger,DIAG,get busy(){return!!cur},bind(f){redraw=f},text(last){let a=log;if(last){const i=log.map(e=>e.c).lastIndexOf('c');if(i>=0)a=log.slice(i)}return a.map(e=>e.t).join('\n')},drawLog(out){out.innerHTML='';log.slice(-300).forEach(e=>{const d=document.createElement('div');d.className=e.c;d.textContent=e.t;e.el=d;out.append(d)});scr(out)},hist:()=>hist}})();
+ return{exec,run,record,feedback,probe,selfTest,stop,clear,activate,deactivate,setBackend,checkTermux,get backend(){return backend},get st(){return st},get mark(){return mark},danger,DIAG,get busy(){return!!cur},bind(f){redraw=f},text(last){let a=log;if(last){const i=log.map(e=>e.c).lastIndexOf('c');if(i>=0)a=log.slice(i)}return a.map(e=>e.t).join('\n')},drawLog(out){out.innerHTML='';log.slice(-300).forEach(e=>{const d=document.createElement('div');d.className=e.c;d.textContent=e.t;e.el=d;out.append(d)});scr(out)},hist:()=>hist}})();
 function termView(){
  const v=$('#v-term');
  if(!P.diag)P.diag='<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>';
- v.innerHTML=`<div class="top"><h1>Терминал</h1></div><p class="sub" style="margin:0 16px 8px" data-tn></p><div class="scroll"><div class="ses"><div class="tm-st"><div class="stt"><span class="sd"></span><b></b></div><span class="tm-chip" data-chip></span></div><div class="tm-ctl"><button class="sb" data-a="on">${ic('play')}<span>Запустить</span></button><button class="sb" data-a="off">${ic('stop')}<span>Выключить</span></button><button class="sb" data-a="clr">${ic('trash')}<span>Очистить</span></button></div><button class="tm-diag" data-diag><span class="ti">${ic('diag')}</span><span class="m"><b>Диагностика</b><small>Что доступно на этом телефоне</small></span>${ic('chevR')}</button><div class="tm-bk"><span class="sub" data-bkl>Оболочка</span><div data-bk></div><button class="sb tm-chk" data-tchk>${ic('ok')}<span>Проверить Termux</span></button></div></div><div class="tp"><div><div class="term"><div class="tcp"><button type="button" data-cp="all">${ic('cpy')}<span>Всё</span></button><button type="button" data-cp="last">${ic('cpy')}<span>Последний вывод</span></button><button type="button" data-cp="sel">${ic('sel')}<span>Выделить</span></button><button type="button" data-cp="shr">${ic('shr')}<span>Отправить</span></button></div><div class="tout"></div><div class="tin"><span style="color:#9AA0A6">›</span><input autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="команда, например ls" aria-label="Команда"><button class="send sm" aria-label="Enter"></button></div></div></div></div><p class="sub idle" style="margin-top:8px">Сессия не запущена. Нажмите «Запустить», чтобы выполнять команды.</p></div>`;
+ v.innerHTML=`<div class="top"><h1 style="flex:1">Терминал</h1><button class="ib tm-q" data-help aria-label="Что такое терминал" ${typeof Help==='undefined'?'hidden':''}>?</button></div><p class="sub" style="margin:0 16px 8px" data-tn></p><div class="scroll"><div class="ses"><div class="tm-st"><div class="stt"><span class="sd"></span><b></b></div><span class="tm-chip" data-chip></span></div><div class="tm-ctl"><button class="sb" data-a="on">${ic('play')}<span>Запустить</span></button><button class="sb" data-a="off">${ic('stop')}<span>Выключить</span></button><button class="sb" data-a="clr">${ic('trash')}<span>Очистить</span></button></div><button class="tm-diag" data-diag><span class="ti">${ic('diag')}</span><span class="m"><b>Диагностика</b><small>Что доступно на этом телефоне</small></span>${ic('chevR')}</button><button class="tm-diag" data-self><span class="ti">${ic('ok')}</span><span class="m"><b>Самопроверка терминала</b><small>Проверка команд, папки, вывода и времени</small></span>${ic('chevR')}</button><div class="tm-bk"><span class="sub" data-bkl>Оболочка</span><div data-bk></div><button class="sb tm-chk" data-tchk>${ic('ok')}<span>Проверить Termux</span></button></div></div><div class="tp"><div><div class="term"><div class="tcp"><button type="button" data-cp="all">${ic('cpy')}<span>Всё</span></button><button type="button" data-cp="last">${ic('cpy')}<span>Последний вывод</span></button><button type="button" data-cp="sel">${ic('sel')}<span>Выделить</span></button><button type="button" data-cp="shr">${ic('shr')}<span>Отправить</span></button></div><div class="tout"></div><div class="tin"><span style="color:#9AA0A6">›</span><input autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="команда, например ls" aria-label="Команда"><button class="send sm" aria-label="Enter"></button></div></div></div></div><p class="sub idle" style="margin-top:8px">Сессия не запущена. Нажмите «Запустить», чтобы выполнять команды.</p></div>`;
  $('[data-tn]',v).textContent=Native.on?'Выберите оболочку: Android (встроенная, без python и git) или Termux (полноценный Linux, нужна установка Termux). «Диагностика» показывает, что доступно.':'Демо: вне приложения команды не выполняются.';
  if(typeof Sx!=='undefined')Sx.icons();
  $$('[data-cp]',v).forEach(b=>b.onclick=()=>{
@@ -98,7 +136,7 @@ function termView(){
   $('.tp',v).classList.toggle('open',s==='on');
   $('.idle',v).style.display=s==='on'?'none':'block';
   $('[data-a=on]',v).disabled=m==='on';$('[data-a=off]',v).disabled=m==='off';$('[data-a=clr]',v).disabled=m==='clr';
-  $('[data-diag]',v).disabled=s!=='on'||r;
+  $('[data-diag]',v).disabled=s!=='on'||r;$('[data-self]',v).disabled=s!=='on'||r;
   $('[data-chip]',v).textContent=Term.backend==='termux'?'Termux':'Android';
   $('[data-tchk]',v).style.display=Term.backend==='termux'?'':'none';
   $('[data-tchk]',v).disabled=r;
@@ -112,10 +150,13 @@ function termView(){
  send.onclick=()=>Term.busy?Term.stop():go();
  inp.onkeydown=e=>{if(e.key==='Enter')go()};
  $('[data-diag]',v).onclick=()=>Term.run(Term.DIAG,'Диагностика');
+ $('[data-self]',v).onclick=()=>Term.selfTest();
+ $('[data-help]',v).onclick=()=>{if(typeof Help!=='undefined')Help.open('terminal')};
  $$('[data-a]',v).forEach(b=>b.onclick=()=>({on:()=>Term.activate(),off:Term.deactivate,clr:Term.clear})[b.dataset.a]())}
 /* Подсказка для ИИ: как предлагать команды. */
 function terminalPrompt(){
  if(!Native.on)return'';
+ if(typeof TermCompat!=='undefined')return TermCompat.prompt(Term.backend);
  const where=Term.backend==='termux'
   ?"a real Linux environment in Termux (bash; python, git, curl, node and other packages may be installed with pkg install; home is ~)"
   :"Android's built-in shell (/system/bin/sh with toybox; no root; no python, git, curl or apt; working directory is the app's private folder)";
@@ -123,7 +164,7 @@ function terminalPrompt(){
 /* Режим агента: после одного подтверждения ИИ сам ведёт задачу по шагам (лимит шагов, стоп, опасное только вручную). */
 const Agent=(()=>{
  const MAX=8,T2=(a,b)=>LANG==='en'?b:a;
- let left=0,busy=false,bar=null;
+ let left=0,busy=false,bar=null,redo=0,seen={};
  const active=()=>left>0;
  const blocks=t=>{const r=[],re=/```(?:sh|bash|shell|zsh|console|terminal)[^\n]*\n([\s\S]*?)```/gi;let m;while((m=re.exec(t)))r.push(m[1].split('\n').map(l=>l.replace(/^\s*\$\s+/,'')).join('\n').trim());return r.filter(Boolean)};
  const paint=()=>{
@@ -135,26 +176,31 @@ const Agent=(()=>{
    const c=$('.cmp',v);c?v.insertBefore(bar,c):v.append(bar)}
   $('b',bar).textContent=T2('Агент работает. Осталось шагов: ','Agent is working. Steps left: ')+left};
  function stop(msg){const was=left>0;left=0;Term.stop();paint();if(was&&msg)toast(msg)}
- function start(){left=MAX;paint()}
+ function start(){left=MAX;redo=0;seen={};paint()}
  const waitChat=async()=>{for(let i=0;i<50&&Chx.busy;i++)await wait(100)};
- const report=(cmd,r)=>'```bash\n$ '+cmd+'\n'+(r.out||'').slice(-2500)+'\n```\n'+(r.err?r.err:'exit code: '+r.code)+'\n\n';
+ const report=(cmd,r)=>Term.feedback(cmd,r)+'\n\n';
+ const cmdsOf=t=>typeof TermCompat!=='undefined'?TermCompat.extract(t):blocks(t).map(c=>({cmd:c,notes:[],open:false}));
  /* Вызывается после каждого ответа ИИ в чате. */
  async function onAnswer(m,bd){
   if(!left||busy)return;
   if(m.err){stop(T2('Агент остановлен: ошибка ответа','Agent stopped: answer error'));return}
-  const cmds=blocks(m.t||'');
-  if(!cmds.length){stop(T2('Агент закончил','Agent finished'));return}
+  const ex=cmdsOf(m.t||''),cmds=ex.filter(x=>!x.open).map(x=>x.cmd);
+  if(!cmds.length){
+   if(ex.some(x=>x.open)&&redo<2){redo++;await waitChat();Chat.send('Your last command block was not closed (the answer was cut off), so nothing was run. Send the command again in a complete block.');return}
+   stop(T2('Агент закончил','Agent finished'));return}
   if(cmds.some(Term.danger)){stop(T2('Агент остановлен: в плане есть опасная команда, запустите вручную','Agent stopped: a dangerous command, run it manually'));return}
   busy=true;Term.activate(true);
   const log=document.createElement('div');log.className='runout';bd.append(log);
-  let rep='';
+  let rep=ex.filter(x=>!x.open&&x.notes&&x.notes.length).map(x=>'Note: '+x.notes.join('; ')).join('\n'),looped=false;if(rep)rep+='\n\n';
   for(const c of cmds){
    if(!left)break;
    log.textContent+=(log.textContent?'\n':'')+'▶ '+c.split('\n')[0].slice(0,120)+'\n';
    const r=await Term.exec(c,{onChunk:t=>{log.dataset.live=t.slice(-600)}});
    log.textContent+=((r.out||'').slice(-600)||'(пусто)')+(r.err||r.code!==0?'\n['+(r.err||('код '+r.code))+']':'')+'\n';
-   Term.record(c,r);if(r.fd&&typeof FileDiff!=='undefined')FileDiff.chip(log,r.fd);rep+=report(c,r)}
+   Term.record(c,r);if(r.fd&&typeof FileDiff!=='undefined')FileDiff.chip(log,r.fd);rep+=report(c,r);
+   const key=c+'|'+r.code+'|'+(r.out||'').slice(0,200);seen[key]=(seen[key]||0)+1;if(seen[key]>=3)looped=true}
   busy=false;
+  if(looped){stop(T2('Агент остановлен: одна и та же команда снова даёт тот же результат','Agent stopped: the same command keeps giving the same result'));return}
   if(!left)return;
   left--;paint();
   if(!left){toast(T2('Агент: лимит шагов исчерпан','Agent: step limit reached'))}
@@ -173,8 +219,10 @@ function termConfirm(cmd,onOk,onAuto){
  $('[data-o]',s).onclick=()=>{s.close();onOk(false)};
  const a=$('[data-a]',s);if(a)a.onclick=()=>{s.close();onOk(true)}}
 Hooks.on('md:code',(pre,code,lang)=>{
- if(!Native.on||!/^(sh|bash|shell|zsh|console|terminal)$/.test(lang))return;
- const cmd=code.split('\n').map(l=>l.replace(/^\s*\$\s+/,'')).join('\n').trim();
+ if(!Native.on)return;
+ const tc=typeof TermCompat!=='undefined';
+ if(tc?!TermCompat.runnable(lang,code):!/^(sh|bash|shell|zsh|console|terminal)$/.test(lang))return;
+ const cmd=tc?TermCompat.clean(code).cmd:code.split('\n').map(l=>l.replace(/^\s*\$\s+/,'')).join('\n').trim();
  if(!cmd)return;
  const bar=document.createElement('div');bar.className='runbar';
  const b=document.createElement('button');b.className='rb';b.textContent='▶ Выполнить';
@@ -190,7 +238,7 @@ Hooks.on('md:code',(pre,code,lang)=>{
   res.textContent=shown;b.disabled=false;
   Term.record(cmd,r);if(r.fd&&typeof FileDiff!=='undefined')FileDiff.chip(res,r.fd);
   const failed=!!r.err||r.code!==0;
-  const body='```bash\n$ '+cmd+'\n'+(r.out||'').slice(-3000)+'\n```\n'+(r.err?r.err:('exit code: '+r.code));
+  const body=Term.feedback(cmd,r);
   const msg=(failed?'The command failed. Explain the error and suggest a fix.\n\n':'Result of the command I ran:\n\n')+body;
   if(auto){await wait(50);for(let i=0;i<50&&Chx.busy;i++)await wait(100);Chat.send(msg);return}
   const sb=document.createElement('button');sb.className='rb';

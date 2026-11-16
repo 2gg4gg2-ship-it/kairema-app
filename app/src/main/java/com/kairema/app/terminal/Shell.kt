@@ -13,6 +13,10 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Команда выполняется в рабочей папке приложения (files/work). Вывод идёт кусками,
  * в конце отправляется метка кода выхода: перевод строки, символ \u0001 и "exit:КОД".
  * Программы из папки данных запускать нельзя (правило Android 10+), доступны системные команды.
+ * Команда кладётся в файл и запускается через обёртку assets/terminal/kairema-wrap.sh: текущая папка запоминается
+ * между командами (cd работает), подгружаются помощники из kairemarc.sh (ll, la, tree, calc, help).
+ * Если обёртку не удалось подготовить, работает старый способ: sh -c команда.
+ * Ввод закрыт (/dev/null): команды, ждущие ввода, не зависают до конца времени.
  */
 class Shell(private val ctx: Context) {
 
@@ -27,12 +31,26 @@ class Shell(private val ctx: Context) {
         finish: (String?) -> Unit
     ) {
         pool.execute {
+            var script: File? = null
             try {
                 val dir = File(ctx.filesDir, "work")
                 dir.mkdirs()
-                val pb = ProcessBuilder("/system/bin/sh", "-c", cmd)
+                val wrap = File(dir, ".kwrap.sh")
+                val rc = File(dir, ".kairemarc")
+                val cwd = File(dir, ".kcwd")
+                script = File(dir, ".kcmd_" + id + ".sh")
+                val useWrap = copyAsset("terminal/kairema-wrap.sh", wrap) &&
+                    copyAsset("terminal/kairemarc.sh", rc) &&
+                    writeScript(script!!, cmd)
+                val args = if (useWrap) {
+                    listOf("/system/bin/sh", wrap.absolutePath, dir.absolutePath, script!!.absolutePath, cwd.absolutePath, rc.absolutePath)
+                } else {
+                    listOf("/system/bin/sh", "-c", cmd)
+                }
+                val pb = ProcessBuilder(args)
                     .directory(dir)
                     .redirectErrorStream(true)
+                    .redirectInput(ProcessBuilder.Redirect.from(File("/dev/null")))
                 val env = pb.environment()
                 env["HOME"] = dir.absolutePath
                 env["TMPDIR"] = ctx.cacheDir.absolutePath
@@ -45,7 +63,7 @@ class Shell(private val ctx: Context) {
                     try {
                         if (!p.waitFor(timeoutSec, TimeUnit.SECONDS)) {
                             timedOut.set(true)
-                            p.destroyForcibly()
+                            kill(p)
                         }
                     } catch (e: InterruptedException) {
                         // игнорируем
@@ -56,13 +74,17 @@ class Shell(private val ctx: Context) {
                 var total = 0
                 var cut = false
                 while (true) {
-                    val n = reader.read(buf)
+                    val n = try {
+                        reader.read(buf)
+                    } catch (e: java.io.IOException) {
+                        -1 // поток закрыт при остановке или по времени
+                    }
                     if (n < 0) break
                     total += n
                     emit(String(buf, 0, n))
                     if (total > MAX_OUT) {
                         cut = true
-                        p.destroyForcibly()
+                        kill(p)
                         break
                     }
                 }
@@ -75,12 +97,46 @@ class Shell(private val ctx: Context) {
             } catch (e: Exception) {
                 procs.remove(id)
                 finish(e.message ?: "не удалось запустить команду")
+            } finally {
+                script?.delete()
             }
         }
     }
 
     fun cancel(id: String) {
-        procs.remove(id)?.destroyForcibly()
+        procs.remove(id)?.let { kill(it) }
+    }
+
+    /** Останавливает оболочку и закрывает чтение, чтобы дочерние программы не держали вывод открытым. */
+    private fun kill(p: Process) {
+        try {
+            p.destroyForcibly()
+        } catch (e: Exception) {
+            // игнорируем
+        }
+        try {
+            p.inputStream.close()
+        } catch (e: Exception) {
+            // игнорируем
+        }
+    }
+
+    private fun copyAsset(name: String, to: File): Boolean {
+        return try {
+            ctx.assets.open(name).use { i -> to.outputStream().use { o -> i.copyTo(o) } }
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun writeScript(f: File, cmd: String): Boolean {
+        return try {
+            f.writeText(cmd + "\n", Charsets.UTF_8)
+            true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private companion object {

@@ -73,7 +73,7 @@ app/src/main/
     terminal/, share/         оболочка и Termux, буфер обмена, «Поделиться», печать в PDF
 ```
 
-Модули интерфейса (`features/`): `markdown`, `chats`, `providers` (обязательные, ядро зовёт их напрямую); необязательные: `inbox`, `backup`, `about`, `share`, `artifacts`, `auth`, `memory`, `sync`, `terminal`, `scroller`, `search`, `brand`, `system`, `tools`, `caps`, `cost`. Удаление необязательного модуля (папка и его строки в `index.html`) не должно ломать приложение.
+Модули интерфейса (`features/`): `markdown`, `chats`, `providers` (обязательные, ядро зовёт их напрямую); необязательные: `inbox`, `backup`, `about`, `share`, `artifacts`, `auth`, `memory`, `sync`, `terminal`, `scroller`, `search`, `brand`, `system`, `tools`, `caps`, `cost`, `help` (справка: тексты в `help-data.js`, обновляй при смене функций). Удаление необязательного модуля (папка и его строки в `index.html`) не должно ломать приложение.
 
 ### Правила подключения модуля, не правя `core/app.js`
 - Модули загружаются **до** `core/app.js`. Поэтому на верхнем уровне модуль не должен трогать глобальные переменные и функции из `app.js` (например `P`, `S`). Всё, что их использует, делай внутри обработчиков.
