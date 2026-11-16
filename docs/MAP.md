@@ -33,11 +33,11 @@
 |---|---|---|
 | Версия, номер сборки | `app/build.gradle.kts`, `core/config.js` (`APP_VERSION`), `README.md` («Текущая версия») | Во всех трёх местах сразу. `versionCode` = в репозитории + 1 |
 | Подсказка модели (system prompt), правила ответа | `features/providers/providers.js` (`sysPrompt`) | Сюда же подмешивается память (`memoryPrompt()`) |
-| Отправка сообщения, поток ответа, повтор, «Стоп» | `core/app.js` (`respond`, `composer`, `window.GEN`) | `Native.run('chat', …)` → `Bridge.chat` в Kotlin |
+| Отправка сообщения, поток ответа, повтор, «Стоп» | `core/messages.js` (`respond`, `composer`, `window.GEN`) | `Native.run('chat', …)` → `Bridge.chat` в Kotlin |
 | Показ Markdown, таблицы, код | `features/markdown/md.js`, `md.css` | События `md:code`, `md:table`: на них вешаются кнопки под блоком |
 | Кнопки под ответом (копировать, поделиться, другой ответ) | `features/share/share.js`, `features/branch/branch.js` | Обычно через `msg:render` / `chat:answer` |
 | Меню «+» в поле ввода, режимы (Думать, Поиск, Изображение, Исследование) | `features/tools/tools.js`, `tools.css` | Что модель умеет: `features/caps/caps.js` |
-| Шаблоны промптов, команды «/», роли | `features/roles/roles.js` и `core/app.js` (`tplPage`, `TPLS`) | |
+| Шаблоны промптов, команды «/», роли | `features/roles/roles.js`, `core/settings.js` (`tplPage`), `core/base.js` (`TPLS`) | |
 | Память (факты, профиль, извлечение) | `features/memory/*` | Архитектура описана в шапке `memory.js` |
 | Расходы, токены, лимит | `features/cost/cost.js` | Цены берутся из данных провайдера и `kairema.prices.v1` |
 | Провайдеры и выбор модели | `features/providers/providers.js` (интерфейс), `Bridge.kt` (`verify`, `models`) | |
@@ -48,20 +48,21 @@
 | Синхронизировать новый тип данных | `features/sync/sync.js` (`register`) и свой `Hooks.on('sync:register', …)` | Образцы: `chats.js`, `memory.js` |
 | Резервная копия (экспорт/импорт) | `features/backup/backup.js` | Добавляй новые данные сюда тоже |
 | Терминал, команды из ответов, агент | `features/terminal/*` (`term-compat.js` разбор ответов любых моделей), `terminal/Shell.kt`, `assets/terminal/*.sh`, `TermuxRunner.kt`, `features/filediff/*` | Опасные команды требуют подтверждения |
+| Журнал ошибок | `features/log/log.js` | Ключи и почты заменяются на *** перед записью |
 | Справка (инструкция в приложении) | `features/help/help-data.js` (тексты), `help.js`, `help.css` | Поменял функцию, поправь её раздел справки |
 | Файлы из ответов (таблицы, HTML, PDF, CSV) | `features/artifacts/*` | Предпросмотр HTML в `<iframe sandbox="allow-scripts">` |
 | «Поделиться», входящее из других приложений | `features/share/*`, `features/inbox/*`, `share/*.kt` | |
 | Клавиатура, статус-бар, отступы, тема | `features/system/*`, `system/SystemBridge.kt` | CSS-переменные `--sat --sab --kb`, класс `.kb` |
 | Фоновая работа во время ответа | `service/KeepAliveService.kt` | Запускает `Bridge.kt` через `track()/done()` |
-| Экран «О приложении», онбординг | `features/about/*`, `core/app.js` (`onboarding`) | Видео-заставка и приветствие: не удалять без просьбы владельца |
+| Экран «О приложении», онбординг | `features/about/*`, `core/onboarding.js` (`onboarding`) | Видео-заставка и приветствие: не удалять без просьбы владельца |
 | Стили и токены цветов | `core/styles.css` (токены сверху), стили модуля в его `.css` | Только токены, без своих цветов |
-| Тексты и перевод на английский | `i18nAdd({...})` в начале файла модуля, `core/app.js` (`EN`) | Каждая новая русская строка получает перевод |
+| Тексты и перевод на английский | `i18nAdd({...})` в начале файла модуля, `core/app.js` (`EN`, реестр экранов `SCREENS`, `openScreen`) | Каждая новая русская строка получает перевод |
 | Разрешения, `<queries>`, активность | `app/src/main/AndroidManifest.xml` | Новые разрешения только если действительно нужны |
 | Сборка и распаковка архивов | `.github/workflows/build.yml` | **Не трогать и не класть в zip** |
 
 ## 3. Путь одного сообщения (чтобы понять, куда вставлять правки)
 
-1. Пользователь нажимает «Отправить» → `composer()` (`core/app.js`) вызывает `onSend`. Если ответ уже идёт, та же кнопка работает как «Стоп» (`window.GEN.stop()` → `Native.cancel`).
+1. Пользователь нажимает «Отправить» → `composer()` (`core/messages.js`) вызывает `onSend`. Если ответ уже идёт, та же кнопка работает как «Стоп» (`window.GEN.stop()` → `Native.cancel`).
 2. `autoFact()` → `Mem.local()` ловит быстрые факты («меня зовут…», «запомни…»).
 3. `respond()` собирает историю: `sysPrompt()` (роль, язык, правила, память) + сообщения; если включён поиск, перед ответом идёт `Native.run('search', …)`.
 4. `Native.run('chat', [настройки провайдера, история], onChunk)` → Kotlin `Bridge.chat` стримит ответ обратно. Протокол кусков: обычный текст = ответ, `\u0001…` = рассуждения модели, `\u0002{i,o,c}` = токены и цена, JSON `{mime,b64}` = картинка.
@@ -107,9 +108,13 @@
 
 | Файл | Строк | Что делает (первый комментарий в файле) |
 |---|---|---|
-| `core/app.js` | 459 | 00. УТИЛИТЫ И ХЕЛПЕРЫ |
+| `core/app.js` | 90 | core/app.js: РЕЕСТР ЭКРАНОВ, ПЕРЕВОДЫ, ИНИЦИАЛИЗАЦИЯ. |
+| `core/base.js` | 54 | core/base.js: УТИЛИТЫ, ШАБЛОНЫ, СОСТОЯНИЕ, UI-ХЕЛПЕРЫ (page, sheet, меню, формы). |
 | `core/config.js` | 8 | НАСТРОЙКИ ПРИЛОЖЕНИЯ ===== APP_VERSION меняем при каждой сборке вместе с app/build.gradle.kts и README.md. |
 | `core/hooks.js` | 11 | ЯДРО: события и переводы для подключаемых модулей ===== Модуль не правит core/app.js: он подписывается на события (Hooks.on) и добавляет свои переводы (i18nAdd). |
+| `core/messages.js` | 135 | core/messages.js: СООБЩЕНИЯ, МОСТ К ANDROID (Native), ЧАТ. |
+| `core/onboarding.js` | 58 | core/onboarding.js: ОНБОРДИНГ и FUTURE API. |
+| `core/settings.js` | 131 | core/settings.js: ПРОВАЙДЕРЫ, ПАМЯТЬ, ШАБЛОНЫ, ПРОФИЛЬ, НАСТРОЙКИ, ВКЛАДКИ. |
 | `core/styles.css` | 257 | 01. ТОКЕНЫ: цвета, шрифты, easing |
 | `features/about/about.css` | 32 | Стили модуля about: экран «О приложении». |
 | `features/about/about.js` | 24 | О ПРИЛОЖЕНИИ: логотип, версия, карточки возможностей ===== Модуль подменяет экран 'about' (SCREENS.about) после запуска приложения: core/app.js не правится. |
@@ -133,10 +138,12 @@
 | `features/ctx/ctx.js` | 61 | СЖАТИЕ КОНТЕКСТА ===== Команда «/compact» (список «/» из модуля roles): старая часть чата заменяется кратким пересказом, который уходит модели вместо длинной истории. |
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 150 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
-| `features/help/help-data.js` | 137 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
+| `features/help/help-data.js` | 138 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
 | `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
 | `features/help/help.js` | 89 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
+| `features/log/log.css` | 3 | Стили модуля log: экран «Журнал ошибок». |
+| `features/log/log.js` | 47 | ЖУРНАЛ ОШИБОК: что сломалось, можно скопировать и прислать разработчику ===== Ловит ошибки страницы (error, unhandledrejection, console.error) и ошибки ответов ИИ (Log.ad |
 | `features/markdown/md.css` | 42 | Стили разметки ответов ИИ (модуль markdown). |
 | `features/markdown/md.js` | 111 | MARKDOWN → DOM для ответов ИИ ===== Безопасно: всё строится через createElement и textContent, innerHTML не используется. |
 | `features/memory/memory-ai.js` | 100 | ПАМЯТЬ: извлечение фактов самой моделью ===== После ответа (событие chat:answer) в фоне уходит один короткий запрос тому же провайдеру: «что из сообщения пользователя сто |
@@ -163,7 +170,7 @@
 | `features/terminal/terminal.js` | 248 | ТЕРМИНАЛ: настоящая оболочка Android и запуск команд из ответов ИИ ===== Команды выполняет Kotlin (Shell.kt, /system/bin/sh). |
 | `features/tools/tools.css` | 47 | Меню «+», метки режимов в поле ввода, размышления, изображения |
 | `features/tools/tools.js` | 139 | ФУНКЦИИ ЧАТА: меню «+», режимы ответа, создание изображений, глубокое исследование ===== Кнопка «+» в поле ввода открывает список: вложения (галерея, камера, файлы) и фун |
-| `index.html` | 77 |  |
+| `index.html` | 83 |  |
 
 ### Индекс файлов Kotlin (`app/src/main/java/com/kairema/app`)
 
@@ -201,16 +208,16 @@
 | Событие | Слушают (`Hooks.on`) | Запускают (`Hooks.run`) |
 |---|---|---|
 | `account:rendered` | sync-ui.js | auth-ui.js |
-| `app:ready` | about.js, auth-ui.js, backup.js, caps.js, cost.js, filediff.js, help.js, inbox.js, memory-ui.js, memory.js, roles.js, search.js, sync.js | app.js |
+| `app:ready` | about.js, auth-ui.js, backup.js, caps.js, cost.js, filediff.js, help.js, inbox.js, log.js, memory-ui.js, memory.js, roles.js, search.js, sync.js | app.js |
 | `auth:forgot` | auth-ui.js | auth.js |
-| `chat:answer` | branch.js, cost.js, ctx.js, memory-ai.js, memory-ui.js, share.js, terminal.js | app.js, tools.js |
-| `chat:rendered` | branch.js, roles.js, scroller.js, share.js | app.js |
+| `chat:answer` | branch.js, cost.js, ctx.js, memory-ai.js, memory-ui.js, share.js, terminal.js | messages.js, tools.js |
+| `chat:rendered` | branch.js, roles.js, scroller.js, share.js | messages.js |
 | `md:code` | artifacts.js, terminal.js | md.js |
 | `md:table` | artifacts.js | md.js |
 | `memory:auto` | — | memory-ai.js |
-| `memory:changed` | memory.js | app.js, backup.js, memory-ai.js, memory-ui.js |
-| `msg:render` | branch.js, cost.js, ctx.js, share.js, tools.js | app.js |
-| `settings:rendered` | auth-ui.js, backup.js, cost.js, filediff.js, help.js, roles.js | app.js |
+| `memory:changed` | memory.js | backup.js, memory-ai.js, memory-ui.js, settings.js |
+| `msg:render` | branch.js, cost.js, ctx.js, share.js, tools.js | messages.js |
+| `settings:rendered` | auth-ui.js, backup.js, cost.js, filediff.js, help.js, log.js, roles.js | settings.js |
 | `sync:delete` | search.js, sync.js | chats.js, memory.js, sync.js |
 | `sync:left` | auth-ui.js | sync.js |
 | `sync:register` | chats.js, memory.js, sync.js | sync.js |
@@ -222,19 +229,20 @@
 - `kairema.budget.v1`: cost.js
 - `kairema.chats.v1`: chats.js
 - `kairema.fdiff.v1`: filediff.js
+- `kairema.log.v1`: log.js
 - `kairema.mcaps.v1`: caps.js
 - `kairema.memory.v1`: memory.js
 - `kairema.prices.v1`: backup.js, cost.js
-- `kairema.profile.v1`: app.js, backup.js
+- `kairema.profile.v1`: backup.js, messages.js
 - `kairema.prov.`: auth-ui.js
-- `kairema.providers.v1`: app.js
+- `kairema.providers.v1`: messages.js
 - `kairema.roles.chat.v1`: roles.js
 - `kairema.roles.v1`: roles.js
 - `kairema.sb.v1`: auth.js
 - `kairema.session.v1`: auth.js
 - `kairema.sync.dirty.v1`: sync.js
 - `kairema.sync.meta.v1`: sync.js
-- `kairema.templates.v1`: app.js, backup.js
+- `kairema.templates.v1`: backup.js, onboarding.js
 - `kairema.term.backend.v1`: terminal.js
 - `kairema.term.caps.v1`: term-compat.js
 - `kairema.term.hist.v1`: terminal.js
@@ -242,5 +250,5 @@
 - `kairema.welcome.v1`: auth-ui.js
 
 ### Экраны (`SCREENS.<имя>`, открываются через `openScreen`)
-`about`, `account`, `api`, `backup`, `cost`, `filediff`, `help`, `memory`, `onboarding`, `profile`, `providers`, `roles`, `settings`, `templates`, `terminal`
+`about`, `account`, `api`, `backup`, `cost`, `filediff`, `help`, `log`, `memory`, `onboarding`, `profile`, `providers`, `roles`, `settings`, `templates`, `terminal`
 <!-- AUTO:END -->

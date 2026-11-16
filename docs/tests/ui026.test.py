@@ -124,15 +124,19 @@ with sync_playwright() as p:
     clip = pg.evaluate("[...document.querySelectorAll('.tm-tile.off .tm-h')].every(h=>h.scrollHeight<=h.clientHeight+1)")
     check('A4: подсказка серой плитки помещается без обрезки', clip)
     pg.screenshot(path=OUT + '/026_menu_dark.png')
-    # режимы переключаются, окно остаётся
-    pg.evaluate("[...document.querySelectorAll('.tm-tile')].find(x=>x.querySelector('.tm-n').textContent==='Думать').click()"); pg.wait_for_timeout(250)
-    st = pg.evaluate("({on:[...document.querySelectorAll('.tm-tile.on .tm-n')].map(x=>x.textContent),open:!!document.querySelector('.tm'),mode:Tools.thinkMode,chip:!!document.querySelector('.mchip')})")
-    check('A4: «Думать» включён, окно осталось, метка в поле ввода', st['on'] == ['Думать'] and st['open'] and st['mode'] == 'think' and st['chip'], st)
+    # режимы: с 0.26.4 выбор сразу закрывает окно, режим и метка включаются
+    pg.evaluate("[...document.querySelectorAll('.tm-tile')].find(x=>x.querySelector('.tm-n').textContent==='Думать').click()"); pg.wait_for_timeout(500)
+    st = pg.evaluate("({open:!!document.querySelector('.tm'),mode:Tools.thinkMode,chip:!!document.querySelector('.mchip')})")
+    check('A4: «Думать» включён, окно закрылось, метка в поле ввода', st['mode'] == 'think' and not st['open'] and st['chip'], st)
+    pg.click('#v-api [data-plus]'); pg.wait_for_timeout(500)
+    check('A4: в окне «Думать» подсвечен', pg.evaluate("[...document.querySelectorAll('.tm-tile.on .tm-n')].map(x=>x.textContent).join()")=='Думать')
     pg.screenshot(path=OUT + '/026_menu_on_dark.png')
-    pg.evaluate("[...document.querySelectorAll('.tm-tile')].find(x=>x.querySelector('.tm-n').textContent==='Быстрый ответ').click()"); pg.wait_for_timeout(250)
-    check('A4: «Быстрый ответ» заменяет «Думать»', pg.evaluate("[...document.querySelectorAll('.tm-tile.on .tm-n')].map(x=>x.textContent).join()")=='Быстрый ответ' and pg.evaluate("Tools.thinkMode")=='instant')
-    pg.evaluate("[...document.querySelectorAll('.tm-tile')].find(x=>x.querySelector('.tm-n').textContent==='Быстрый ответ').click()"); pg.wait_for_timeout(250)
-    check('A4: повторное нажатие выключает режим', pg.evaluate("Tools.thinkMode")=='auto' and pg.evaluate("!document.querySelector('.tm-tile.on')"))
+    pg.evaluate("[...document.querySelectorAll('.tm-tile')].find(x=>x.querySelector('.tm-n').textContent==='Быстрый ответ').click()"); pg.wait_for_timeout(500)
+    check('A4: «Быстрый ответ» заменяет «Думать»', pg.evaluate("Tools.thinkMode")=='instant')
+    pg.click('#v-api [data-plus]'); pg.wait_for_timeout(500)
+    pg.evaluate("[...document.querySelectorAll('.tm-tile')].find(x=>x.querySelector('.tm-n').textContent==='Быстрый ответ').click()"); pg.wait_for_timeout(500)
+    check('A4: повторное нажатие выключает режим', pg.evaluate("Tools.thinkMode")=='auto')
+    pg.click('#v-api [data-plus]'); pg.wait_for_timeout(500)
     # модель без картинок: плитка серая, нажатие объясняет причину и не закрывает окно
     off = pg.evaluate("(()=>{const t=[...document.querySelectorAll('.tm-tile')].find(x=>x.querySelector('.tm-n').textContent==='Изображение');return{off:t.classList.contains('off'),hint:t.querySelector('.tm-h').textContent}})()")
     check('A4: «Изображение» серое с понятной причиной (текстовая модель)', off['off'] and 'не рисует' in off['hint'], off)
@@ -141,7 +145,6 @@ with sync_playwright() as p:
     # светлая тема
     pg.evaluate(LIGHT); pg.wait_for_timeout(300)
     pg.screenshot(path=OUT + '/026_menu_light.png')
-    pg.evaluate("[...document.querySelectorAll('.tm-tile')].find(x=>x.querySelector('.tm-n').textContent==='Думать').click()"); pg.wait_for_timeout(250)
     pg.screenshot(path=OUT + '/026_menu_on_light.png')
     pg.evaluate("Tools.setThink('auto')"); pg.evaluate(DARK)
     # прикрепление закрывает окно и открывает выбор файла

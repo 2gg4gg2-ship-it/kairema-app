@@ -49,7 +49,7 @@ class MainActivity : Activity() {
         with(web.settings) {
             javaScriptEnabled = true
             domStorageEnabled = true
-            allowFileAccess = true
+            allowFileAccess = false // страницы из assets (file:///android_asset) это не затрагивает; чужие файлы WebView не читает
             allowContentAccess = true
             mediaPlaybackRequiresUserGesture = false // заставка с видео запускается сама
         }
