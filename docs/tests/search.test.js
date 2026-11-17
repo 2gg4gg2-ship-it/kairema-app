@@ -10,7 +10,7 @@ const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,virtua
  const ans=fn=>setTimeout(()=>{try{fn()}catch(e){errs.push('mock '+e.message)}},5);
  w.KairemaBridge={saveKey(){},deleteKey(){},hasKey:()=>true,cancel(){},
   search(r){ans(()=>{w.KairemaNative.chunk(r,JSON.stringify([{title:'T',url:'https://a.b/',snippet:'s'}]));w.KairemaNative.done(r,null)})},
-  chat(r,pj,m){const msgs=JSON.parse(m);chatCalls.push(JSON.stringify(msgs[msgs.length-1].content));const n=chatCalls.length;
+  chat(r,pj,m){if(/web search queries/.test(pj)){ans(()=>{w.KairemaNative.chunk(r,'нет');w.KairemaNative.done(r,null)});return}const msgs=JSON.parse(m);chatCalls.push(JSON.stringify(msgs[msgs.length-1].content));const n=chatCalls.length;
    ans(()=>{if(!(emptyFirst&&n===1))w.KairemaNative.chunk(r,'Ответ');w.KairemaNative.done(r,null)})}};
 }});
 const w=dom.window,sleep=ms=>new Promise(r=>setTimeout(r,ms)),ev=c=>w.eval(c),q=s=>w.document.querySelector(s),qa=s=>[...w.document.querySelectorAll(s)];

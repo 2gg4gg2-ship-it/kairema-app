@@ -49,6 +49,15 @@ const Caps=(()=>{
   return IMG.test(p.model)&&!NOTCHAT.test(p.model)};
  /* Читает ли модель встроенное размышление (reasoning). От этого зависит только подпись в меню и параметр запроса:
     сами режимы «Думать» и «Быстрый ответ» работают у любой модели через инструкцию в запросе. */
+ /* Видит ли ВЫБРАННАЯ модель изображения: true, false или null (неизвестно, тогда не блокируем).
+    false только если провайдер сообщил список моделей со зрением (OpenRouter) и этой модели в нём нет. */
+ api.vision=p=>{
+  if(!p||!p.model)return null;
+  if(/anthropic\.com/.test(p.url||''))return true;
+  const r=rec(p);
+  if(r&&r.vis&&r.vis.length)return r.vis.includes(p.model);
+  if(VIS.test(p.model))return true;
+  return null};
  api.native=api.think;
  /* Список моделей провайдера устарел или ещё не загружался: тихо обновляем данные о возможностях (OpenRouter отдаёт их в списке). */
  api.refresh=async()=>{

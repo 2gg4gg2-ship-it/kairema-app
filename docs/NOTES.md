@@ -30,6 +30,12 @@
 - Пересылка: `Sx.slice(m,10)` берёт сообщение и до 9 предыдущих; страница строится из данных чата, а не из экрана. Если нужно вернуть «Отправить текстом/файлом .md», строки в `Sx.sheet` в `features/share/share.js`.
 - Не проверено на телефоне: Kotlin (`VoiceBridge`, `SystemBridge`, правки `MainActivity`), видео-заставка, значки статус-бара. Если красная сборка, смотреть эти файлы.
 
+## Понимание запроса, поиск и вложения (0.30.0, Claude-Ядро)
+- Файлы: `features/intent/intent.js` (SYSX), `features/websearch/websearch.js` (`WebSearch.find`, вызывается из `respond` в `core/messages.js`, там же запасной путь), `features/attview/` (`Att.paint`). Точечные правки: `core/messages.js` (`isImgF`, `readFiles`, `toContent`, `onSend`, `respond`), `features/caps/caps.js` (`Caps.vision`), `index.html`.
+- Поиск: перед поиском один быстрый запрос к выбранной модели (без размышлений, до 15 с) возвращает JSON `{search, queries}`; нужен последний контекст беседы; одна лишняя недорогая отправка на каждый поиск. Не получилось, значит ищем по тексту вопроса.
+- Проверено jsdom (`understand.test.js`, `search.test.js`, `auth.test.js` и др.). Не проверено на телефоне и с реальными моделями: насколько слабые модели возвращают чистый JSON плана; просмотр фото на весь экран (жесты) в настоящем WebView.
+- Не сделано: PDF для провайдеров кроме Anthropic (нужно Kotlin: `PdfRenderer` в картинки страниц), HEIC (WebView не читает), .docx/.xlsx. Тест `ui026.test.py` и `terminal.test.js` устарели ещё до этой версии (не из-за неё).
+
 ## Вход по почте (0.22.0, Claude-Ядро)
 - Файлы: `features/auth/` (`auth.js` ядро, `auth-methods.js` реестр, `method-email.js`, `method-device.js`, `auth-ui.js` экраны и стартовое окно, `auth.css`). `index.html`: +3 строки. `core/app.js` не менялся.
 - Поток: стартовое окно один раз (после заставки, обучения и имени), затем «Вход или регистрация»: почта, код, вход. Пароль в интерфейсе убран (API `signIn/signUp` оставлен). Кнопка «Аккаунты на этом телефоне» (не вход через Google) показывает аккаунты из `kairema.accounts.v1`, выбор = вход без кода через refresh token.

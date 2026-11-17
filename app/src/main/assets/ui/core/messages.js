@@ -18,14 +18,15 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
  const pv=actProv();
  if(Native.on&&pv){
   const anth=/anthropic\.com/.test(pv.url),last=[...msgs].reverse().find(x=>x.r==='u');
-  let src=[],serr='';
+  let src=[],serr='',qs=[];
   if(((S.web&&!(typeof isSelfQ==='function'&&isSelfQ(last&&(last.q||last.t))))||(last&&last.deep))&&last){
    const sp=S.sproviders.find(x=>x.ok);
    if(!sp)serr='нет подключённого провайдера поиска';
    else if(last.deep&&typeof Tools!=='undefined'){const r=await Tools.research(pv,sp,(last.q||last.t),bd);src=r.src;serr=r.serr}
+   else if(typeof WebSearch!=='undefined'){const r=await WebSearch.find(pv,sp,msgs,last,bd);src=r.src;serr=r.serr;qs=r.qs||[]}
    else{bd.textContent='Ищу в интернете…';let raw='';
     try{await Native.run('search',[JSON.stringify({id:sp.id,url:sp.url}),(last.q||last.t).slice(0,300)],t=>{raw+=t});src=JSON.parse(raw||'[]')}catch(e){serr=e.message}}}
-  const ctx=src.length?'Результаты поиска в интернете ('+new Date().toLocaleDateString('ru-RU')+'):\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+'\n'+s.url+'\n'+s.snippet).join('\n\n')+'\n\nПравила: это результаты автоматического поиска по тексту вопроса, они могут не относиться к делу (например, если вопрос про тебя, это приложение или нашу беседу). Используй только то, что прямо отвечает на вопрос, и ссылайся номерами [1], [2]. Если результаты не по теме, молча игнорируй их и отвечай сам; ничего не выдумывай и не приписывай найденное предмету вопроса. Вопрос пользователя: ':'';
+  const ctx=src.length?'Результаты поиска в интернете ('+new Date().toLocaleDateString('ru-RU')+'):\n'+(qs.length?'Запросы: '+qs.join('; ')+'\n':'')+src.map((s,i)=>'['+(i+1)+'] '+s.title+'\n'+s.url+'\n'+s.snippet).join('\n\n')+'\n\nПравила: это результаты автоматического поиска по тексту вопроса, они могут не относиться к делу (например, если вопрос про тебя, это приложение или нашу беседу). Используй только то, что прямо отвечает на вопрос, и ссылайся номерами [1], [2]. Если результаты не по теме, молча игнорируй их и отвечай сам; ничего не выдумывай и не приписывай найденное предмету вопроса. Если в результатах есть даты, называй их; при расхождении источников скажи об этом; если для точного ответа не хватает данных, прямо скажи, чего не хватает, и не угадывай. Не вставляй ссылки в текст, только номера [n]. Вопрос пользователя: ':'';
   const mkHist=c=>(typeof Ctx!=='undefined'?Ctx.view(msgs):msgs).filter(x=>x!==m&&!x.err&&x.t).map(x=>({role:x.r==='u'?'user':'assistant',content:toContent(x,anth,x===last?c:'')}));const hist=mkHist(ctx);
   const tail=(src.length?'\n\nИсточники:\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+' — '+s.url).join('\n'):'')+(serr?'\n\n⚠ Поиск не сработал: '+serr:'');
   try{Quality.watch(msgs)}catch(_){}
@@ -61,34 +62,38 @@ const NB=window.KairemaBridge,Native=(()=>{const pend={};let n=0,tok='';
   run(fn,args,on){let id;const p=new Promise((res,rej)=>{id='r'+(++n);pend[id]={res,rej,on};try{call(fn,id,...args)}catch(e){delete pend[id];rej(e)}});p.id=id;return p},
   cancel:id=>{if(NB&&id){try{NB.cancel(id)}catch(e){}}},
   sync:(fn,...a)=>{try{return NB?call(fn,...a):null}catch(e){return null}}}})();
+const IMG_EXT=/\.(jpe?g|png|webp|gif|bmp|heic|heif|avif)$/i;
+const isImgF=f=>String(f.type||'').startsWith('image/')||IMG_EXT.test(f.name||'');
 const TXT_EXT=/\.(txt|md|markdown|json|jsonl|csv|tsv|xml|html?|css|js|mjs|ts|tsx|jsx|py|kt|kts|java|c|h|cpp|hpp|cs|go|rs|rb|php|sh|bat|ps1|ya?ml|toml|ini|cfg|conf|log|sql|swift|gradle|properties|gitignore|env|vue|svelte|lua|dart|tex|srt|svg)$/i;
 const b64=buf=>{let s='';const u=new Uint8Array(buf),n=0x8000;for(let i=0;i<u.length;i+=n)s+=String.fromCharCode.apply(null,u.subarray(i,i+n));return btoa(s)};
 async function imgPart(f){
  const bm=await createImageBitmap(f),k=Math.min(1,1568/Math.max(bm.width,bm.height));
  const c=document.createElement('canvas');c.width=Math.max(1,Math.round(bm.width*k));c.height=Math.max(1,Math.round(bm.height*k));
- const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(bm,0,0,c.width,c.height);
+ const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(bm,0,0,c.width,c.height);if(bm.close)bm.close();
  return{k:'image',name:f.name,mime:'image/jpeg',data:c.toDataURL('image/jpeg',.85).split(',')[1]}}
 async function readFiles(list,anth){
  const out=[];
  for(const f of list){
   try{
-   if(f.type.startsWith('image/'))out.push(await imgPart(f));
+   if(isImgF(f))out.push(await imgPart(f));
    else if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){
-    if(!anth){toast('PDF поддерживается только провайдером Anthropic: '+f.name);continue}
-    if(f.size>8*1048576){toast('Файл больше 8 МБ: '+f.name);continue}
+    if(!anth){toast('PDF поддерживается только провайдером Anthropic: '+f.name);out.push({k:'text',name:f.name,text:'[Файл не передан: этот провайдер не принимает PDF. Скажи пользователю, что содержимое PDF ты не видишь, и попроси прислать текст или фото страниц.]'});continue}
+    if(f.size>8*1048576){toast('Файл больше 8 МБ: '+f.name);out.push({k:'text',name:f.name,text:'[Файл не передан: больше 8 МБ.]'});continue}
     out.push({k:'pdf',name:f.name,data:b64(await f.arrayBuffer())})}
    else if(f.type.startsWith('text/')||/^application\/(json|xml)/.test(f.type)||TXT_EXT.test(f.name)){
     let t=await f.text();if(t.length>200000)t=t.slice(0,200000)+'\n[… файл обрезан]';
     out.push({k:'text',name:f.name,text:t})}
-   else toast('Формат не поддерживается: '+f.name)
-  }catch(e){toast('Не удалось прочитать: '+f.name)}
+   else{toast('Формат не поддерживается: '+f.name);out.push({k:'text',name:f.name,text:'[Файл не передан: формат не поддерживается приложением. Скажи пользователю, что содержимое файла ты не видишь.]'})}
+  }catch(e){const hc=/\.hei[cf]$/i.test(f.name||'');toast(hc?'Формат HEIC не читается: выберите JPEG или сделайте скриншот':'Не удалось прочитать: '+f.name);out.push({k:'text',name:f.name,text:'[Файл не передан: не удалось прочитать. Скажи пользователю, что содержимое файла ты не видишь.]'})}
  }
  return out}
 const toContent=(m,anth,pre)=>{
  const parts=m.parts||[];let txt=(pre||'')+m.t;
  if(!parts.length)return txt;
  const blocks=[];
+ const noVis=typeof Caps!=='undefined'&&Caps.vision&&Caps.vision(actProv())===false;
  for(const p of parts){
+  if(p.k==='image'&&noVis){txt+='\n\n[Пользователь приложил изображение «'+(p.name||'')+'», но выбранная модель не умеет видеть изображения. Скажи об этом одним предложением и предложи выбрать модель со значком «Зрение». Не угадывай, что на фото.]';continue}
   if(p.k==='text')txt+='\n\n--- Файл «'+p.name+'» ---\n'+p.text+'\n--- конец файла ---';
   else if(p.k==='image'||p.k==='pdf'){
    const dd=p.data||Media.load(p.path);
@@ -122,7 +127,7 @@ function composer(o){
  const grow=()=>{const p=ta.offsetHeight;ta.style.height='auto';const h=Math.min(ta.scrollHeight,110);ta.style.height=p+'px';ta.offsetHeight;ta.style.height=h+'px';upd()};
  ta.oninput=grow;ta.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&matchMedia('(hover:hover)').matches){e.preventDefault();send()}};
  const send=()=>{if(window.GEN){window.GEN.stop();return}if(sd.disabled)return;const t=ta.value.trim(),f=files.map(x=>x.f.name),fl=files.map(x=>x.f);files.forEach(x=>x.u&&URL.revokeObjectURL(x.u));ta.value='';files=[];$('.att',w).innerHTML='';ta.style.height='22px';upd();o.onSend(t,f,fl,typeof Tools!=='undefined'?Tools.take():null)};sd.onclick=send;
- const addF=list=>{[...list].forEach(f=>{const im=f.type.startsWith('image/'),o2={f,u:im?URL.createObjectURL(f):''};files.push(o2);const c=el(`<div class="ap ${im?'im':''}">${im?'<img alt="">':`${ic('file')}<span><b></b><small></small></span>`}<button class="rm" aria-label="Удалить вложение">${ic('x')}</button></div>`);if(im){$('img',c).src=o2.u}else{$('b',c).textContent=f.name;$('small',c).textContent=fmt(f.size)}$('.rm',c).onclick=()=>{files=files.filter(x=>x!==o2);if(o2.u)URL.revokeObjectURL(o2.u);c.remove();upd()};$('.att',w).append(c)});upd()};
+ const addF=list=>{[...list].forEach(f=>{const im=isImgF(f),o2={f,u:im?URL.createObjectURL(f):''};files.push(o2);const c=el(`<div class="ap ${im?'im':''}">${im?'<img alt="">':`${ic('file')}<span><b></b><small></small></span>`}<button class="rm" aria-label="Удалить вложение">${ic('x')}</button></div>`);if(im){$('img',c).src=o2.u}else{$('b',c).textContent=f.name;$('small',c).textContent=fmt(f.size)}$('.rm',c).onclick=()=>{files=files.filter(x=>x!==o2);if(o2.u)URL.revokeObjectURL(o2.u);c.remove();upd()};$('.att',w).append(c)});upd()};
  const ins={g:$('[data-ig]',w),f:$('[data-if]',w),c:$('[data-ic]',w)};Object.values(ins).forEach(i=>i.onchange=()=>{addF(i.files);i.value=''});
  $('[data-plus]',w).onclick=()=>{if(typeof Tools!=='undefined'){Tools.open({pick:k=>ins[k].click(),tpl:()=>tpl()});return}const s=sheet(`<button class="pi2" data-k="g">${ic('img')}<span>Галерея</span></button><button class="pi2" data-k="f">${ic('file')}<span>Файлы</span></button><button class="pi2" data-k="c">${ic('cam')}<span>Камера</span></button><button class="btn ghost" data-x style="width:100%;margin-top:10px">Отмена</button>`);$$('[data-k]',s).forEach(b=>b.onclick=()=>{s.close();ins[b.dataset.k].click()});$('[data-x]',s).onclick=s.close};
  const tpl=()=>{const s=sheet(`<h2 style="margin-bottom:12px">Шаблоны промтов</h2><div id="tl"></div>`);tplList($('#tl',s),t=>{s.close();ta.value=(ta.value?ta.value+'\n':'')+t;grow();ta.focus()})};
@@ -137,5 +142,5 @@ function apiView(){Chx.load();const v=$('#v-api'),p=actProv();v.innerHTML='';
  const pn=$('.pn',v);pn.textContent=p.name;const sm=document.createElement('small');sm.textContent=p.model;pn.append(sm);
  $('#btn-provider-info',v).onclick=modelMenu;
  const box=$('.msgs',v);paint(box,S.apiMsgs);$('[data-chl]',v).onclick=chatsPage;$('[data-chn]',v).onclick=()=>Chx.create(apiView);
- const cmp=composer({ph:'Сообщение',chip:()=>'',onSend:async(t,f,fl,md)=>{const ch=Chx.cur;const m={r:'u',q:t,t:(f.length?f.join(', ')+'\n':'')+t};if(md==='deep')m.deep=1;S.apiMsgs.push(m);autoFact(t,'');$('.empty',box)?.remove();box.append(msgEl(m,1));scr(box);cmp.busy(1);const pv0=actProv();m.parts=await readFiles((fl||[]).slice(0,6),!!pv0&&/anthropic\.com/.test(pv0.url));Chx.busy=1;try{Chx.save(ch);await(md==='image'&&typeof Tools!=='undefined'?Tools.image(ch,box,t):respond(ch.msgs,box,'['+p.model+'] '))}finally{Chx.busy=0;Chx.save(ch);cmp.busy(0)}}});
+ const cmp=composer({ph:'Сообщение',chip:()=>'',onSend:async(t,f,fl,md)=>{const ch=Chx.cur;const m={r:'u',q:t,t:(f.length?f.join(', ')+'\n':'')+t};if(md==='deep')m.deep=1;S.apiMsgs.push(m);autoFact(t,'');$('.empty',box)?.remove();const el0=msgEl(m,1);box.append(el0);scr(box);cmp.busy(1);const pv0=actProv();m.parts=await readFiles((fl||[]).slice(0,6),!!pv0&&/anthropic\.com/.test(pv0.url));if(typeof Att!=='undefined')Att.paint(el0,m);if(m.parts.some(x=>x.k==='image')&&typeof Caps!=='undefined'&&Caps.vision&&Caps.vision(pv0)===false)toast('Эта модель не видит фото: выберите модель со значком «Зрение»');Chx.busy=1;try{Chx.save(ch);await(md==='image'&&typeof Tools!=='undefined'?Tools.image(ch,box,t):respond(ch.msgs,box,'['+p.model+'] '))}finally{Chx.busy=0;Chx.save(ch);cmp.busy(0)}}});
  v.append(cmp);Chat.cmp=cmp;Hooks.run('chat:rendered',v);if(PEND){cmp.setText(PEND);PEND=''}}
