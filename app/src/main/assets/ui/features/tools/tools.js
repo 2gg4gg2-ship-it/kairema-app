@@ -29,6 +29,7 @@ const Tools=(()=>{
   const add=(cls,icon,txt,off,body)=>{const c=el(`<span class="mchip ${cls}"><button type="button" class="mc-b">${ic(icon)}<b></b></button><button type="button" class="mc-x" aria-label="Убрать">${ic('x')}</button></span>`);$('b',c).textContent=L(txt);$('.mc-x',c).onclick=off;if(body)$('.mc-b',c).onclick=body;box.append(c)};
   if(api.mode==='image'&&canImg())add('blue','img','Создать изображение',()=>api.set(null));
   if(api.mode==='deep')add('blue','search','Глубокое исследование',()=>api.set(null));
+  if(api.mwebOn())add('plain','globe','Поиск модели',()=>api.setMweb(false));
   if(tm()==='think')add('plain','brain','Думать',()=>api.setThink('auto'));
   if(tm()==='instant')add('plain','bolt','Быстрый ответ',()=>api.setThink('auto'));
   w.el.classList.toggle('mb',blue());
@@ -56,11 +57,12 @@ const Tools=(()=>{
     {i:'file',n:'Файл',h:'PDF, текст, таблица',run:()=>c.pick('f')}]],
    ['Создать',[
     {i:'wand',n:'Изображение',h:'Нарисовать по описанию',run:()=>api.set('image'),on:api.mode==='image',off:canImg()?'':'Эта модель не рисует',why:'Эта модель не рисует. Выберите модель с меткой «Картинки»'},
-    {i:'search',n:'Глубокое исследование',h:'Отчёт с источниками',run:()=>api.set('deep'),on:api.mode==='deep',off:canSearch()?'':'Нужен провайдер поиска',why:'Для исследования подключите провайдера поиска (Настройки)'}]],
+    {i:'search',n:'Глубокое исследование',h:'Отчёт с источниками',run:()=>api.set('deep'),on:api.mode==='deep',off:(canSearch()||api.webKind())?'':'Нужен провайдер поиска',why:'Для исследования подключите провайдера поиска (Настройки) или выберите модель со встроенным поиском'}]],
    ['Режим',[
     {i:'brain',n:'Думать',h:canThink()?'Рассуждает перед ответом':'Попросим рассуждать по шагам',run:()=>api.setThink(api.thinkMode==='think'?'auto':'think'),on:api.thinkMode==='think',tg:1},
     {i:'bolt',n:'Быстрый ответ',h:canThink()?'Без долгих раздумий':'Попросим ответить кратко',run:()=>api.setThink(api.thinkMode==='instant'?'auto':'instant'),on:api.thinkMode==='instant',tg:1},
-    {i:'globe',n:'Поиск в интернете',h:'Свежие данные из сети',run:()=>toggleWeb(),on:!!S.web,tg:1,off:canSearch()?'':'Нужен провайдер поиска',why:'Для поиска подключите провайдера поиска (Настройки)'}]]];
+    {i:'globe',n:'Поиск в интернете',h:'Свежие данные из сети',run:()=>toggleWeb(),on:!!S.web,tg:1,off:canSearch()?'':'Нужен провайдер поиска',why:'Для поиска подключите провайдера поиска (Настройки)'},
+    {i:'globe',n:'Поиск модели',h:'Встроенный поиск провайдера',run:()=>api.setMweb(!api.mwebOn()),on:api.mwebOn(),tg:1,off:api.webKind()?'':'У этой модели нет',why:'У этой модели нет встроенного поиска. Он есть у моделей через OpenRouter, у Claude (Anthropic) и у моделей OpenAI с «search» в названии'}]]];
   const draw=()=>{
    box.innerHTML='';let i=0;
    groups().forEach(([title,tiles])=>{
@@ -80,7 +82,7 @@ const Tools=(()=>{
  /* Параметры для провайдера: 1 думать, -1 быстро, 0 как есть */
  api.think=()=>!canThink()?0:tm()==='think'?1:tm()==='instant'?-1:0;
  api.sysx=last=>{let s='';
-  if(last&&last.deep)s+='\n\nDeep research mode: write a thorough, well-structured report: a title, a short summary, sections with ## headings, key findings in **bold**, a comparison table when useful, and a conclusion. Cite sources as [1], [2] using the provided search results. Be specific and avoid filler.';
+  if(last&&last.deep)s+='\n\nDeep research mode. Write a thorough, well-structured report in the language of the question, 500-900 words: a title (#), a 2-3 sentence summary, sections with ## headings, key findings in **bold**, a comparison table when it helps (follow the table rules), a short conclusion, and a section "Что осталось неясным" (or "Open questions" in English) for gaps and conflicts between sources. Use ONLY facts from the provided search results (or from your own web search) and cite them as [1], [2]; never invent sources, numbers or quotes. If the sources disagree or are weak, say so. Be specific and avoid filler.';
   if(tm()==='think')s+='\n\nThink carefully and reason step by step before giving the final answer.';
   if(tm()==='instant')s+='\n\nInstant mode: answer right away and concisely, without long reasoning.';
   return s};
@@ -90,19 +92,72 @@ const Tools=(()=>{
   m.think=(m.think||'')+t;const tb=$('.tbody',e);tb.textContent=m.think;$('.tk-n',e).textContent=m.think.length+' '+L('симв.');if(e.open)tb.scrollTop=1e6;
   const b=d.parentNode;if(b&&b._stk!==false&&b.scrollHeight-b.scrollTop-b.clientHeight<160)b.scrollTop=1e6};
  api.thoughtDone=d=>{const e=d._th;if(!e)return;e.open=false;$('.tk-t',e).textContent=L('Размышления')};
- /* Глубокое исследование: план запросов, несколько поисков, общий список источников */
+ /* ---- Встроенный поиск модели (у провайдера свой интернет-поиск) ----
+    or: OpenRouter, плагин web (подходит любой модели OpenRouter); anthropic: инструмент web_search у Claude; oai: модели OpenAI *search*.
+    Определяется по адресу и названию модели. Реальные запросы уходят в Kotlin (поля web, webmax у провайдера). */
+ api.webKind=pv=>{pv=pv||actProv();if(!pv)return'';const u=String(pv.url||''),m=String(pv.model||'').toLowerCase();
+  if(/openrouter\.ai/.test(u))return'or';
+  if(/anthropic\.com/.test(u))return'anthropic';
+  if(/api\.openai\.com/.test(u)&&/search/.test(m))return'oai';
+  return''};
+ api.mwebOn=()=>{let v='';try{v=st.get('kmweb')}catch(e){}return v==='1'&&!!api.webKind()};
+ api.setMweb=on=>{try{st.set('kmweb',on?'1':'0')}catch(e){}repaint()};
+ /* Параметры встроенного поиска для запроса к провайдеру: при включённой кнопке или когда исследование идёт без провайдера поиска */
+ api.webArg=force=>{const k=api.webKind();return k&&(force||api.mwebOn())?{web:k,webmax:force?8:3}:{}};
+ /* ---- Глубокое исследование ----
+    1) план запросов (модель, до 20 с; иначе запросы строятся сами), 2) поиск параллельно по 3, источники чередуются и без повторов,
+    3) отчёт по источникам. Без провайдера поиска ищет сама модель (если у неё есть встроенный поиск).
+    Ход показан списком шагов, «Стоп» работает на любом шаге (window.GEN создаётся здесь). Возвращает {src,serr,native,stopped}. */
  api.research=async(pv,sp,question,bd)=>{
-  let qs=[];bd.textContent=L('Планирую исследование…');
-  try{let raw='';
-   await Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:'Return ONLY a JSON array of 4 to 6 short, diverse web search queries (strings) that together cover the user question. No explanations.'}),JSON.stringify([{role:'user',content:question}])],t=>{if(t.charCodeAt(0)!==1)raw+=t});
-   const a=raw.match(/\[[\s\S]*\]/);if(a)qs=JSON.parse(a[0]).filter(x=>typeof x==='string'&&x.trim()).slice(0,6)}catch(e){}
-  if(!qs.length)qs=[question.slice(0,200)];
-  const seen=new Set(),src=[];let serr='';
-  for(let i=0;i<qs.length;i++){
-   bd.textContent=(LANG==='en'?'Searching ':'Ищу ')+(i+1)+(LANG==='en'?' of ':' из ')+qs.length+': '+qs[i];
-   try{let raw='';await Native.run('search',[JSON.stringify({id:sp.id,url:sp.url}),qs[i].slice(0,300)],t=>{raw+=t});
-    JSON.parse(raw||'[]').forEach(s=>{if(s&&s.url&&!seen.has(s.url)){seen.add(s.url);src.push(s)}})}catch(e){serr=e.message}}
-  return{src:src.slice(0,14),serr:src.length?'':serr}};
+  const STEPS=[['plan','Планирую запросы'],['search','Ищу в интернете'],['pick','Отбираю источники'],['write','Пишу отчёт']];
+  bd.textContent='';bd.classList.remove('md');
+  const ui=el('<div class="dr"></div>'),row={};
+  STEPS.forEach(([k,t])=>{const r=el('<div class="dr-s"><i></i><b></b><small></small></div>');$('b',r).textContent=L(t);ui.append(r);row[k]=r});
+  bd.append(ui);
+  const mark=(k,state,detail)=>{const r=row[k];if(!r)return;r.className='dr-s '+state;if(detail!=null)$('small',r).textContent=detail};
+  const prs=[];const G=window.GEN={stopped:0,pr:null,stop(){this.stopped=1;prs.forEach(p=>{try{Native.cancel(p&&p.id)}catch(e){}})}};
+  if(Chat.cmp&&Chat.cmp.upd)Chat.cmp.upd();
+  const stop=()=>!!(window.GEN&&window.GEN.stopped);
+  const track=pr=>{prs.push(pr);return pr};
+  const lim=(pr,ms)=>new Promise((res,rej)=>{const t=setTimeout(()=>{try{Native.cancel(pr&&pr.id)}catch(e){}rej(new Error('timeout'))},ms);pr.then(v=>{clearTimeout(t);res(v)},e=>{clearTimeout(t);rej(e)})});
+  const native=!sp&&!!api.webKind(pv);
+  if(!sp&&!native){
+   [...STEPS].forEach(([k])=>mark(k,'bad'));
+   return{src:[],serr:'для исследования нужен провайдер поиска (Tavily, Brave, Serper, Exa, You.com, Firecrawl) или модель со встроенным поиском (OpenRouter, Claude)',native:false}}
+  const yr=new Date().getFullYear(),q0=question.replace(/\s+/g,' ').trim().slice(0,240);
+  let qs=[];
+  if(native){mark('plan','done','');mark('search','active',L('Модель ищет сама'));mark('pick','pending','')}
+  else{
+   mark('plan','active','');
+   try{let raw='';
+    const pr=track(Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,think:-1,system:'Return ONLY a JSON array of 4 to 6 short, diverse web search queries (strings) in the language of the question that together cover it from different angles (facts, numbers, comparison, recent news). No explanations, no markdown.'}),JSON.stringify([{role:'user',content:q0}])],t=>{if(t.charCodeAt(0)>2)raw+=t}));
+    await lim(pr,20000);
+    const a=raw.match(/\[[\s\S]*\]/);if(a)qs=JSON.parse(a[0]).filter(x=>typeof x==='string'&&x.trim().length>2).map(x=>x.trim().slice(0,200)).slice(0,6)}catch(e){}
+   if(stop())return{src:[],serr:'',stopped:true};
+   const base=[q0,q0+(LANG==='en'?' overview':' обзор'),q0+(LANG==='en'?' comparison':' сравнение'),q0+' '+yr];
+   const seenQ=new Set();qs=[...qs,...base].filter(x=>{const k=x.toLowerCase();if(seenQ.has(k))return false;seenQ.add(k);return true}).slice(0,Math.max(4,Math.min(qs.length,6)));
+   mark('plan','done',qs.length+' '+L('запросов'));
+  }
+  const lists=[];let serr='',okN=0,doneN=0;
+  if(!native){
+   mark('search','active','0/'+qs.length);
+   const one=async q=>{
+    try{let raw='';const pr=track(Native.run('search',[JSON.stringify({id:sp.id,url:sp.url,deep:true}),q.slice(0,300)],t=>{raw+=t}));
+     await lim(pr,15000);const l=JSON.parse(raw||'[]');if(Array.isArray(l)){lists.push(l);okN++}}
+    catch(e){if(!stop())serr=e.message||'ошибка поиска'}
+    doneN++;mark('search','active',doneN+'/'+qs.length)};
+   const q=qs.slice();const worker=async()=>{while(q.length&&!stop()){await one(q.shift())}};
+   await Promise.all([worker(),worker(),worker()]);
+   if(stop())return{src:[],serr:'',stopped:true};
+   mark('search',okN?'done':'bad',okN+'/'+qs.length);
+  }
+  /* Источники: чередуем результаты разных запросов, повторы по адресу убираем */
+  mark('pick','active','');
+  const seen=new Set(),src=[];
+  for(let i=0;src.length<12;i++){let any=false;for(const l of lists){const s=l[i];if(!s)continue;any=true;const k=String(s.url||'').replace(/[#?].*$/,'').replace(/\/$/,'');if(s.url&&!seen.has(k)){seen.add(k);src.push(s)}if(src.length>=12)break}if(!any)break}
+  mark('pick',native||src.length?'done':'bad',native?'':src.length+' '+L('источников'));
+  mark('write','active','');
+  return{src,serr:native||src.length?'':(serr||'поиск не вернул результатов'),native}};
  /* Создание изображения */
  api.askImgModel=pv=>new Promise(res=>{
   if(!pv){res('');return}

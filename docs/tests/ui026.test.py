@@ -112,7 +112,7 @@ with sync_playwright() as p:
       return{n:t.length,names:t.map(x=>x.querySelector('.tm-n').textContent),groups:[...document.querySelectorAll('.tm-g')].map(x=>x.textContent),g,
         fs:Math.min(...t.map(x=>parseFloat(getComputedStyle(x.querySelector('.tm-n')).fontSize))),mh:Math.min(...t.map(x=>x.getBoundingClientRect().height)),
         vw:innerWidth,over:document.documentElement.scrollWidth>innerWidth}})()""")
-    check('A4: 8 плиток', info['n'] == 8, info)
+    check('A4: 9 плиток', info['n'] == 9, info)
     check('A4: группы Прикрепить, Создать, Режим', info['groups'] == ['Прикрепить', 'Создать', 'Режим'], info['groups'])
     two = all(len(row) < 2 or (row[0][0] == row[1][0] and row[0][1] < row[1][1] and abs(row[0][2] - row[1][2]) <= 1) for row in info['g'])
     check('A4: плитки по 2 в ряд', two and any(len(r) >= 2 for r in info['g']), info['g'])

@@ -12,7 +12,6 @@ UI_DIR=../../app/src/main/assets/ui/ node terminal.test.js
 UI_DIR=../../app/src/main/assets/ui/ node search.test.js
 UI_DIR=../../app/src/main/assets/ui/ node welcome.test.js
 UI_DIR=../../app/src/main/assets/ui/ node menu.test.js
-UI_DIR=../../app/src/main/assets/ui/ node understand.test.js
 ```
 Playwright (Chromium), без jsdom: `python3 -I docs/tests/ui020.test.py` и `python3 -I docs/tests/ui021.test.py` (0.23: роли и «/», сжатие, ветки, диффы и откат).
 

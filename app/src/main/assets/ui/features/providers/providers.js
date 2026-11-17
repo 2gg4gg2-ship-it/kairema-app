@@ -98,6 +98,7 @@ function chatProvForm(i,done){
   sv=$('[data-s]',b);stt=$('.stat',b);
   const R={name:v=>v.length>=2,url:v=>/^https?:\/\/[^\s.]+\.[^\s]+$/.test(v),key:v=>v.length>=8||(i>=0&&!v)};
   form(b,R,sv);
+  if(i<0&&typeof Presets!=='undefined')Presets.mount(b,'chat');
   /* Если поменяли адрес или ключ, список моделей устарел: проверяем ключ заново. */
   $$('[data-k=url],[data-k=key]',b).forEach(x=>x.addEventListener('input',()=>{okList=null;delete MCACHE[id];sv.innerHTML='Проверить ключ'}));
   sv.onclick=async()=>{

@@ -47,3 +47,12 @@
 .sheet-bg.mid{align-items:flex-start;padding:max(14vh,calc(var(--sat) + 48px)) 16px 0}
 .sheet-bg.mid .sheet{border-radius:24px;border:1px solid var(--line);padding-bottom:20px;transform:translateY(-16px) scale(.96);opacity:0;transition:transform .4s var(--ease),opacity .3s}
 .sheet-bg.mid.on .sheet{transform:none;opacity:1}
+
+/* Глубокое исследование: ход по шагам */
+.dr{display:flex;flex-direction:column;gap:6px;padding:4px 0}
+.dr-s{display:grid;grid-template-columns:20px 1fr auto;align-items:center;gap:10px;min-height:32px;font:500 15px var(--body);color:var(--tx2)}
+.dr-s i{width:12px;height:12px;border-radius:50%;border:2px solid var(--line);justify-self:center}
+.dr-s small{font:500 12.5px var(--mono);opacity:.8}
+.dr-s.active{color:var(--tx)}.dr-s.active i{border-color:var(--tx);border-top-color:transparent;animation:rot .8s linear infinite}
+.dr-s.done{color:var(--tx)}.dr-s.done i{background:var(--g,var(--tx));border-color:var(--g,var(--tx))}
+.dr-s.bad{color:var(--r,var(--tx2))}.dr-s.bad i{background:var(--r,var(--tx2));border-color:var(--r,var(--tx2))}

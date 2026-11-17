@@ -30,12 +30,6 @@
 - Пересылка: `Sx.slice(m,10)` берёт сообщение и до 9 предыдущих; страница строится из данных чата, а не из экрана. Если нужно вернуть «Отправить текстом/файлом .md», строки в `Sx.sheet` в `features/share/share.js`.
 - Не проверено на телефоне: Kotlin (`VoiceBridge`, `SystemBridge`, правки `MainActivity`), видео-заставка, значки статус-бара. Если красная сборка, смотреть эти файлы.
 
-## Понимание запроса, поиск и вложения (0.30.0, Claude-Ядро)
-- Файлы: `features/intent/intent.js` (SYSX), `features/websearch/websearch.js` (`WebSearch.find`, вызывается из `respond` в `core/messages.js`, там же запасной путь), `features/attview/` (`Att.paint`). Точечные правки: `core/messages.js` (`isImgF`, `readFiles`, `toContent`, `onSend`, `respond`), `features/caps/caps.js` (`Caps.vision`), `index.html`.
-- Поиск: перед поиском один быстрый запрос к выбранной модели (без размышлений, до 15 с) возвращает JSON `{search, queries}`; нужен последний контекст беседы; одна лишняя недорогая отправка на каждый поиск. Не получилось, значит ищем по тексту вопроса.
-- Проверено jsdom (`understand.test.js`, `search.test.js`, `auth.test.js` и др.). Не проверено на телефоне и с реальными моделями: насколько слабые модели возвращают чистый JSON плана; просмотр фото на весь экран (жесты) в настоящем WebView.
-- Не сделано: PDF для провайдеров кроме Anthropic (нужно Kotlin: `PdfRenderer` в картинки страниц), HEIC (WebView не читает), .docx/.xlsx. Тест `ui026.test.py` и `terminal.test.js` устарели ещё до этой версии (не из-за неё).
-
 ## Вход по почте (0.22.0, Claude-Ядро)
 - Файлы: `features/auth/` (`auth.js` ядро, `auth-methods.js` реестр, `method-email.js`, `method-device.js`, `auth-ui.js` экраны и стартовое окно, `auth.css`). `index.html`: +3 строки. `core/app.js` не менялся.
 - Поток: стартовое окно один раз (после заставки, обучения и имени), затем «Вход или регистрация»: почта, код, вход. Пароль в интерфейсе убран (API `signIn/signUp` оставлен). Кнопка «Аккаунты на этом телефоне» (не вход через Google) показывает аккаунты из `kairema.accounts.v1`, выбор = вход без кода через refresh token.
@@ -168,3 +162,17 @@
 - Фильтр иероглифов работает по кускам потока ДО записи в `m.t`, поэтому сохранённый текст чистый. Исключения: пользователь пишет иероглифами или просит про китайский, японский, корейский.
 - Предпросмотр: в `srcdoc` добавляется скрипт зума (postMessage `{kz}`), сам HTML для PDF и скачивания не меняется.
 - Не проверено на телефоне: реальные модели (нет сети), плавность листания пальцем, щипок двумя пальцами в WebView.
+
+## Сервисы, поиск модели, исследование (0.30.0)
+- Адреса сервисов в `features/presets/presets.js`. Проверены по документации: ZenMux, CometAPI (docs), TeamoRouter, BazaarLink (по поиску, адреса api.* угаданы по схеме: проверить ключом), Kimi (api.moonshot.ai/v1), Exa, You.com (ydc-index.io/v1/search). Остальные известны давно. НЕ найдены и не добавлены: GoRouter, NaraRouter, Token Harbor, Keirolabs, Haimarker (пользователь берёт «Другой сервис»). Resend и «Secret» не про ИИ.
+- Firecrawl (`/v1/search`) и You.com не проверялись живым ключом; формат ответа разобран по документации, парсер принимает и `data[]`, и `data.web[]`.
+- «Поиск модели» (`Tools.webKind`): or (OpenRouter плагин web), anthropic (tool web_search_20250305), oai (модели *search*). Для Gemini, Kimi, DeepSeek, Groq встроенного поиска через эту кнопку нет (у Kimi `$web_search` требует цикла вызовов, не сделано).
+- Исследование: `Tools.research` возвращает `{src,serr,native,stopped}`; `GEN` создаётся там же, чтобы «Стоп» работал на этапе поиска.
+- Kotlin (Bridge.kt) не компилировался; перечитан: переменная `webMode` не затеняет поле `web` (WebView).
+
+## Сервисы, поиск модели, исследование (0.30.0)
+- Адреса сервисов в `features/presets/presets.js`. Часть известна давно (OpenAI, Anthropic, DeepSeek, Groq, Mistral, Together, Cerebras, SambaNova, xAI, Gemini), часть угадана по схеме api.*/v1 (TeamoRouter, BazaarLink, CometAPI, ZenMux): проверить ключом. НЕ найдены и не добавлены: GoRouter, NaraRouter, Token Harbor, Keirolabs, Haimarker (использовать «Другой сервис»). Resend и «Secret» не про ИИ.
+- Firecrawl (`/v1/search`), Exa, You.com не проверялись живым ключом; парсер принимает `data[]` и `data.web[]`.
+- «Поиск модели» (`Tools.webKind`): or (плагин web OpenRouter), anthropic (web_search_20250305), oai (модели *search*). Для Gemini, Kimi, DeepSeek, Groq встроенного поиска через эту кнопку нет.
+- `Tools.research` возвращает `{src,serr,native,stopped}`; `GEN` создаётся там же, чтобы «Стоп» работал при поиске.
+- Kotlin (Bridge.kt) не компилировался.

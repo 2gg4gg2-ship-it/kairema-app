@@ -338,7 +338,8 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                 val key = SecureKeys.load(ctx, p.getString("id"))
                     ?: throw IllegalStateException("ключ не найден на устройстве")
                 val url = p.getString("url").trim()
-                val call = http.newCall(buildSearchRequest(url, key, WebRelevance.cleanQuery(query)))
+                val deep = p.optBoolean("deep", false)
+                val call = http.newCall(buildSearchRequest(url, key, WebRelevance.cleanQuery(query), deep))
                 calls[reqId] = call
                 call.execute().use { resp ->
                     if (!resp.isSuccessful) {
@@ -355,22 +356,43 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     }
 
     // Ключ уходит только на настоящие адреса поддерживаемых провайдеров, а не на введённый URL.
-    private fun buildSearchRequest(url: String, key: String, query: String): Request {
+    private fun buildSearchRequest(url: String, key: String, query: String, deep: Boolean = false): Request {
         val json = "application/json".toMediaType()
+        val n = if (deep) 8 else 5
         return when {
             url.contains("tavily.com") -> Request.Builder()
                 .url("https://api.tavily.com/search")
                 .header("Authorization", "Bearer $key")
                 .post(
-                    JSONObject().put("query", query).put("max_results", 5).put("search_depth", "basic")
+                    JSONObject().put("query", query).put("max_results", n)
+                        .put("search_depth", if (deep) "advanced" else "basic")
                         .toString().toRequestBody(json)
                 )
+                .build()
+            url.contains("exa.ai") -> Request.Builder()
+                .url("https://api.exa.ai/search")
+                .header("x-api-key", key)
+                .post(
+                    JSONObject().put("query", query).put("numResults", n)
+                        .put("contents", JSONObject().put("text", JSONObject().put("maxCharacters", 600)))
+                        .toString().toRequestBody(json)
+                )
+                .build()
+            url.contains("firecrawl.dev") -> Request.Builder()
+                .url("https://api.firecrawl.dev/v1/search")
+                .header("Authorization", "Bearer $key")
+                .post(JSONObject().put("query", query).put("limit", n).toString().toRequestBody(json))
+                .build()
+            url.contains("you.com") || url.contains("ydc-index.io") -> Request.Builder()
+                .url("https://ydc-index.io/v1/search")
+                .header("X-API-Key", key)
+                .post(JSONObject().put("query", query).put("count", n).toString().toRequestBody(json))
                 .build()
             url.contains("brave.com") -> Request.Builder()
                 .url(
                     "https://api.search.brave.com/res/v1/web/search".toHttpUrl().newBuilder()
                         .addQueryParameter("q", query)
-                        .addQueryParameter("count", "5")
+                        .addQueryParameter("count", n.toString())
                         .build()
                 )
                 .header("X-Subscription-Token", key)
@@ -379,9 +401,9 @@ class Bridge(private val ctx: Context, private val web: WebView) {
             url.contains("serper.dev") -> Request.Builder()
                 .url("https://google.serper.dev/search")
                 .header("X-API-KEY", key)
-                .post(JSONObject().put("q", query).put("num", 5).toString().toRequestBody(json))
+                .post(JSONObject().put("q", query).put("num", n).toString().toRequestBody(json))
                 .build()
-            else -> throw IllegalStateException("поддерживаются Tavily, Brave Search и Serper")
+            else -> throw IllegalStateException("поддерживаются Tavily, Brave Search, Serper, Exa, You.com и Firecrawl")
         }
     }
 
@@ -398,17 +420,32 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                 )
             }
         }
+        val exa = url.contains("exa.ai")
+        val fire = url.contains("firecrawl.dev")
+        val you = url.contains("you.com") || url.contains("ydc-index.io")
         val items: JSONArray? = when {
-            url.contains("tavily.com") -> j.optJSONArray("results")
+            url.contains("tavily.com") || exa -> j.optJSONArray("results")
             url.contains("brave.com") -> j.optJSONObject("web")?.optJSONArray("results")
+            fire -> j.optJSONArray("data") ?: j.optJSONObject("data")?.optJSONArray("web")
+            you -> j.optJSONObject("results")?.optJSONArray("web")
             else -> j.optJSONArray("organic")
         }
         if (items != null) {
             for (i in 0 until items.length()) {
-                val r = items.getJSONObject(i)
+                val r = items.optJSONObject(i) ?: continue
                 when {
                     url.contains("tavily.com") -> add(r.optString("title"), r.optString("url"), r.optString("content"))
                     url.contains("brave.com") -> add(r.optString("title"), r.optString("url"), r.optString("description"))
+                    exa -> add(
+                        r.optString("title"), r.optString("url"),
+                        r.optString("text").ifEmpty { r.optJSONArray("highlights")?.optString(0).orEmpty() }
+                            .ifEmpty { r.optString("summary") }
+                    )
+                    fire -> add(r.optString("title"), r.optString("url"), r.optString("description"))
+                    you -> add(
+                        r.optString("title"), r.optString("url"),
+                        r.optString("description").ifEmpty { r.optJSONArray("snippets")?.optString(0).orEmpty() }
+                    )
                     else -> add(r.optString("title"), r.optString("link"), r.optString("snippet"))
                 }
             }
@@ -452,7 +489,10 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         calls[reqId] = call
         return call.execute().use { resp ->
             if (!resp.isSuccessful) throw IllegalStateException(errorText(resp))
-            val arr = JSONObject(resp.body!!.string()).optJSONArray("data")
+            // Список моделей: {"data":[…]} (OpenAI и большинство), {"models":[…]} или сразу массив […] (например Together).
+            val rawModels = resp.body!!.string().trim()
+            val arr: JSONArray = (if (rawModels.startsWith("[")) JSONArray(rawModels)
+            else JSONObject(rawModels).let { it.optJSONArray("data") ?: it.optJSONArray("models") })
                 ?: throw IllegalStateException("провайдер не вернул список моделей")
             val out = JSONArray()
             for (i in 0 until arr.length()) {
@@ -543,6 +583,19 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         } else if (!anthropic && base.contains("openrouter.ai")) {
             if (think > 0) body.put("reasoning", JSONObject().put("effort", "medium"))
             else if (think < 0) body.put("reasoning", JSONObject().put("enabled", false))
+        }
+        // Встроенный поиск самого провайдера (кнопка «Поиск модели»): web = or | anthropic | oai, webmax = число источников.
+        val webMode = p.optString("web")
+        val webMax = p.optInt("webmax", 3).coerceIn(1, 10)
+        if (webMode == "or" && base.contains("openrouter.ai")) {
+            body.put("plugins", JSONArray().put(JSONObject().put("id", "web").put("max_results", webMax)))
+        } else if (webMode == "anthropic" && anthropic) {
+            body.put(
+                "tools",
+                JSONArray().put(JSONObject().put("type", "web_search_20250305").put("name", "web_search").put("max_uses", webMax))
+            )
+        } else if (webMode == "oai" && base.contains("api.openai.com")) {
+            body.put("web_search_options", JSONObject())
         }
         val call = http.newCall(
             rb.url(endpoint)
