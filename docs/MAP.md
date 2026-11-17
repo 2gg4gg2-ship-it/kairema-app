@@ -120,8 +120,8 @@
 | `core/styles.css` | 257 | 01. ТОКЕНЫ: цвета, шрифты, easing |
 | `features/about/about.css` | 32 | Стили модуля about: экран «О приложении». |
 | `features/about/about.js` | 24 | О ПРИЛОЖЕНИИ: логотип, версия, карточки возможностей ===== Модуль подменяет экран 'about' (SCREENS.about) после запуска приложения: core/app.js не правится. |
-| `features/artifacts/artifacts.css` | 17 | Стили модуля artifacts: панель под блоком кода и таблицей, предпросмотр страницы. |
-| `features/artifacts/artifacts.js` | 78 | ФАЙЛЫ ИЗ ОТВЕТОВ ИИ: таблицы, HTML-страницы, PDF, CSV ===== Модель не умеет создавать файлы сама, поэтому приложение делает их из ответа: - блок ```html → «Предпросмотр», |
+| `features/artifacts/artifacts.css` | 21 | Стили модуля artifacts: панель под блоком кода и таблицей, предпросмотр страницы. |
+| `features/artifacts/artifacts.js` | 86 | ФАЙЛЫ ИЗ ОТВЕТОВ ИИ: таблицы, HTML-страницы, PDF, CSV ===== Модель не умеет создавать файлы сама, поэтому приложение делает их из ответа: - блок ```html → «Предпросмотр», |
 | `features/auth/auth-methods.js` | 13 | ЯДРО АККАУНТА: реестр способов входа (модуль auth) ===== Экран «Вход или регистрация» сам ничего не знает о способах: он рисует всё, что добавлено сюда. |
 | `features/auth/auth-ui.js` | 111 | АККАУНТ: экраны (модуль auth) ===== Экран «Аккаунт» (вход, профиль), стартовое окно «с аккаунтом / без аккаунта», строка «Аккаунт» в настройках. |
 | `features/auth/auth.css` | 15 | Стили модуля auth. |
@@ -153,7 +153,7 @@
 | `features/memory/memory.css` | 27 | Стили страницы «Память»: более жирный, читаемый текст; ровный список фактов. |
 | `features/memory/memory.js` | 180 | ПАМЯТЬ (v2): хранилище фактов, профиль, подбор фактов под вопрос, подсказка для модели ===== Модель данных. |
 | `features/presets/presets.css` | 12 | Стили модуля presets: выбор готового сервиса в форме провайдера. |
-| `features/presets/presets.js` | 62 | ГОТОВЫЕ СЕРВИСЫ: выбрал в списке, адрес (API URL) подставился сам ===== В форме нового провайдера (чат или поиск) сверху список сервисов. |
+| `features/presets/presets.js` | 68 | ГОТОВЫЕ СЕРВИСЫ: выбрал в списке, адрес (API URL) подставился сам ===== В форме нового провайдера (чат или поиск) сверху список сервисов. |
 | `features/providers/providers.css` | 46 | Стили модуля providers: выбор модели и провайдера (лист снизу). |
 | `features/providers/providers.js` | 144 | ПРОВАЙДЕРЫ ИИ: название, адрес, ключ → проверка ключа → выбор модели из списка |
 | `features/quality/quality.css` | 3 | Стили модуля quality: значение справа в строке настроек. |
@@ -174,8 +174,8 @@
 | `features/terminal/term-compat.js` | 110 | ТЕРМИНАЛ: совместимость с любыми моделями (от самых слабых до лучших) ===== Слабые модели не всегда оформляют команды правильно: забывают язык у блока, пишут «$ ls» вмест |
 | `features/terminal/terminal.css` | 53 | Стили модуля terminal. |
 | `features/terminal/terminal.js` | 248 | ТЕРМИНАЛ: настоящая оболочка Android и запуск команд из ответов ИИ ===== Команды выполняет Kotlin (Shell.kt, /system/bin/sh). |
-| `features/tools/tools.css` | 59 | Меню «+», метки режимов в поле ввода, размышления, изображения |
-| `features/tools/tools.js` | 196 | ФУНКЦИИ ЧАТА: меню «+», режимы ответа, создание изображений, глубокое исследование ===== Кнопка «+» в поле ввода открывает список: вложения (галерея, камера, файлы) и фун |
+| `features/tools/tools.css` | 76 | Меню «+», метки режимов в поле ввода, размышления, изображения |
+| `features/tools/tools.js` | 227 | ФУНКЦИИ ЧАТА: меню «+», режимы ответа, создание изображений, глубокое исследование ===== Кнопка «+» в поле ввода открывает список: вложения (галерея, камера, файлы) и фун |
 | `index.html` | 87 |  |
 
 ### Индекс файлов Kotlin (`app/src/main/java/com/kairema/app`)
@@ -183,7 +183,7 @@
 | Файл | Строк | Описание |
 |---|---|---|
 | `MainActivity.kt` | 236 | Оболочка: показывает интерфейс из assets/index.html. * Следующие шаги добавят сюда мост между кнопками интерфейса и нативным кодом. |
-| `bridge/Bridge.kt` | 648 | Мост между интерфейсом (JS) и нативным кодом. |
+| `bridge/Bridge.kt` | 665 | Мост между интерфейсом (JS) и нативным кодом. |
 | `bridge/Guard.kt` | 22 | Защита моста. |
 | `data/ChatDb.kt` | 79 | Хранилище чатов на устройстве (SQLite, файл kairema.db). |
 | `data/DbBridge.kt` | 77 | Мост JS <-> хранилище (в JS это KairemaDb): чаты в SQLite, картинки и вложения файлами в filesDir/media. |
@@ -202,7 +202,7 @@
 
 ### Мосты (`@JavascriptInterface`): как JS вызывает Kotlin
 
-- `bridge/Bridge.kt`: `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `chat`, `image`, `saveImage`, `shareImage`, `search`
+- `bridge/Bridge.kt`: `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `chat`, `image`, `saveImage`, `shareImage`, `search`
 - `data/DbBridge.kt`: `loadAll`, `count`, `put`, `remove`, `clear`, `saveFile`, `loadFile`
 - `search/SearchBridge.kt`: `mode`, `sigs`, `put`, `remove`, `clear`, `find`
 - `system/SystemBridge.kt`: `dark`, `bars`

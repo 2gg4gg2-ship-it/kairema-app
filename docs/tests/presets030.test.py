@@ -27,7 +27,7 @@ with sync_playwright() as p:
     # --- пресеты чат
     pg.evaluate("chatProvForm(-1,()=>{})"); pg.wait_for_timeout(500)
     n = pg.locator('.pre-b').count()
-    check('сервисы: список из 17 + «Другой»', n == 18, n)
+    check('сервисы: список из 22 + «Другой»', n == 23, n)
     check('сервисы: поле адреса скрыто, пока сервис не выбран', not pg.locator('[data-k=url]').is_visible())
     pg.click('.pre-b[data-id=groq]'); pg.wait_for_timeout(200)
     vals = pg.evaluate("({u:document.querySelector('[data-k=url]').value,n:document.querySelector('[data-k=name]').value,vis:!!document.querySelector('[data-k=url]').offsetParent})")

@@ -30,6 +30,9 @@ const Art={
   +'addEventListener("touchstart",function(e){if(e.touches.length===2){d0=dist(e);z0=z}},{passive:true});'
   +'addEventListener("touchmove",function(e){if(e.touches.length===2&&d0){e.preventDefault();set(z0*dist(e)/d0)}},{passive:false});'
   +'addEventListener("touchend",function(e){if(e.touches.length<2)d0=0})})()<\/script>',
+ /* Игра (canvas с управлением или игровой цикл) открывается горизонтально; остальное приложение всегда вертикальное. */
+ isGame(html,title){const s=String(html).slice(0,200000);return(/<canvas/i.test(s)&&/(requestAnimationFrame|keydown|touchstart|pointerdown|setInterval)/i.test(s))||/(landscape|горизонтальн)/i.test(s)||(/(игр|game)/i.test(String(title||''))&&/requestAnimationFrame/.test(s))},
+ orient(m){try{if(typeof KairemaBridge!=='undefined'&&KairemaBridge.setOrientation)KairemaBridge.setOrientation(m)}catch(e){}},
  withZoom(html){const s=String(html),i=s.toLowerCase().lastIndexOf('</body>');return i>=0?s.slice(0,i)+Art.zoomJs+s.slice(i):s+Art.zoomJs},
  /* Предпросмотр на весь экран. Скрипты внутри страницы работают, но изолированно: доступа к данным приложения у неё нет. */
  preview(html,title,code,lang){
@@ -46,6 +49,11 @@ const Art={
   const on=e=>{if(e.source===fr.contentWindow&&e.data&&typeof e.data.kz==='number')$('[data-zr]',zb).textContent=Math.round(e.data.kz*100)+'%'};
   window.addEventListener('message',on);const oc=d.close;d.close=()=>{window.removeEventListener('message',on);oc()};$('[data-bk]',d).onclick=()=>d.close();
   ft.before(zb);
+  let land=false;const setLand=on=>{land=on;Art.orient(on?'landscape':'portrait');d.classList.toggle('art-land',on);rb.setAttribute('aria-pressed',on)};
+  const rb=document.createElement('button');rb.type='button';rb.className='ib art-rot';rb.setAttribute('aria-label','Повернуть');rb.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="11" rx="2"/><path d="M7 4.5h3M17 20.5h-3"/></svg>';
+  rb.onclick=()=>setLand(!land);$('.top',d).append(rb);
+  const oc2=d.close;d.close=()=>{Art.orient('portrait');oc2()};
+  if(Art.isGame(html,title))setLand(true);
   ft.append(Art.btn('PDF','fil',()=>Sx.pdf(title,html)),Art.btn('Скачать','dwn',()=>Sx.save(nm,Art.mime[ex],code)),Art.btn('Поделиться','shr',()=>Sx.file(nm,Art.mime[ex],code)));
   return d},
  /* Таблица Markdown в строки ячеек. */

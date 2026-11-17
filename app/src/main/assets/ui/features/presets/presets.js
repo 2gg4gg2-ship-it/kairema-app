@@ -23,14 +23,20 @@ const PRESETS_AI=[
  {id:'comet',n:'CometAPI',u:'https://api.cometapi.com/v1',k:'cometapi.com'},
  {id:'zenmux',n:'ZenMux',u:'https://zenmux.ai/api/v1',k:'zenmux.ai'},
  {id:'teamo',n:'TeamoRouter',u:'https://api.teamorouter.com/v1',k:'teamorouter.com'},
- {id:'bazaar',n:'BazaarLink',u:'https://api.bazaarlink.ai/v1',k:'bazaarlink.ai'}];
+ {id:'bazaar',n:'BazaarLink',u:'https://api.bazaarlink.ai/v1',k:'bazaarlink.ai'},
+ {id:'tokenharbor',n:'Token Harbor',u:'https://tokenharbor.ai/v1',k:'tokenharbor.ai'},
+ {id:'nara',n:'NaraRouter',u:'https://router.bynara.id/v1',k:'router.bynara.id',t:'Ключи начинаются с sk-nry-'},
+ {id:'haimaker',n:'Haimaker',u:'https://api.haimaker.ai/v1',k:'haimaker.ai'},
+ {id:'keiro',n:'Keiro (модели)',u:'https://api.keirolabs.ai/v1',k:'keirolabs.ai'},
+ {id:'gurouter',n:'GoRouter (GuRouter)',u:'https://api.gurouter.com/v1',k:'gurouter.com',t:'Адрес не подтверждён: если не работает, «Другой сервис» и адрес из docs.gurouter.com'}];
 const PRESETS_SEARCH=[
  {id:'tavily',n:'Tavily',u:'https://api.tavily.com/search',k:'app.tavily.com',t:'Лучший для ИИ, есть бесплатный лимит'},
  {id:'brave',n:'Brave Search',u:'https://api.search.brave.com/res/v1/web/search',k:'brave.com/search/api'},
  {id:'serper',n:'Serper',u:'https://google.serper.dev/search',k:'serper.dev',t:'Результаты Google'},
  {id:'exa',n:'Exa',u:'https://api.exa.ai/search',k:'dashboard.exa.ai'},
  {id:'you',n:'You.com',u:'https://ydc-index.io/v1/search',k:'you.com/platform'},
- {id:'firecrawl',n:'Firecrawl',u:'https://api.firecrawl.dev/v1/search',k:'firecrawl.dev'}];
+ {id:'firecrawl',n:'Firecrawl',u:'https://api.firecrawl.dev/v1/search',k:'firecrawl.dev'},
+ {id:'keirosearch',n:'Keiro (поиск)',u:'https://api.keirolabs.cloud/api/v2/search/lite',k:'keirolabs.cloud',t:'Есть дневной лимит без ключа'}];
 const Presets=(()=>{
  const mk=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
  const set=(inp,v)=>{inp.value=v;inp.dispatchEvent(new Event('input',{bubbles:true}))};

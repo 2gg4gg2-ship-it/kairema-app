@@ -40,6 +40,17 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     private val tm = TermuxRunner(ctx)
     private val sx = Share(ctx)
 
+    /** Поворот экрана: приложение всегда вертикальное, горизонтально только предпросмотр игры (mode = "landscape"). */
+    @JavascriptInterface
+    fun setOrientation(mode: String) {
+        val a = ctx as? android.app.Activity ?: return
+        a.runOnUiThread {
+            a.requestedOrientation = if (mode == "landscape")
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+    }
+
     /** Копия текста в буфер обмена Android. */
     @JavascriptInterface
     fun copyText(text: String): Boolean = sx.copy(text)
@@ -388,6 +399,11 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                 .header("X-API-Key", key)
                 .post(JSONObject().put("query", query).put("count", n).toString().toRequestBody(json))
                 .build()
+            url.contains("keirolabs") -> Request.Builder()
+                .url("https://api.keirolabs.cloud/api/v2/search/lite")
+                .header("Authorization", "Bearer $key")
+                .post(JSONObject().put("query", query).put("count", n).put("api_key", key).toString().toRequestBody(json))
+                .build()
             url.contains("brave.com") -> Request.Builder()
                 .url(
                     "https://api.search.brave.com/res/v1/web/search".toHttpUrl().newBuilder()
@@ -403,7 +419,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                 .header("X-API-KEY", key)
                 .post(JSONObject().put("q", query).put("num", n).toString().toRequestBody(json))
                 .build()
-            else -> throw IllegalStateException("поддерживаются Tavily, Brave Search, Serper, Exa, You.com и Firecrawl")
+            else -> throw IllegalStateException("поддерживаются Tavily, Brave Search, Serper, Exa, You.com, Firecrawl и Keiro")
         }
     }
 
@@ -424,7 +440,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         val fire = url.contains("firecrawl.dev")
         val you = url.contains("you.com") || url.contains("ydc-index.io")
         val items: JSONArray? = when {
-            url.contains("tavily.com") || exa -> j.optJSONArray("results")
+            url.contains("tavily.com") || exa || url.contains("keirolabs") -> j.optJSONArray("results")
             url.contains("brave.com") -> j.optJSONObject("web")?.optJSONArray("results")
             fire -> j.optJSONArray("data") ?: j.optJSONObject("data")?.optJSONArray("web")
             you -> j.optJSONObject("results")?.optJSONArray("web")
@@ -441,6 +457,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                         r.optString("text").ifEmpty { r.optJSONArray("highlights")?.optString(0).orEmpty() }
                             .ifEmpty { r.optString("summary") }
                     )
+                    url.contains("keirolabs") -> add(r.optString("title"), r.optString("url"), r.optString("snippet"))
                     fire -> add(r.optString("title"), r.optString("url"), r.optString("description"))
                     you -> add(
                         r.optString("title"), r.optString("url"),

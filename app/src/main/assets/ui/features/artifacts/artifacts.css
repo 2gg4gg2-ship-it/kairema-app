@@ -14,3 +14,7 @@
 .art-z button:active{transform:scale(.96)}
 .art-ft{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px calc(12px + var(--sab))}
 .art-ft .art-b{flex:1 1 auto;justify-content:center}
+
+.art-rot{margin-left:auto}
+.art-rot[aria-pressed=true]{background:var(--tx);color:var(--on)}
+@media (orientation:landscape) and (max-height:520px){.art-land .art-z,.art-land .art-ft{display:none}.art-land .art-fr{margin:0;border-radius:0;border-width:0}.art-land .top{padding-top:4px;padding-bottom:4px;min-height:0}.art-land .top h2{display:none}}

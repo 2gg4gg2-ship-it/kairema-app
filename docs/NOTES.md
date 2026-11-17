@@ -176,3 +176,8 @@
 - «Поиск модели» (`Tools.webKind`): or (плагин web OpenRouter), anthropic (web_search_20250305), oai (модели *search*). Для Gemini, Kimi, DeepSeek, Groq встроенного поиска через эту кнопку нет.
 - `Tools.research` возвращает `{src,serr,native,stopped}`; `GEN` создаётся там же, чтобы «Стоп» работал при поиске.
 - Kotlin (Bridge.kt) не компилировался.
+
+## 0.30.1
+- Адреса по документации: Token Harbor https://tokenharbor.ai/v1, NaraRouter https://router.bynara.id/v1, Haimaker https://api.haimaker.ai/v1, Keiro https://api.keirolabs.ai/v1 (модели) и https://api.keirolabs.cloud/api/v2/search/lite (поиск, ключ передаётся Bearer и api_key: способ не подтверждён). GoRouter: адрес api.gurouter.com/v1 НЕ подтверждён (docs.gurouter.com недоступен из песочницы).
+- Шаги размышлений: заголовок из **жирного**/# строки либо первая фраза абзаца; абзацы короче 20 символов присоединяются к предыдущему.
+- Ориентация: manifest portrait; `Bridge.setOrientation("landscape"|"portrait")`, вызывается из предпросмотра (`Art.orient`). Не проверено на телефоне.

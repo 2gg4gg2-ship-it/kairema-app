@@ -5,7 +5,7 @@
    Нативная часть: Bridge.image (картинки), Bridge.chat (параметры размышления).
    Убрать модуль: удалить папку features/tools и строки в index.html; «+» вернётся к обычному списку вложений. */
 i18nAdd({"симв.":"chars"});
-i18nAdd({"Функции и вложения":"Features and attachments","Прикрепить":"Attach","Функции":"Features","Фото из галереи":"Photo from gallery","Камера":"Camera","Файлы":"Files","Создать изображение":"Create an image","Опишите картинку, она создаётся сразу":"Describe the picture, it is created right away","Глубокое исследование":"Deep research","Несколько поисков и подробный отчёт с источниками":"Several searches and a detailed report with sources","Думать":"Think","Размышление перед ответом (Thinking)":"Reasoning before the answer (Thinking)","Быстрый ответ":"Quick answer","Без долгих размышлений (Instant)":"No long reasoning (Instant)","Поиск в интернете":"Web search","Шаблоны промтов":"Prompt templates","Опишите изображение":"Describe the image","О чём провести исследование?":"What should be researched?","Думает…":"Thinking…","Размышления":"Reasoning","Создаю изображение…":"Creating the image…","Не удалось создать изображение: ":"Could not create the image: ","Модель для картинок":"Image model","Укажите модель, которая умеет создавать изображения. Её можно изменить, нажав на метку «Создать изображение».":"Enter a model that can create images. You can change it by tapping the “Create an image” label.","Название модели":"Model name","Сохранить":"Save","Сохранено в «Загрузки»":"Saved to Downloads","Поделиться":"Share","Планирую исследование…":"Planning the research…","Для глубокого исследования подключите провайдера поиска (Настройки)":"Connect a search provider (Settings) for deep research","Создание изображений работает только в приложении":"Image creation works only in the app","Anthropic не создаёт изображения. Подключите другого провайдера, например OpenRouter или OpenAI":"Anthropic does not create images. Connect another provider, for example OpenRouter or OpenAI","Эта модель не создаёт изображения. Выберите модель с меткой «Картинки»":"This model does not create images. Choose a model tagged “Images”","Модель сама не размышляет: к запросу добавится просьба рассуждать по шагам":"The model does not reason natively: the request will ask it to think step by step","Модель сама не размышляет: к запросу добавится просьба ответить сразу и кратко":"The model does not reason natively: the request will ask for a short, direct answer"});
+i18nAdd({"шагов":"steps","Функции и вложения":"Features and attachments","Прикрепить":"Attach","Функции":"Features","Фото из галереи":"Photo from gallery","Камера":"Camera","Файлы":"Files","Создать изображение":"Create an image","Опишите картинку, она создаётся сразу":"Describe the picture, it is created right away","Глубокое исследование":"Deep research","Несколько поисков и подробный отчёт с источниками":"Several searches and a detailed report with sources","Думать":"Think","Размышление перед ответом (Thinking)":"Reasoning before the answer (Thinking)","Быстрый ответ":"Quick answer","Без долгих размышлений (Instant)":"No long reasoning (Instant)","Поиск в интернете":"Web search","Шаблоны промтов":"Prompt templates","Опишите изображение":"Describe the image","О чём провести исследование?":"What should be researched?","Думает…":"Thinking…","Размышления":"Reasoning","Создаю изображение…":"Creating the image…","Не удалось создать изображение: ":"Could not create the image: ","Модель для картинок":"Image model","Укажите модель, которая умеет создавать изображения. Её можно изменить, нажав на метку «Создать изображение».":"Enter a model that can create images. You can change it by tapping the “Create an image” label.","Название модели":"Model name","Сохранить":"Save","Сохранено в «Загрузки»":"Saved to Downloads","Поделиться":"Share","Планирую исследование…":"Planning the research…","Для глубокого исследования подключите провайдера поиска (Настройки)":"Connect a search provider (Settings) for deep research","Создание изображений работает только в приложении":"Image creation works only in the app","Anthropic не создаёт изображения. Подключите другого провайдера, например OpenRouter или OpenAI":"Anthropic does not create images. Connect another provider, for example OpenRouter or OpenAI","Эта модель не создаёт изображения. Выберите модель с меткой «Картинки»":"This model does not create images. Choose a model tagged “Images”","Модель сама не размышляет: к запросу добавится просьба рассуждать по шагам":"The model does not reason natively: the request will ask it to think step by step","Модель сама не размышляет: к запросу добавится просьба ответить сразу и кратко":"The model does not reason natively: the request will ask for a short, direct answer"});
 i18nAdd({"Создать":"Create","Режим":"Mode","Фото":"Photo","Из галереи":"From gallery","Снять сейчас":"Take a photo","Файл":"File","PDF, текст, таблица":"PDF, text, spreadsheet","Изображение":"Image","Нарисовать по описанию":"Draw from a description","Отчёт с источниками":"Report with sources","Рассуждает перед ответом":"Reasons before answering","Попросим рассуждать по шагам":"We will ask it to reason step by step","Без долгих раздумий":"No long reasoning","Попросим ответить кратко":"We will ask for a short answer","Свежие данные из сети":"Fresh data from the web","Эта модель не рисует":"This model cannot draw","Нужен провайдер поиска":"Search provider needed","Эта модель не рисует. Выберите модель с меткой «Картинки»":"This model cannot draw. Pick a model tagged “Images”","Для исследования подключите провайдера поиска (Настройки)":"Connect a search provider (Settings) for research","Для поиска подключите провайдера поиска (Настройки)":"Connect a search provider (Settings) for search"});
 const Tools=(()=>{
  /* P (набор значков) создаётся в core/app.js позже модулей, поэтому дописываем значки при первом использовании */
@@ -87,11 +87,42 @@ const Tools=(()=>{
   if(tm()==='instant')s+='\n\nInstant mode: answer right away and concisely, without long reasoning.';
   return s};
  /* Размышления модели (приходят отдельно от ответа) */
+ /* Размышления показываются шагами, как у Claude: заголовок каждого абзаца («Разбор списка пунктов из запроса»), полный текст по нажатию.
+    Заголовок берётся из **жирной строки** или «# заголовка» в начале абзаца, иначе это первая фраза абзаца (до 70 символов). Модель не вызывается. */
+ api.steps=text=>{
+  const paras=String(text||'').split(/\n\s*\n/).map(x=>x.trim()).filter(Boolean),out=[];
+  for(const p of paras){
+   let title='',body=p,m=p.match(/^(?:\*\*|__)(.{3,90}?)(?:\*\*|__)\s*(?:\n|$)/)||p.match(/^#{1,4}\s+(.{3,90}?)\s*(?:\n|$)/);
+   if(m){title=m[1];body=p.slice(m[0].length).trim()}
+   else{const f=p.replace(/\s+/g,' ').match(/^(.{12,70}?)(?:[.!?:;]\s|$)/);title=f?f[1]:p.replace(/\s+/g,' ').slice(0,70);if(title.length>=70)title=title.replace(/\s+\S*$/,'')+'…'}
+   title=title.replace(/[*_`#]+/g,'').replace(/[.:;,\s]+$/,'').trim();if(!title)continue;
+   if(out.length&&!m&&p.length<20){out[out.length-1].body+='\n\n'+p;continue}
+   out.push({t:title,b:body===p&&!m?p:body})}
+  return out};
  api.thought=(d,m,t)=>{
-  let e=d._th;if(!e){e=el(`<details class="think"><summary><span class="tk-t">${L('Думает…')}</span><span class="tk-n"></span></summary><div class="tbody"></div></details>`);d.insertBefore(e,$('.bd',d));d._th=e}
-  m.think=(m.think||'')+t;const tb=$('.tbody',e);tb.textContent=m.think;$('.tk-n',e).textContent=m.think.length+' '+L('симв.');if(e.open)tb.scrollTop=1e6;
+  let e=d._th;
+  if(!e){e=el(`<details class="think"><summary><span class="tk-sp"></span><span class="tk-t">${L('Думает…')}</span><span class="tk-s"></span><span class="tk-n"></span></summary><div class="tbody"></div></details>`);d.insertBefore(e,$('.bd',d));d._th=e;m.thinkOpen=m.thinkOpen||{}}
+  m.think=(m.think||'')+t;
+  if(!e._drawn){e._drawn=1;api.drawThink(d,m);return}
+  if(e._raf)return;
+  e._raf=requestAnimationFrame(()=>{e._raf=0;api.drawThink(d,m)})};
+ api.drawThink=(d,m)=>{
+  const e=d._th;if(!e)return;const st=api.steps(m.think),tb=$('.tbody',e),op=m.thinkOpen=m.thinkOpen||{};
+  const last=st[st.length-1];
+  $('.tk-s',e).textContent=last?last.t:'';
+  $('.tk-n',e).textContent=st.length+' '+L('шагов')+' · '+m.think.length+' '+L('симв.');
+  /* перерисовываем только список: открытые шаги запоминаем по номеру */
+  tb.textContent='';
+  st.forEach((x,i)=>{const r=el('<div class="tk-st"><button type="button" class="tk-h"><i class="tk-d"></i><span></span></button><div class="tk-b"></div></div>');
+   $('.tk-h span',r).textContent=x.t;const bd=$('.tk-b',r);bd.textContent=x.b;
+   const cur=i===st.length-1&&!e._done;if(cur)r.classList.add('cur');
+   if(op[i])r.classList.add('open');
+   $('.tk-h',r).onclick=ev=>{ev.preventDefault();op[i]=!op[i];r.classList.toggle('open',!!op[i])};
+   if(!x.b||x.b===x.t)r.classList.add('nob');
+   tb.append(r)});
+  if(e.open)tb.scrollTop=1e6;
   const b=d.parentNode;if(b&&b._stk!==false&&b.scrollHeight-b.scrollTop-b.clientHeight<160)b.scrollTop=1e6};
- api.thoughtDone=d=>{const e=d._th;if(!e)return;e.open=false;$('.tk-t',e).textContent=L('Размышления')};
+ api.thoughtDone=d=>{const e=d._th;if(!e)return;e._done=true;e.open=false;$('.tk-t',e).textContent=L('Размышления');e.classList.add('done');$$('.tk-st.cur',e).forEach(x=>x.classList.remove('cur'))};
  /* ---- Встроенный поиск модели (у провайдера свой интернет-поиск) ----
     or: OpenRouter, плагин web (подходит любой модели OpenRouter); anthropic: инструмент web_search у Claude; oai: модели OpenAI *search*.
     Определяется по адресу и названию модели. Реальные запросы уходят в Kotlin (поля web, webmax у провайдера). */
