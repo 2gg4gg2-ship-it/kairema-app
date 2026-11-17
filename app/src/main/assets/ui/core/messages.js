@@ -5,7 +5,13 @@ function paint(box,msgs,q){box.innerHTML='';if(!msgs.length)box.innerHTML='<div 
  if(from){const more=el('<button class="more-old"></button>');const lab=()=>more.textContent=L('Показать ранние')+' ('+from+')';lab();
   more.onclick=()=>{const h=box.scrollHeight,t=box.scrollTop,to=from,f=Math.max(0,from-60),fr=document.createDocumentFragment();for(let i=f;i<to;i++)fr.append(msgEl(msgs[i],0));from=f;more.after(fr);if(from)lab();else more.remove();box.scrollTop=t+(box.scrollHeight-h)};box.append(more)}
  for(let i=from;i<msgs.length;i++)box.append(msgEl(msgs[i],0,q))}
-const scr=b=>b.scrollTop=1e6;
+/* Прокрутка чата. scr: принудительно вниз (отправили сообщение, открыли чат). scl: во время потока ответа ведёт вниз,
+   ТОЛЬКО пока читатель внизу; как только он потянул чат вверх, не мешаем (b._stk=false), вернулся к низу снова следуем. */
+function follow(b){if(b._fw)return;b._fw=1;
+ const mark=()=>{b._u=Date.now()};['touchstart','touchmove','wheel','pointerdown','keydown'].forEach(e=>b.addEventListener(e,mark,{passive:true}));
+ b.addEventListener('scroll',()=>{if(Date.now()-(b._u||0)<1800)b._stk=b.scrollHeight-b.scrollTop-b.clientHeight<90},{passive:true})}
+const scr=b=>{follow(b);b._stk=true;b.scrollTop=1e6};
+const scl=b=>{follow(b);if(b._stk!==false)b.scrollTop=1e6};
 function stopTail(d){const b=el('<button class="more-old stp-c"></button>');b.textContent=L('Остановлено. Продолжить');b.onclick=()=>{b.remove();const c=Chat.cmp;if(!c||!c.setText)return;c.setText(L('Продолжи с того места, где остановился.'));const sd=$('.send',c);if(sd&&!sd.disabled)sd.click()};d.append(b)}
 i18nAdd({"Остановлено. Продолжить":"Stopped. Continue","Продолжи с того места, где остановился.":"Continue from where you stopped.","Остановить":"Stop"});
 async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=msgEl(m,1);box.append(d);const bd=$('.bd',d);bd.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';scr(box);
@@ -22,15 +28,16 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
   const ctx=src.length?'Результаты поиска в интернете ('+new Date().toLocaleDateString('ru-RU')+'):\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+'\n'+s.url+'\n'+s.snippet).join('\n\n')+'\n\nПравила: это результаты автоматического поиска по тексту вопроса, они могут не относиться к делу (например, если вопрос про тебя, это приложение или нашу беседу). Используй только то, что прямо отвечает на вопрос, и ссылайся номерами [1], [2]. Если результаты не по теме, молча игнорируй их и отвечай сам; ничего не выдумывай и не приписывай найденное предмету вопроса. Вопрос пользователя: ':'';
   const mkHist=c=>(typeof Ctx!=='undefined'?Ctx.view(msgs):msgs).filter(x=>x!==m&&!x.err&&x.t).map(x=>({role:x.r==='u'?'user':'assistant',content:toContent(x,anth,x===last?c:'')}));const hist=mkHist(ctx);
   const tail=(src.length?'\n\nИсточники:\n'+src.map((s,i)=>'['+(i+1)+'] '+s.title+' — '+s.url).join('\n'):'')+(serr?'\n\n⚠ Поиск не сработал: '+serr:'');
+  try{Quality.watch(msgs)}catch(_){}
   let got=false;window.GEN={stopped:0,pr:null,stop(){this.stopped=1;Native.cancel(this.pr&&this.pr.id)}};if(Chat.cmp&&Chat.cmp.upd)Chat.cmp.upd();
   try{
-   const run=h=>{const pr=Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):'')+sysExtra(msgs),think:typeof Tools!=='undefined'?Tools.think():0}),JSON.stringify(h)],t=>{if(t.charCodeAt(0)===2){if(typeof Cost!=='undefined')Cost.usage(m,t.slice(1));return}if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scr(box))});if(window.GEN)GEN.pr=pr;return pr};
+   const run=h=>{const pr=Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):'')+sysExtra(msgs),think:typeof Tools!=='undefined'?Tools.think():0}),JSON.stringify(h)],t=>{if(t.charCodeAt(0)===2){if(typeof Cost!=='undefined')Cost.usage(m,t.slice(1));return}if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(typeof Quality!=='undefined'){t=Quality.filter(t);if(!t)return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scl(box))});if(window.GEN)GEN.pr=pr;return pr};
    await run(hist);
    /* Пустой ответ при включённом поиске: повторяем один раз без результатов поиска */
    if(!got&&ctx&&!GEN.stopped){src=[];serr='модель не ответила с результатами поиска, ответ без них';await run(mkHist(''))}
    if(!got&&GEN.stopped)throw new Error('Canceled');
    if(!got){m.err=1;m.t=bd.textContent='Пустой ответ от провайдера'}
-   else{m.src=src.slice(0,5);m.serr=serr;mdRender(bd,m.t,m);scr(box);if(typeof Cost!=='undefined')Cost.done(m,pv,hist,sysPrompt());Hooks.run('chat:answer',m,bd)}
+   else{m.src=src.slice(0,5);m.serr=serr;mdRender(bd,m.t,m);scl(box);if(typeof Cost!=='undefined')Cost.done(m,pv,hist,sysPrompt());Hooks.run('chat:answer',m,bd)}
   }catch(e){
    if(window.GEN&&GEN.stopped){
     if(got&&m.t){mdRender(bd,m.t,m);m.stopped=1;stopTail(d)}

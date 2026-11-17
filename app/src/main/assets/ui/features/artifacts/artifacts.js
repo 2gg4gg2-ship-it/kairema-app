@@ -22,14 +22,30 @@ const Art={
  title(code,def){const t=(String(code).match(/<title[^>]*>([^<]{1,80})/i)||[])[1];return (t&&t.trim())||def||'Kairema'},
  /* Страница для печати и предпросмотра: SVG оборачиваем в HTML. */
  page(code,lang){return lang==='svg'?'<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;display:grid;place-items:center;min-height:100vh">'+code+'</body></html>':code},
+ /* Масштаб предпросмотра: в страницу добавляется маленький скрипт, он меняет zoom по сообщению от кнопок «−/+» и по щипку двумя пальцами.
+    Страница изолирована (sandbox), поэтому управление идёт через postMessage. Исходный код для PDF и файлов не меняется. */
+ zoomJs:'<script>(function(){var z=1,d0=0,z0=1;function set(v){z=Math.max(.5,Math.min(4,v));document.documentElement.style.zoom=z;try{parent.postMessage({kz:z},"*")}catch(e){}}'
+  +'addEventListener("message",function(e){var d=e.data;if(d&&d.kz!==undefined)set(d.kz==="reset"?1:z*d.kz)});'
+  +'function dist(e){var a=e.touches[0],b=e.touches[1];return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}'
+  +'addEventListener("touchstart",function(e){if(e.touches.length===2){d0=dist(e);z0=z}},{passive:true});'
+  +'addEventListener("touchmove",function(e){if(e.touches.length===2&&d0){e.preventDefault();set(z0*dist(e)/d0)}},{passive:false});'
+  +'addEventListener("touchend",function(e){if(e.touches.length<2)d0=0})})()<\/script>',
+ withZoom(html){const s=String(html),i=s.toLowerCase().lastIndexOf('</body>');return i>=0?s.slice(0,i)+Art.zoomJs+s.slice(i):s+Art.zoomJs},
  /* Предпросмотр на весь экран. Скрипты внутри страницы работают, но изолированно: доступа к данным приложения у неё нет. */
  preview(html,title,code,lang){
   const d=sub();
   d.innerHTML=`<div class="top"><button class="ib" data-bk aria-label="Назад">${ic('back')}</button><h2></h2></div><div class="art-fr"><iframe sandbox="allow-scripts" title="preview"></iframe></div><div class="art-ft"></div>`;
   $('h2',d).textContent=title||'Предпросмотр';
   $('[data-bk]',d).onclick=d.close;
-  $('iframe',d).srcdoc=html;
+  const fr=$('iframe',d);fr.srcdoc=Art.withZoom(html);
   const ft=$('.art-ft',d),ex=Art.ext[lang]||'.html',nm=Sx.fname(title,ex);
+  const zb=document.createElement('div');zb.className='art-z';
+  zb.innerHTML='<button type="button" data-zo aria-label="Отдалить">−</button><button type="button" data-zr class="art-zl">100%</button><button type="button" data-zi aria-label="Приблизить">+</button>';
+  const send=v=>{try{fr.contentWindow.postMessage({kz:v},'*')}catch(e){}};
+  $('[data-zo]',zb).onclick=()=>send(.8);$('[data-zi]',zb).onclick=()=>send(1.25);$('[data-zr]',zb).onclick=()=>send('reset');
+  const on=e=>{if(e.source===fr.contentWindow&&e.data&&typeof e.data.kz==='number')$('[data-zr]',zb).textContent=Math.round(e.data.kz*100)+'%'};
+  window.addEventListener('message',on);const oc=d.close;d.close=()=>{window.removeEventListener('message',on);oc()};$('[data-bk]',d).onclick=()=>d.close();
+  ft.before(zb);
   ft.append(Art.btn('PDF','fil',()=>Sx.pdf(title,html)),Art.btn('Скачать','dwn',()=>Sx.save(nm,Art.mime[ex],code)),Art.btn('Поделиться','shr',()=>Sx.file(nm,Art.mime[ex],code)));
   return d},
  /* Таблица Markdown в строки ячеек. */

@@ -29,7 +29,10 @@
 .tm-tile.off{opacity:.55;background:var(--s1)}.tm-tile.off .tm-i,.tm-tile.off .tm-n{color:var(--tx2)}
 /* размышления */
 .think{margin:0 0 10px;border:1px solid var(--line);border-radius:12px;background:var(--s1);overflow:hidden;font-family:var(--sans)}
-.think summary{cursor:pointer;list-style:none;padding:9px 12px;font:600 13px var(--body);color:var(--tx2)}
+.think summary{cursor:pointer;list-style:none;padding:11px 12px;min-height:44px;display:flex;align-items:center;gap:8px;font:600 13px var(--body);color:var(--tx2)}
+.think summary::before{content:'›';display:inline-block;font:600 18px/1 var(--mono);transition:transform .2s var(--ease)}
+.think[open] summary::before{transform:rotate(90deg)}
+.think .tk-n{margin-left:auto;font:500 12px var(--mono);opacity:.7}
 .think summary::-webkit-details-marker{display:none}
 .think .tbody{padding:0 12px 10px;max-height:220px;overflow:auto;white-space:pre-wrap;font:13px/1.5 var(--body);color:var(--tx2)}
 /* изображения */

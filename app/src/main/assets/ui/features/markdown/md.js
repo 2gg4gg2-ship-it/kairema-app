@@ -93,14 +93,18 @@ function mdSources(bd,m){
 /* Полная отрисовка ответа в элемент bd. m нужен для источников (необязательно). */
 function mdRender(bd,text,m){
  if(bd._mr){cancelAnimationFrame(bd._mr);bd._mr=0}
+ if(bd._mw){clearTimeout(bd._mw);bd._mw=0}
  bd.textContent='';bd.classList.add('md');
  try{mdBlocks(bd,String(text||''),!!m)}catch(e){bd.textContent=String(text||'')}
  if(m)mdSources(bd,m)}
 /* Во время потока: не чаще одного раза за кадр. */
+/* Длинный ответ перерисовывается реже (иначе каждый кадр строит весь текст заново и чат дёргается под пальцем). */
 function mdLive(bd,m,after){
  bd._mt=m.t;
- if(bd._mr)return;
- bd._mr=requestAnimationFrame(()=>{bd._mr=0;mdRender(bd,bd._mt);if(after)after()})}
+ if(bd._mr||bd._mw)return;
+ const n=String(bd._mt||'').length,gap=n<1500?0:n<6000?110:230,w=gap-(performance.now()-(bd._ml||0));
+ const go=()=>{bd._mw=0;bd._mr=requestAnimationFrame(()=>{bd._mr=0;bd._ml=performance.now();mdRender(bd,bd._mt);if(after)after()})};
+ if(w>0)bd._mw=setTimeout(go,w);else go()}
 /* Инструкция моделям: богатое оформление, чтобы ответ не был сплошным текстом. Работает для любой подключённой модели. */
 function stylePrompt(){
  return "\n\nFormatting style (important). Never answer with a solid wall of text. The app renders rich Markdown, so use a variety of styles: "

@@ -13,7 +13,7 @@ Hooks.on('chat:rendered',v=>{
   bu.classList.toggle('on',max>160&&box.scrollTop>120);
   bd.classList.toggle('on',max>160&&max-box.scrollTop>120)};
  const go=y=>{try{box.scrollTo({top:y,behavior:'smooth'})}catch(e){box.scrollTop=y}};
- bu.onclick=()=>go(0);bd.onclick=()=>go(box.scrollHeight);
+ bu.onclick=()=>{box._u=Date.now();go(0)};bd.onclick=()=>{box._u=Date.now();box._stk=true;go(box.scrollHeight)};
  box.addEventListener('scroll',upd,{passive:true});
  if(window.ResizeObserver){const ro=new ResizeObserver(()=>{place();upd()});ro.observe(cmp);ro.observe(box)}
  new MutationObserver(upd).observe(box,{childList:true,subtree:true,characterData:true});

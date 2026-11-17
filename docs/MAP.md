@@ -48,6 +48,7 @@
 | Синхронизировать новый тип данных | `features/sync/sync.js` (`register`) и свой `Hooks.on('sync:register', …)` | Образцы: `chats.js`, `memory.js` |
 | Резервная копия (экспорт/импорт) | `features/backup/backup.js` | Добавляй новые данные сюда тоже |
 | Терминал, команды из ответов, агент | `features/terminal/*` (`term-compat.js` разбор ответов любых моделей), `terminal/Shell.kt`, `assets/terminal/*.sh`, `TermuxRunner.kt`, `features/filediff/*` | Опасные команды требуют подтверждения |
+| Качество ответов, подсказки слабым моделям, фильтр иероглифов | `features/quality/quality.js` (`qualityPrompt` в `sysPrompt`, `Quality.filter` в `core/messages.js`) | Правила таблиц и языка менять только здесь |
 | Журнал ошибок | `features/log/log.js` | Ключи и почты заменяются на *** перед записью |
 | Справка (инструкция в приложении) | `features/help/help-data.js` (тексты), `help.js`, `help.css` | Поменял функцию, поправь её раздел справки |
 | Файлы из ответов (таблицы, HTML, PDF, CSV) | `features/artifacts/*` | Предпросмотр HTML в `<iframe sandbox="allow-scripts">` |
@@ -112,14 +113,14 @@
 | `core/base.js` | 54 | core/base.js: УТИЛИТЫ, ШАБЛОНЫ, СОСТОЯНИЕ, UI-ХЕЛПЕРЫ (page, sheet, меню, формы). |
 | `core/config.js` | 8 | НАСТРОЙКИ ПРИЛОЖЕНИЯ ===== APP_VERSION меняем при каждой сборке вместе с app/build.gradle.kts и README.md. |
 | `core/hooks.js` | 11 | ЯДРО: события и переводы для подключаемых модулей ===== Модуль не правит core/app.js: он подписывается на события (Hooks.on) и добавляет свои переводы (i18nAdd). |
-| `core/messages.js` | 135 | core/messages.js: СООБЩЕНИЯ, МОСТ К ANDROID (Native), ЧАТ. |
+| `core/messages.js` | 142 | core/messages.js: СООБЩЕНИЯ, МОСТ К ANDROID (Native), ЧАТ. |
 | `core/onboarding.js` | 58 | core/onboarding.js: ОНБОРДИНГ и FUTURE API. |
 | `core/settings.js` | 131 | core/settings.js: ПРОВАЙДЕРЫ, ПАМЯТЬ, ШАБЛОНЫ, ПРОФИЛЬ, НАСТРОЙКИ, ВКЛАДКИ. |
 | `core/styles.css` | 257 | 01. ТОКЕНЫ: цвета, шрифты, easing |
 | `features/about/about.css` | 32 | Стили модуля about: экран «О приложении». |
 | `features/about/about.js` | 24 | О ПРИЛОЖЕНИИ: логотип, версия, карточки возможностей ===== Модуль подменяет экран 'about' (SCREENS.about) после запуска приложения: core/app.js не правится. |
-| `features/artifacts/artifacts.css` | 13 | Стили модуля artifacts: панель под блоком кода и таблицей, предпросмотр страницы. |
-| `features/artifacts/artifacts.js` | 62 | ФАЙЛЫ ИЗ ОТВЕТОВ ИИ: таблицы, HTML-страницы, PDF, CSV ===== Модель не умеет создавать файлы сама, поэтому приложение делает их из ответа: - блок ```html → «Предпросмотр», |
+| `features/artifacts/artifacts.css` | 17 | Стили модуля artifacts: панель под блоком кода и таблицей, предпросмотр страницы. |
+| `features/artifacts/artifacts.js` | 78 | ФАЙЛЫ ИЗ ОТВЕТОВ ИИ: таблицы, HTML-страницы, PDF, CSV ===== Модель не умеет создавать файлы сама, поэтому приложение делает их из ответа: - блок ```html → «Предпросмотр», |
 | `features/auth/auth-methods.js` | 13 | ЯДРО АККАУНТА: реестр способов входа (модуль auth) ===== Экран «Вход или регистрация» сам ничего не знает о способах: он рисует всё, что добавлено сюда. |
 | `features/auth/auth-ui.js` | 111 | АККАУНТ: экраны (модуль auth) ===== Экран «Аккаунт» (вход, профиль), стартовое окно «с аккаунтом / без аккаунта», строка «Аккаунт» в настройках. |
 | `features/auth/auth.css` | 15 | Стили модуля auth. |
@@ -138,20 +139,22 @@
 | `features/ctx/ctx.js` | 61 | СЖАТИЕ КОНТЕКСТА ===== Команда «/compact» (список «/» из модуля roles): старая часть чата заменяется кратким пересказом, который уходит модели вместо длинной истории. |
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 150 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
-| `features/help/help-data.js` | 138 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
+| `features/help/help-data.js` | 143 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
 | `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
 | `features/help/help.js` | 89 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
 | `features/log/log.css` | 3 | Стили модуля log: экран «Журнал ошибок». |
 | `features/log/log.js` | 47 | ЖУРНАЛ ОШИБОК: что сломалось, можно скопировать и прислать разработчику ===== Ловит ошибки страницы (error, unhandledrejection, console.error) и ошибки ответов ИИ (Log.ad |
 | `features/markdown/md.css` | 42 | Стили разметки ответов ИИ (модуль markdown). |
-| `features/markdown/md.js` | 111 | MARKDOWN → DOM для ответов ИИ ===== Безопасно: всё строится через createElement и textContent, innerHTML не используется. |
+| `features/markdown/md.js` | 115 | MARKDOWN → DOM для ответов ИИ ===== Безопасно: всё строится через createElement и textContent, innerHTML не используется. |
 | `features/memory/memory-ai.js` | 100 | ПАМЯТЬ: извлечение фактов самой моделью ===== После ответа (событие chat:answer) в фоне уходит один короткий запрос тому же провайдеру: «что из сообщения пользователя сто |
 | `features/memory/memory-ui.js` | 115 | ПАМЯТЬ: экран (заменяет старую страницу из core/app.js через SCREENS.memory) ===== Переключатели (память, быстрые правила, умное извлечение), профиль с сохранением, что и |
 | `features/memory/memory.css` | 27 | Стили страницы «Память»: более жирный, читаемый текст; ровный список фактов. |
 | `features/memory/memory.js` | 180 | ПАМЯТЬ (v2): хранилище фактов, профиль, подбор фактов под вопрос, подсказка для модели ===== Модель данных. |
 | `features/providers/providers.css` | 46 | Стили модуля providers: выбор модели и провайдера (лист снизу). |
 | `features/providers/providers.js` | 143 | ПРОВАЙДЕРЫ ИИ: название, адрес, ключ → проверка ключа → выбор модели из списка |
+| `features/quality/quality.css` | 3 | Стили модуля quality: значение справа в строке настроек. |
+| `features/quality/quality.js` | 61 | КАЧЕСТВО ОТВЕТОВ ДЛЯ ЛЮБЫХ МОДЕЛЕЙ (от самых слабых до лучших) ===== 1) Quality.prompt(): короткие жёсткие правила в системную подсказку: язык ответа, никаких иероглифов, |
 | `features/roles/roles.css` | 21 | Команды «/» и плашка роли над полем ввода |
 | `features/roles/roles.js` | 148 | РОЛИ И КОМАНДЫ «/» ===== В поле ввода набираете «/» и появляется список команд. |
 | `features/scroller/scroller.css` | 7 | Кнопки листания чата: маленькие, над полем ввода справа. |
@@ -168,9 +171,9 @@
 | `features/terminal/term-compat.js` | 110 | ТЕРМИНАЛ: совместимость с любыми моделями (от самых слабых до лучших) ===== Слабые модели не всегда оформляют команды правильно: забывают язык у блока, пишут «$ ls» вмест |
 | `features/terminal/terminal.css` | 53 | Стили модуля terminal. |
 | `features/terminal/terminal.js` | 248 | ТЕРМИНАЛ: настоящая оболочка Android и запуск команд из ответов ИИ ===== Команды выполняет Kotlin (Shell.kt, /system/bin/sh). |
-| `features/tools/tools.css` | 47 | Меню «+», метки режимов в поле ввода, размышления, изображения |
-| `features/tools/tools.js` | 139 | ФУНКЦИИ ЧАТА: меню «+», режимы ответа, создание изображений, глубокое исследование ===== Кнопка «+» в поле ввода открывает список: вложения (галерея, камера, файлы) и фун |
-| `index.html` | 83 |  |
+| `features/tools/tools.css` | 50 | Меню «+», метки режимов в поле ввода, размышления, изображения |
+| `features/tools/tools.js` | 141 | ФУНКЦИИ ЧАТА: меню «+», режимы ответа, создание изображений, глубокое исследование ===== Кнопка «+» в поле ввода открывает список: вложения (галерея, камера, файлы) и фун |
+| `index.html` | 85 |  |
 
 ### Индекс файлов Kotlin (`app/src/main/java/com/kairema/app`)
 
@@ -217,7 +220,7 @@
 | `memory:auto` | — | memory-ai.js |
 | `memory:changed` | memory.js | backup.js, memory-ai.js, memory-ui.js, settings.js |
 | `msg:render` | branch.js, cost.js, ctx.js, share.js, tools.js | messages.js |
-| `settings:rendered` | auth-ui.js, backup.js, cost.js, filediff.js, help.js, log.js, roles.js | settings.js |
+| `settings:rendered` | auth-ui.js, backup.js, cost.js, filediff.js, help.js, log.js, quality.js, roles.js | settings.js |
 | `sync:delete` | search.js, sync.js | chats.js, memory.js, sync.js |
 | `sync:left` | auth-ui.js | sync.js |
 | `sync:register` | chats.js, memory.js, sync.js | sync.js |
