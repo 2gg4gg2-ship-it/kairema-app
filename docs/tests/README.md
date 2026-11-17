@@ -38,3 +38,5 @@ Playwright (Chromium), без jsdom: `python3 -I docs/tests/ui020.test.py` и `p
 
 Тесты 0.32.0: `node docs/tests/pdf031.test.js` (чтение PDF, файлы в `docs/tests/fixtures`), `python3 -I docs/tests/attach031.test.py` (выбор фото и PDF с подменой моста), `python3 -I docs/tests/preview031.test.py /tmp` (предпросмотр: кнопки −/+, поворот). Kotlin они не запускают.
 
+Тест 0.33.0: `python3 -I docs/tests/model033.test.py /tmp` (факты о модели в подсказке, просмотр вложений в поле ввода, метка «Поиск», подписи в меню «+»).
+

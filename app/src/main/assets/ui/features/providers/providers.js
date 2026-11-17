@@ -4,8 +4,21 @@ const PROV_EN={"Проверить ключ":"Verify key","Проверяем к
 const PROV_ACT='kact',MCACHE={};
 function actProv(){const ok=S.providers.filter(x=>x.ok);return ok.find(x=>x.id===st.get(PROV_ACT))||ok[0]}
 /* Системная инструкция: язык ответа как у вопроса и оформление в Markdown. */
+/* Честные факты о ВЫБРАННОЙ модели и о том, что включено сейчас: модель сама часто путает своё имя, поэтому имя берём из настроек. */
+function modelFacts(){
+ try{
+  const pv=actProv();if(!pv||!pv.model)return'';
+  let host='';try{host=new URL(pv.url).host}catch(e){host=String(pv.url||'')}
+  const T=typeof Tools!=='undefined'?Tools:null,C=typeof Caps!=='undefined'?Caps:null;
+  const yn=v=>v?'yes':'no';
+  const sp=Array.isArray(S.sproviders)&&S.sproviders.some(x=>x.ok);
+  const wk=T&&T.webKind?T.webKind(pv):'';
+  const mw=!!(T&&T.mwebOn&&T.mwebOn());
+  const th=T?T.thinkMode:'auto';
+  return ' FACTS FROM APP SETTINGS (reliable, they override your own guesses): the selected model id is "'+pv.model+'", connected through the provider "'+(pv.name||host)+'" ('+host+'). If the user asks who or what you are, which model you are, or who made you, answer truthfully and briefly: you are the model "'+pv.model+'" running via "'+(pv.name||host)+'" inside the Kairema app. Do not claim to be another model, version or company than this id says; if your own training suggests a different name, say that you are not sure and that the app reports this id. Never invent parameters, release dates, benchmarks or abilities. Abilities in this chat right now: this model has built-in reasoning (Think button): '+yn(C&&C.think?C.think(pv):false)+'; current thinking mode: '+th+'; image input: '+(C&&C.vision?String(C.vision(pv)===null?'unknown':yn(C.vision(pv))):'unknown')+'; app web search connected: '+yn(sp)+', turned on for this message: '+yn(sp&&S.web)+'; provider built-in web search for this model: '+yn(!!wk)+', turned on: '+yn(mw)+'. You cannot open web pages yourself: you only see search results that the app puts into the message. If the user asks whether you can search the internet or think, answer from these facts and tell them which button in the "+" menu turns it on.'
+ }catch(e){return''}}
 function sysPrompt(){
- return "You are the assistant inside the Kairema mobile app. Always answer in the same language as the user's latest message (for example, if the user writes in Russian, answer in Russian; if unsure, use "+(LANG==='en'?'English':'Russian')+"). Format answers with Markdown: short paragraphs, **bold** for key terms, bullet or numbered lists, tables for comparisons, fenced code blocks for code. Keep answers compact because they are read on a phone screen. About the app: Kairema is an Android AI chat app: the user connects their own API key of an AI provider (OpenAI-compatible or Anthropic) and chats with the model they selected; it has chat history and search, memory, web search, a terminal (Android shell or Termux), sharing and file export. You are that selected model, not a Kairema product, and you do not know who created the app or its company, so never invent a creator, company, team, ratings, reviews or financial facts about it. If web search results are included in the user's message, they come from an automatic search and may be irrelevant: use them only when they directly answer the question, cite sources as [1], [2], and otherwise ignore them silently and never invent sources. Never repeat facts from earlier answers that were not supported by real sources. Today is "+new Date().toISOString().slice(0,10)+"."+(typeof stylePrompt==='function'?stylePrompt():'')+(typeof qualityPrompt==='function'?qualityPrompt():'')+(typeof memoryPrompt==='function'?memoryPrompt():'')+(typeof terminalPrompt==='function'?terminalPrompt():'')+(typeof artifactPrompt==='function'?artifactPrompt():'')}
+ return "You are the assistant inside the Kairema mobile app. Always answer in the same language as the user's latest message (for example, if the user writes in Russian, answer in Russian; if unsure, use "+(LANG==='en'?'English':'Russian')+"). Format answers with Markdown: short paragraphs, **bold** for key terms, bullet or numbered lists, tables for comparisons, fenced code blocks for code. Keep answers compact because they are read on a phone screen. About the app: Kairema is an Android AI chat app: the user connects their own API key of an AI provider (OpenAI-compatible or Anthropic) and chats with the model they selected; it has chat history and search, memory, web search, a terminal (Android shell or Termux), sharing and file export. You are that selected model, not a Kairema product, and you do not know who created the app or its company, so never invent a creator, company, team, ratings, reviews or financial facts about it. If web search results are included in the user's message, they come from an automatic search and may be irrelevant: use them only when they directly answer the question, cite sources as [1], [2], and otherwise ignore them silently and never invent sources. Never repeat facts from earlier answers that were not supported by real sources. Today is "+new Date().toISOString().slice(0,10)+"."+modelFacts()+(typeof stylePrompt==='function'?stylePrompt():'')+(typeof qualityPrompt==='function'?qualityPrompt():'')+(typeof memoryPrompt==='function'?memoryPrompt():'')+(typeof terminalPrompt==='function'?terminalPrompt():'')+(typeof artifactPrompt==='function'?artifactPrompt():'')}
 function normModels(raw){
  return (Array.isArray(raw)?raw:[]).map(x=>typeof x==='string'?{id:x,name:''}:{id:String((x&&x.id)||''),name:(x&&x.name)?String(x.name):'',free:(x&&typeof x.free==='boolean')?x.free:undefined,img:(x&&typeof x.img==='boolean')?x.img:undefined,think:(x&&typeof x.think==='boolean')?x.think:undefined,vis:(x&&typeof x.vis==='boolean')?x.vis:undefined,pin:(x&&typeof x.pin==='number')?x.pin:undefined,pout:(x&&typeof x.pout==='number')?x.pout:undefined}).filter(x=>x.id)}
 async function fetchModelList(p){
@@ -23,7 +36,7 @@ function mdlRow(o){
  $('.mdl-n',r).textContent=t;
  const idEl=$('.mdl-id',r);if(t!==o.id)idEl.innerHTML=esc(o.id).replace(/([\/:_-])/g,'$1<wbr>');else idEl.remove();
  const e=$('.mdl-e',r);
- if(o.caps){[['img','Картинки'],['think','Think'],['vis','Зрение']].forEach(([k,n])=>{if(o.caps[k]){const g=document.createElement('em');g.className='mdl-tag cap';g.textContent=L(n);e.append(g)}})}
+ if(o.caps){[['img','Картинки'],['think','Think'],['vis','Зрение'],['srch','Поиск']].forEach(([k,n])=>{if(o.caps[k]){const g=document.createElement('em');g.className='mdl-tag cap';g.textContent=L(n);e.append(g)}})}
  if(o.free!==undefined){const g=document.createElement('em');g.className='mdl-tag '+(o.free?'free':'paid');g.textContent=o.free?'Бесплатная':'Платная';e.append(g)}
  if(o.on){r.classList.add('on');e.insertAdjacentHTML('beforeend',ic('ok'))}
  if(!e.children.length)e.remove();
@@ -37,7 +50,7 @@ function mdlTabs(labels,cb){
  bs[0].classList.add('on');
  w.count=(i,n)=>{$('em',bs[i]).textContent=n};
  return w}
-function pickModel(rawList,cur,onPick){
+function pickModel(rawList,cur,onPick,pv0){
  const list=normModels(rawList),en=LANG==='en',priced=list.some(x=>x.free!==undefined);
  let mode=0,lim=60;
  const s=sheet(`<h2 class="mdl-h">Выберите модель</h2><div data-mseg></div><div class="fld mdl-s"><input data-ms type="text" placeholder="Поиск по названию" autocomplete="off" autocapitalize="off" spellcheck="false"></div><p class="hint mdl-c" data-mc></p><div class="mdl-list" data-ml></div>`);
@@ -59,7 +72,7 @@ function pickModel(rawList,cur,onPick){
   const sect=(title,arr)=>{
    if(!arr.length||shown>=lim)return;
    if(title){const h=el('<p class="mdl-sec"></p>');h.style.setProperty('--i',Math.min(shown,9));h.textContent=title+' ('+arr.length+')';box.append(h)}
-   for(const m of arr){if(shown>=lim)break;const r=mdlRow({id:m.id,name:m.name,free:priced?!!m.free:undefined,caps:(typeof Caps!=='undefined'&&Caps.of)?Caps.of(m):null,on:m.id===cur,i:shown});r.onclick=()=>{s.close();onPick(m.id)};box.append(r);shown++}};
+   for(const m of arr){if(shown>=lim)break;const r=mdlRow({id:m.id,name:m.name,free:priced?!!m.free:undefined,caps:(typeof Caps!=='undefined'&&Caps.of)?{...Caps.of(m),srch:!!(pv0&&typeof Tools!=='undefined'&&Tools.webKind&&Tools.webKind({url:pv0.url,model:m.id}))}:null,on:m.id===cur,i:shown});r.onclick=()=>{s.close();onPick(m.id)};box.append(r);shown++}};
   sect(priced&&mode===0?(en?'Free':'Бесплатные'):'',fr);sect(priced&&mode===0?(en?'Paid':'Платные'):'',pd);
   if(!f.length){const e=el('<p class="mdl-empty"></p>');e.textContent='Ничего не найдено';box.append(e)}
   cnt.textContent=(en?'Models found: ':'Найдено моделей: ')+f.length;
@@ -83,7 +96,7 @@ function modelMenu(){
   b.disabled=true;b.innerHTML='<span class="spin"></span>Загружаю модели…';stt.className='stat';stt.textContent='';
   try{
    const l=await fetchModelList(cur);s.close();
-   pickModel(l,cur.model,m=>{cur.model=m;saveProviders();apiView();toast(m)})
+   pickModel(l,cur.model,m=>{cur.model=m;saveProviders();apiView();toast(m)},cur)
   }catch(x){stt.className='stat bad';stt.textContent='✗ '+x.message;b.disabled=false;b.textContent='Выбрать другую модель'}}}
 function chatProvForm(i,done){
  const e=S.providers[i]||{},id=e.id||pid();
@@ -114,7 +127,7 @@ function chatProvForm(i,done){
     const p={id,name,model:m,url,ok:true};
     if(i<0)S.providers.push(p);else S.providers[i]=p;
     saved=true;saveProviders();done();toast('Провайдер подключён');
-    stt.className='stat ok';stt.textContent='✓ Подключено';setTimeout(()=>d.close(),700)});
+    stt.className='stat ok';stt.textContent='✓ Подключено';setTimeout(()=>d.close(),700)},{url});
    if(okList){choose();return}
    sv.disabled=true;sv.innerHTML='<span class="spin"></span>Проверяем ключ…';stt.className='stat';stt.textContent='';
    if(kv){Native.saveKey(id,kv);keyPut=true}
