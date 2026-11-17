@@ -30,6 +30,11 @@
 - Пересылка: `Sx.slice(m,10)` берёт сообщение и до 9 предыдущих; страница строится из данных чата, а не из экрана. Если нужно вернуть «Отправить текстом/файлом .md», строки в `Sx.sheet` в `features/share/share.js`.
 - Не проверено на телефоне: Kotlin (`VoiceBridge`, `SystemBridge`, правки `MainActivity`), видео-заставка, значки статус-бара. Если красная сборка, смотреть эти файлы.
 
+## 0.31.0 (Claude-Ядро): понимание запроса, поиск, вложения, черновик, код, настройки
+- Модули: `intent`, `websearch`, `attview` (были в 0.30.0 другой сессии, но загрузка 0.30.0 от другого Claude их затёрла, поэтому перенесены заново), `draft`, `setlayout`. Блоки кода: `mdCodeWrap` и `mdCodeView` в `features/markdown/md.js` (кнопки модулей terminal и artifacts остаются сиблингами после обёртки `.cbw`). Точечные правки: `core/messages.js` (isImgF, readFiles, toContent, onSend, respond), `core/settings.js` (вызов `SetLayout.apply`), `features/caps/caps.js` (`Caps.vision`), `features/presets/presets.js` (Gurouter), `index.html`.
+- Чужая работа не затронута: перед сборкой репозиторий сверялся. Проверено jsdom (`ui031`, `understand`, `search`, `auth`, `sync`, `welcome`, `menu`). Не проверено на телефоне: вид плиток и блоков кода на реальных экранах, жесты просмотра фото, адрес Gurouter (дал владелец), планировщик поиска с реальными моделями.
+- Не сделано: PDF для провайдеров кроме Anthropic (нужен Kotlin PdfRenderer), HEIC. Старые Playwright-тесты (`ui026`, `ui020`, `ui021`, `term027`, `smoke028`, `help027`) не запускались и могут ждать прежней разметки настроек или кода.
+
 ## Вход по почте (0.22.0, Claude-Ядро)
 - Файлы: `features/auth/` (`auth.js` ядро, `auth-methods.js` реестр, `method-email.js`, `method-device.js`, `auth-ui.js` экраны и стартовое окно, `auth.css`). `index.html`: +3 строки. `core/app.js` не менялся.
 - Поток: стартовое окно один раз (после заставки, обучения и имени), затем «Вход или регистрация»: почта, код, вход. Пароль в интерфейсе убран (API `signIn/signUp` оставлен). Кнопка «Аккаунты на этом телефоне» (не вход через Google) показывает аккаунты из `kairema.accounts.v1`, выбор = вход без кода через refresh token.

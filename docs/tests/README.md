@@ -10,6 +10,8 @@ UI_DIR=../../app/src/main/assets/ui/ node auth.test.js
 UI_DIR=../../app/src/main/assets/ui/ node sync.test.js
 UI_DIR=../../app/src/main/assets/ui/ node terminal.test.js
 UI_DIR=../../app/src/main/assets/ui/ node search.test.js
+UI_DIR=../../app/src/main/assets/ui/ node understand.test.js
+UI_DIR=../../app/src/main/assets/ui/ node ui031.test.js
 UI_DIR=../../app/src/main/assets/ui/ node welcome.test.js
 UI_DIR=../../app/src/main/assets/ui/ node menu.test.js
 ```

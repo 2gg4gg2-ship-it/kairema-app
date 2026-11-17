@@ -3,7 +3,7 @@
    «Другой сервис» открывает поле адреса для ручного ввода. Ключ нужен всегда, адрес нужен только для «другого» сервиса.
    Список PRESETS_AI / PRESETS_SEARCH правится здесь: {id, n название, u адрес, k где взять ключ, t подсказка}.
    Адреса сверены с документацией сервисов (ZenMux, CometAPI, TeamoRouter, BazaarLink, Kimi, You.com, Exa), остальные общеизвестные.
-   Сервисы, чьи адреса не удалось проверить (GoRouter, NaraRouter, Token Harbor, Keirolabs, Haimarker), берутся как «Другой сервис».
+   Адрес Gurouter (https://gurouter.com/v1) дал владелец. Сервисы, чьи адреса не удалось проверить (NaraRouter, Token Harbor, Keirolabs, Haimarker), берутся как «Другой сервис».
    Убрать: удалить папку features/presets и строки в index.html (формы вернутся к ручному вводу адреса). Тест: docs/tests/presets030.test.py */
 i18nAdd({"Сервис":"Service","Другой сервис":"Other service","Адрес подставлен":"Address filled in","Ключ можно получить":"Get a key at","Укажите адрес сервиса из личного кабинета. Он обычно заканчивается на /v1":"Enter the service address from its dashboard. It usually ends with /v1","Выберите сервис из списка: адрес вписывать не нужно":"Pick a service from the list: no address needed","Для поиска выберите сервис":"Pick a search service"});
 const PRESETS_AI=[
@@ -28,7 +28,7 @@ const PRESETS_AI=[
  {id:'nara',n:'NaraRouter',u:'https://router.bynara.id/v1',k:'router.bynara.id',t:'Ключи начинаются с sk-nry-'},
  {id:'haimaker',n:'Haimaker',u:'https://api.haimaker.ai/v1',k:'haimaker.ai'},
  {id:'keiro',n:'Keiro (модели)',u:'https://api.keirolabs.ai/v1',k:'keirolabs.ai'},
- {id:'gurouter',n:'GoRouter (GuRouter)',u:'https://api.gurouter.com/v1',k:'gurouter.com',t:'Адрес не подтверждён: если не работает, «Другой сервис» и адрес из docs.gurouter.com'}];
+ {id:'gurouter',n:'Gurouter',u:'https://gurouter.com/v1',k:'gurouter.com'}];
 const PRESETS_SEARCH=[
  {id:'tavily',n:'Tavily',u:'https://api.tavily.com/search',k:'app.tavily.com',t:'Лучший для ИИ, есть бесплатный лимит'},
  {id:'brave',n:'Brave Search',u:'https://api.search.brave.com/res/v1/web/search',k:'brave.com/search/api'},

@@ -23,6 +23,37 @@ const MD_SEP=/^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
 const MD_LI=/^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
 const MD_HR=/^\s*([-*_])(\s*\1){2,}\s*$/;
 const mdCells=l=>{l=l.trim();if(l.startsWith('|'))l=l.slice(1);if(l.endsWith('|'))l=l.slice(0,-1);return l.split('|').map(x=>x.trim())};
+/* ===== БЛОК КОДА: шапка с языком, длинный код свёрнут, нажатие открывает весь код ===== */
+const MD_CB_MAX=12;
+const MD_ICO={x:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>',
+ c:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>',
+ k:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>'};
+const mdCopy=t=>{if(typeof Sx!=='undefined'&&Sx.copyToast){Sx.copyToast(t);return}try{navigator.clipboard.writeText(t)}catch(e){}};
+function mdCodeView(lang,code){
+ const o=mdTag('div','cbv'),lines=String(code).split('\n');
+ o.innerHTML='<div class="cbvh"><button type="button" class="cbi" data-x aria-label="Close">'+MD_ICO.k+'</button><b></b><small></small><button type="button" class="cbi" data-c aria-label="Copy">'+MD_ICO.c+'</button></div><div class="cbvb"><pre class="cbg"></pre><pre class="cbc"><code></code></pre></div>';
+ o.querySelector('b').textContent=lang||'code';
+ o.querySelector('small').textContent=lines.length+' '+L('строк');
+ o.querySelector('.cbg').textContent=lines.map((_,i)=>i+1).join('\n');
+ o.querySelector('code').textContent=code;
+ const close=()=>{o.classList.remove('on');setTimeout(()=>o.remove(),200)};
+ o.querySelector('[data-x]').onclick=close;
+ o.querySelector('[data-c]').onclick=()=>mdCopy(code);
+ document.body.append(o);requestAnimationFrame(()=>o.classList.add('on'))}
+/* Оборачивает уже вставленный в root блок pre. Кнопки, которые добавили модули (Выполнить, Предпросмотр), остаются после обёртки. */
+function mdCodeWrap(root,pre,lang,buf,final){
+ const code=buf.join('\n'),big=buf.length>MD_CB_MAX;
+ const w=mdTag('div','cbw'+(big?' big':'')+(final?'':' live')),hd=mdTag('div','cbh'),lb=mdTag('span','cbl'),ac=mdTag('span','cba'),bx=mdTag('div','cbp');
+ lb.textContent=lang||'code';
+ const mk=(h,al,fn)=>{const b=mdTag('button','cbi');b.type='button';b.setAttribute('aria-label',al);b.innerHTML=h;b.onclick=e=>{e.stopPropagation();fn()};return b};
+ ac.append(mk(MD_ICO.x,'Open',()=>mdCodeView(lang,code)),mk(MD_ICO.c,'Copy',()=>mdCopy(code)));
+ hd.append(lb,ac);w.append(hd,bx);
+ root.insertBefore(w,pre);bx.append(pre);
+ if(big){
+  if(final){
+   const more=mdTag('button','cbm');more.type='button';more.textContent=L('Показать все')+' · '+buf.length+' '+L('строк');
+   more.onclick=()=>mdCodeView(lang,code);w.append(more);bx.onclick=()=>mdCodeView(lang,code)}
+  else bx.scrollTop=bx.scrollHeight}}
 const mdStart=(l,nx)=>/^```/.test(l)||/^#{1,6}\s/.test(l)||MD_HR.test(l)||/^\s*>/.test(l)||MD_LI.test(l)||(l.includes('|')&&nx!==undefined&&MD_SEP.test(nx));
 function mdBlocks(root,text,final){
  const L=text.replace(/\r/g,'').split('\n');let i=0;
@@ -35,6 +66,7 @@ function mdBlocks(root,text,final){
    i++;const lang=l.replace(/^```/,'').trim().split(/\s+/)[0].toLowerCase(),pre=mdTag('pre'),c=mdTag('code');
    c.textContent=buf.join('\n');pre.append(c);pre.dataset.lang=lang;root.append(pre);
    if(final)Hooks.run('md:code',pre,buf.join('\n'),lang);
+   mdCodeWrap(root,pre,lang,buf,final);
    continue}
   let h=l.match(/^(#{1,6})\s+(.*)$/);
   if(h){const e=mdTag('h'+Math.min(6,Math.max(3,h[1].length+2)));mdInline(e,h[2].replace(/\s*#+\s*$/,''));root.append(e);i++;continue}
@@ -111,4 +143,4 @@ function stylePrompt(){
   +"short headings (## and ###) to split longer answers; **bold** for key terms, names, numbers and conclusions (several per answer); *italic* for emphasis, titles and foreign words; ~~strikethrough~~ for corrections; ==highlight== for the single most important phrase; "
   +"> quotes for notes and warnings; bullet and numbered lists; tables for comparisons (always write a header row and a |---|---| separator row; keep cell text short, never put one word per line); `inline code` for commands, files and values; fenced code blocks for code; --- to separate big parts. "
   +"Start with the answer itself, then the details. Keep paragraphs to 1-3 sentences. Even a short answer should have at least one bold key phrase."}
-i18nAdd({"Источники":"Sources"});
+i18nAdd({"Источники":"Sources","Показать все":"Show all","строк":"lines"});
