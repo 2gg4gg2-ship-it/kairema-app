@@ -186,3 +186,10 @@
 - Адреса по документации: Token Harbor https://tokenharbor.ai/v1, NaraRouter https://router.bynara.id/v1, Haimaker https://api.haimaker.ai/v1, Keiro https://api.keirolabs.ai/v1 (модели) и https://api.keirolabs.cloud/api/v2/search/lite (поиск, ключ передаётся Bearer и api_key: способ не подтверждён). GoRouter: адрес api.gurouter.com/v1 НЕ подтверждён (docs.gurouter.com недоступен из песочницы).
 - Шаги размышлений: заголовок из **жирного**/# строки либо первая фраза абзаца; абзацы короче 20 символов присоединяются к предыдущему.
 - Ориентация: manifest portrait; `Bridge.setOrientation("landscape"|"portrait")`, вызывается из предпросмотра (`Art.orient`). Не проверено на телефоне.
+
+## 0.32.0 (Claude-Ядро): фото и PDF родным выбором, работа в фоне, предпросмотр
+- Новое: `attach/Attach.kt` (мост `KairemaAttach`: `attachPick`, `pdfPages`, код запроса 7201), `service/Notifier.kt` (`AppState.visible`, канал `kairema_done`), `features/attach`, `features/pdf`. Старый путь через `<input type=file>` оставлен запасным.
+- Общие файлы, тронутые точечно: `core/messages.js` (GUARD/OWN, `notify:1`, выбор через `Attach`, ветка PDF в `readFiles`), `bridge/Bridge.kt` (`httpLong` 600 с, `notify`), `KeepAliveService.kt` (wakelock до 1 ч, пауза 90 с), `MainActivity.kt`, `SystemBridge.kt` (боковые отступы), `artifacts.js/css` (масштаб −/+, `.art-bot`), `index.html` (два скрипта, запрет щипка), манифест (`WAKE_LOCK`).
+- Уведомление «Ответ готов» только для главного ответа (`notify:1`) и только когда приложение не на экране.
+- Проверено в браузере и node: `pdf031.test.js`, `attach031.test.py`, `preview031.test.py`. НЕ проверено на телефоне: весь Kotlin (выбор, `PdfRenderer`, wakelock, уведомление, боковые отступы), поведение при заблокированном экране.
+

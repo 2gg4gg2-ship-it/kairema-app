@@ -35,6 +35,8 @@ class SystemBridge(
 ) {
 
     private var padTop = 0 // статус-бар и вырез, px
+    private var padL = 0 // боковые панели и вырез в горизонтальном положении, px
+    private var padR = 0
     private var navPx = 0 // панель навигации, px
     private var imePx = 0 // клавиатура по данным WindowInsets, px
     private var framePx = 0 // клавиатура по размеру видимой области (запасной способ), px
@@ -68,12 +70,16 @@ class SystemBridge(
                 val bars = ins.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
                 val ime = ins.getInsets(WindowInsets.Type.ime())
                 padTop = bars.top
+                padL = bars.left
+                padR = bars.right
                 navPx = bars.bottom
                 imePx = ime.bottom
                 applyPadding()
                 WindowInsets.CONSUMED
             } else {
                 padTop = ins.systemWindowInsetTop
+                padL = ins.systemWindowInsetLeft
+                padR = ins.systemWindowInsetRight
                 navPx = ins.stableInsetBottom
                 imePx = Math.max(0, ins.systemWindowInsetBottom - ins.stableInsetBottom)
                 applyPadding()
@@ -136,7 +142,9 @@ class SystemBridge(
 
     private fun setBottom(px: Int) {
         shownBottom = px
-        if (root.paddingTop != padTop || root.paddingBottom != px) root.setPadding(0, padTop, 0, px)
+        if (root.paddingTop != padTop || root.paddingBottom != px || root.paddingLeft != padL || root.paddingRight != padR) {
+            root.setPadding(padL, padTop, padR, px)
+        }
     }
 
     private fun isNight(): Boolean =

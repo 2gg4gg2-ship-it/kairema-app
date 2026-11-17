@@ -35,7 +35,7 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
   try{Quality.watch(msgs)}catch(_){}
   let got=false;window.GEN={stopped:0,pr:null,stop(){this.stopped=1;Native.cancel(this.pr&&this.pr.id)}};if(Chat.cmp&&Chat.cmp.upd)Chat.cmp.upd();
   try{
-   const run=h=>{const pr=Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):'')+sysExtra(msgs),think:typeof Tools!=='undefined'?Tools.think():0,...(typeof Tools!=='undefined'?Tools.webArg(nat):{})}),JSON.stringify(h)],t=>{if(t.charCodeAt(0)===2){if(typeof Cost!=='undefined')Cost.usage(m,t.slice(1));return}if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(typeof Quality!=='undefined'){t=Quality.filter(t);if(!t)return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scl(box))});if(window.GEN)GEN.pr=pr;return pr};
+   const run=h=>{const pr=Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):'')+sysExtra(msgs),think:typeof Tools!=='undefined'?Tools.think():0,notify:1,...(typeof Tools!=='undefined'?Tools.webArg(nat):{})}),JSON.stringify(h)],t=>{if(t.charCodeAt(0)===2){if(typeof Cost!=='undefined')Cost.usage(m,t.slice(1));return}if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(typeof Quality!=='undefined'){t=Quality.filter(t);if(!t)return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scl(box))});if(window.GEN)GEN.pr=pr;return pr};
    await run(hist);
    /* Пустой ответ при включённом поиске: повторяем один раз без результатов поиска */
    if(!got&&ctx&&!GEN.stopped){src=[];serr='модель не ответила с результатами поиска, ответ без них';await run(mkHist(''))}
@@ -56,8 +56,10 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
 const NB=window.KairemaBridge,Native=(()=>{const pend={};let n=0,tok='';
  /* Токен приложения (Kotlin: bridge/Guard.kt). Присылается главной странице при загрузке; фреймы предпросмотра HTML его не видят.
     Методы из GUARD требуют токен первым аргументом. Пока токена нет (браузер, тесты с подменой моста), аргументы идут как есть. */
- const GUARD=new Set(['saveKey','deleteKey','termux','termuxRequestPermission','termuxStatus','shell','verify','models','chat','image','search','inboxTake']);
- const call=(fn,...a)=>GUARD.has(fn)&&tok?NB[fn](tok,...a):NB[fn](...a);
+ const GUARD=new Set(['saveKey','deleteKey','termux','termuxRequestPermission','termuxStatus','shell','verify','models','chat','image','search','inboxTake','attachPick','pdfPages']);
+ /* Методы выбора файлов лежат в отдельном мосте KairemaAttach (Kotlin: attach/Attach.kt) */
+ const OWN=new Set(['attachPick','pdfPages']);
+ const call=(fn,...a)=>{const o=OWN.has(fn)?window.KairemaAttach:NB;return GUARD.has(fn)&&tok?o[fn](tok,...a):o[fn](...a)};
  window.KairemaNative={chunk(id,t){const p=pend[id];if(p&&p.on)p.on(t)},done(id,err){const p=pend[id];if(!p)return;delete pend[id];err?p.rej(new Error(err)):p.res()},tok(t){if(!tok&&typeof t==='string')tok=t}};
  return{on:!!NB,
   saveKey:(id,k)=>{if(NB)call('saveKey',id,k)},
@@ -80,6 +82,7 @@ async function readFiles(list,anth){
   try{
    if(isImgF(f))out.push(await imgPart(f));
    else if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){
+    if(!anth&&typeof Pdf!=='undefined'){out.push(...await Pdf.read(f,false));continue}
     if(!anth){toast('PDF поддерживается только провайдером Anthropic: '+f.name);out.push({k:'text',name:f.name,text:'[Файл не передан: этот провайдер не принимает PDF. Скажи пользователю, что содержимое PDF ты не видишь, и попроси прислать текст или фото страниц.]'});continue}
     if(f.size>8*1048576){toast('Файл больше 8 МБ: '+f.name);out.push({k:'text',name:f.name,text:'[Файл не передан: больше 8 МБ.]'});continue}
     out.push({k:'pdf',name:f.name,data:b64(await f.arrayBuffer())})}
@@ -132,7 +135,7 @@ function composer(o){
  const send=()=>{if(window.GEN){window.GEN.stop();return}if(sd.disabled)return;const t=ta.value.trim(),f=files.map(x=>x.f.name),fl=files.map(x=>x.f);files.forEach(x=>x.u&&URL.revokeObjectURL(x.u));ta.value='';files=[];$('.att',w).innerHTML='';ta.style.height='22px';upd();o.onSend(t,f,fl,typeof Tools!=='undefined'?Tools.take():null)};sd.onclick=send;
  const addF=list=>{[...list].forEach(f=>{const im=isImgF(f),o2={f,u:im?URL.createObjectURL(f):''};files.push(o2);const c=el(`<div class="ap ${im?'im':''}">${im?'<img alt="">':`${ic('file')}<span><b></b><small></small></span>`}<button class="rm" aria-label="Удалить вложение">${ic('x')}</button></div>`);if(im){$('img',c).src=o2.u}else{$('b',c).textContent=f.name;$('small',c).textContent=fmt(f.size)}$('.rm',c).onclick=()=>{files=files.filter(x=>x!==o2);if(o2.u)URL.revokeObjectURL(o2.u);c.remove();upd()};$('.att',w).append(c)});upd()};
  const ins={g:$('[data-ig]',w),f:$('[data-if]',w),c:$('[data-ic]',w)};Object.values(ins).forEach(i=>i.onchange=()=>{addF(i.files);i.value=''});
- $('[data-plus]',w).onclick=()=>{if(typeof Tools!=='undefined'){Tools.open({pick:k=>ins[k].click(),tpl:()=>tpl()});return}const s=sheet(`<button class="pi2" data-k="g">${ic('img')}<span>Галерея</span></button><button class="pi2" data-k="f">${ic('file')}<span>Файлы</span></button><button class="pi2" data-k="c">${ic('cam')}<span>Камера</span></button><button class="btn ghost" data-x style="width:100%;margin-top:10px">Отмена</button>`);$$('[data-k]',s).forEach(b=>b.onclick=()=>{s.close();ins[b.dataset.k].click()});$('[data-x]',s).onclick=s.close};
+ $('[data-plus]',w).onclick=()=>{if(typeof Tools!=='undefined'){Tools.open({pick:k=>{if(typeof Attach!=='undefined'&&(k==='g'||k==='f')&&Attach.pick(k,addF))return;ins[k].click()},tpl:()=>tpl()});return}const s=sheet(`<button class="pi2" data-k="g">${ic('img')}<span>Галерея</span></button><button class="pi2" data-k="f">${ic('file')}<span>Файлы</span></button><button class="pi2" data-k="c">${ic('cam')}<span>Камера</span></button><button class="btn ghost" data-x style="width:100%;margin-top:10px">Отмена</button>`);$$('[data-k]',s).forEach(b=>b.onclick=()=>{s.close();ins[b.dataset.k].click()});$('[data-x]',s).onclick=s.close};
  const tpl=()=>{const s=sheet(`<h2 style="margin-bottom:12px">Шаблоны промтов</h2><div id="tl"></div>`);tplList($('#tl',s),t=>{s.close();ta.value=(ta.value?ta.value+'\n':'')+t;grow();ta.focus()})};
  let lp;ta.addEventListener('pointerdown',()=>{lp=setTimeout(tpl,650)});['pointerup','pointermove','pointercancel'].forEach(e=>ta.addEventListener(e,()=>clearTimeout(lp)));
  $('[data-tb]',w).onclick=()=>{if(typeof Roles!=='undefined'&&Roles.pick){Roles.pick(w,ta);return}tpl()};
