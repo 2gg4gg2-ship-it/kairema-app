@@ -117,7 +117,7 @@ function setView(){const v=$('#v-set'),p=S.p,TN=['Тёмная','Светлая'
  $$('[data-go]',v).forEach(b=>b.onclick=()=>({prof:()=>openScreen('profile'),mem:()=>openScreen('memory'),prov:()=>openScreen('providers'),tpl:()=>openScreen('templates'),add:()=>provForm(-1,setView,'chat'),adds:()=>provForm(-1,setView,'search'),about:()=>openScreen('about')})[b.dataset.go]());
  $$('[data-tg]',v).forEach(b=>b.onclick=()=>toggleWeb());
  $('[data-theme]',v).onclick=()=>{const s=sheet(`<h2 style="margin-bottom:8px">Тема</h2><div id="tl2"></div>`);TK.forEach((k,j)=>{const b=el(`<button class="sr in" style="--i:${j}"><span class="m"><b>${TN[j]}</b></span>${S.theme===k?ic('ok'):''}</button>`);b.onclick=()=>{S.theme=k;st.set('kth',k);applyTheme();s.close();setView();toast('Сохранено')};$('#tl2',s).append(b)})};
- $('[data-act=out]',v).onclick=logout;Hooks.run('settings:rendered',v);groupRows($('.st',v));if(typeof SetLayout!=='undefined')SetLayout.apply($('.st',v))}
+ $('[data-act=out]',v).onclick=logout;Hooks.run('settings:rendered',v);groupRows($('.st',v));Hooks.run('settings:grouped',v)}
 /* Строки настроек подряд складываются в скруглённую карточку, чтобы ничего не «висело» в воздухе. */
 function groupRows(box){if(!box)return;let g=null;[...box.children].forEach(c=>{if(c.matches('.sr,.pill')){if(!g){g=el('<div class="grp"></div>');c.before(g)}g.append(c)}else g=null})}
 /* ===== НАВИГАЦИЯ ===== */

@@ -6,7 +6,6 @@ import android.webkit.WebView
 import com.kairema.app.search.WebRelevance
 import com.kairema.app.data.SecureKeys
 import com.kairema.app.service.KeepAliveService
-import com.kairema.app.service.Notifier
 import com.kairema.app.share.Share
 import com.kairema.app.share.Inbox
 import com.kairema.app.terminal.Shell
@@ -33,13 +32,9 @@ class Bridge(private val ctx: Context, private val web: WebView) {
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(120, TimeUnit.SECONDS)
+        .readTimeout(300, TimeUnit.SECONDS)
         .build()
-    // Ответ модели может молчать долго (размышления): для запроса чата ждём до 10 минут между кусками, а не 2.
-    private val httpLong = http.newBuilder().readTimeout(600, TimeUnit.SECONDS).build()
     private val pool = Executors.newCachedThreadPool()
-    /** Начало ответа для уведомления «ответ готов»: только основные ответы чата (в запросе notify=1). */
-    private val previews = ConcurrentHashMap<String, StringBuilder>()
     private val calls = ConcurrentHashMap<String, Call>()
     private val sh = Shell(ctx)
     private val tm = TermuxRunner(ctx)
@@ -183,9 +178,14 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         pool.execute {
             try {
                 val p = JSONObject(provider)
-                if (p.optInt("notify", 0) == 1) previews[reqId] = StringBuilder()
                 val anthropic = p.getString("url").contains("anthropic.com")
-                open(reqId, p, JSONArray(messages), null).use { resp ->
+                var first = open(reqId, p, JSONArray(messages), null)
+                // Старые модели Claude не принимают большой max_tokens: повторяем с 4096.
+                if (anthropic && first.code == 400 && first.peekBody(2000).string().contains("max_tokens")) {
+                    first.close()
+                    first = open(reqId, p, JSONArray(messages), 4096)
+                }
+                first.use { resp ->
                     if (!resp.isSuccessful) {
                         done(reqId, errorText(resp))
                         return@use
@@ -195,6 +195,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                     var uIn = -1L
                     var uOut = -1L
                     var uCost = -1.0
+                    var cut = false // ответ оборван лимитом длины
                     while (true) {
                         val line = src.readUtf8Line() ?: break
                         if (!line.startsWith("data:")) continue
@@ -206,6 +207,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                                 if (it.has("input_tokens")) uIn = it.optLong("input_tokens")
                             }
                             if (j.optString("type") == "message_delta") {
+                                if (j.optJSONObject("delta")?.optString("stop_reason") == "max_tokens") cut = true
                                 j.optJSONObject("usage")?.let { if (it.has("output_tokens")) uOut = it.optLong("output_tokens") }
                             }
                         } else {
@@ -229,7 +231,9 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                                 else text = delta.optString("text")
                             }
                         } else {
-                            val d = j.optJSONArray("choices")?.optJSONObject(0)?.optJSONObject("delta")
+                            val ch0 = j.optJSONArray("choices")?.optJSONObject(0)
+                            if (ch0?.optString("finish_reason") == "length") cut = true
+                            val d = ch0?.optJSONObject("delta")
                             if (d != null) {
                                 if (!d.isNull("content")) text = d.optString("content")
                                 val r = if (!d.isNull("reasoning_content")) d.optString("reasoning_content")
@@ -241,6 +245,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                         if (!thought.isNullOrEmpty()) push(reqId, "\u0001" + thought)
                         if (!text.isNullOrEmpty()) push(reqId, text)
                     }
+                    if (cut) push(reqId, "\u0003")
                     if (uIn >= 0 || uOut >= 0) {
                         val u = JSONObject().put("i", uIn).put("o", uOut)
                         if (uCost >= 0) u.put("c", uCost)
@@ -591,7 +596,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         if (anthropic) {
             if (!base.contains("/v1")) base += "/v1"
             endpoint = if (base.endsWith("/messages")) base else "$base/messages"
-            body.put("max_tokens", maxTokens ?: 4096)
+            body.put("max_tokens", maxTokens ?: 16000)
             if (sys.isNotEmpty()) body.put("system", sys)
             rb.header("x-api-key", key).header("anthropic-version", "2023-06-01")
         } else {
@@ -620,7 +625,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         } else if (webMode == "oai" && base.contains("api.openai.com")) {
             body.put("web_search_options", JSONObject())
         }
-        val call = httpLong.newCall(
+        val call = http.newCall(
             rb.url(endpoint)
                 .post(body.toString().toRequestBody("application/json".toMediaType()))
                 .build()
@@ -652,11 +657,8 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         web.post { web.evaluateJavascript(code, null) }
     }
 
-    private fun push(id: String, text: String) {
-        val pv = previews[id]
-        if (pv != null && pv.length < 240 && !text.startsWith("\u0001") && !text.startsWith("\u0002")) pv.append(text)
+    private fun push(id: String, text: String) =
         js("KairemaNative.chunk(${JSONObject.quote(id)},${JSONObject.quote(text)})")
-    }
 
     /** Долгие задачи держат службу переднего плана, пока не вызван done. */
     private val tracked = ConcurrentHashMap.newKeySet<String>()
@@ -668,12 +670,6 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     private fun done(id: String, err: String?) {
         if (tracked.remove(id)) KeepAliveService.end(ctx)
         calls.remove(id)
-        // Приложение свёрнуто или экран выключен: сообщаем, что ответ готов (если открыто, уведомление не показывается).
-        val pv = previews.remove(id)
-        if (pv != null) {
-            if (err == null) Notifier.done(ctx, "Ответ готов", pv.toString().replace(Regex("\\s+"), " ").trim().take(180).ifEmpty { "Откройте Kairema, чтобы прочитать" })
-            else if (err != "canceled") Notifier.done(ctx, "Не удалось получить ответ", err.take(180))
-        }
         js("KairemaNative.done(${JSONObject.quote(id)},${if (err == null) "null" else JSONObject.quote(err)})")
     }
 }

@@ -12,7 +12,7 @@ const tile=n=>qa('.tm-tile').find(x=>x.querySelector('.tm-n').textContent===n);
  await sleep(8000);
  // меню: окно получает класс tmw (половина высоты), 8 плиток, три группы
  ev("Tools.open({pick(){}})");await sleep(150);
- assert(q('.sheet-bg.tmw'),'menu has tmw class');assert(qa('.tm-tile').length>=8,'tiles: '+qa('.tm-tile').length);assert.equal(qa('.tm-g').length,3);
+ assert(q('.sheet-bg.tmw'),'menu has tmw class');assert.equal(qa('.tm-tile').length,8);assert.equal(qa('.tm-g').length,3);
  // «Думать» включается и окно сразу закрывается
  const t0=tile('Думать');t0.click();await sleep(30);
  assert(!q('.sheet-bg.tmw.on'),'menu closes right after choosing a mode');

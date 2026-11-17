@@ -18,13 +18,10 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
-import com.kairema.app.attach.Attach
 import com.kairema.app.bridge.Bridge
 import com.kairema.app.bridge.Guard
 import com.kairema.app.data.DbBridge
 import com.kairema.app.search.SearchBridge
-import com.kairema.app.service.AppState
-import com.kairema.app.service.Notifier
 import com.kairema.app.share.Inbox
 import com.kairema.app.system.SystemBridge
 
@@ -38,7 +35,6 @@ class MainActivity : Activity() {
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var cameraUri: Uri? = null
     private var sys: SystemBridge? = null
-    private var attach: Attach? = null
     private var pendingChooser: WebChromeClient.FileChooserParams? = null
     private var askedMedia = false
 
@@ -111,7 +107,6 @@ class MainActivity : Activity() {
         web.addJavascriptInterface(Bridge(this, web), "KairemaBridge")
         web.addJavascriptInterface(DbBridge(this), "KairemaDb")
         web.addJavascriptInterface(SearchBridge(this), "KairemaSearch")
-        attach = Attach(this, web).also { web.addJavascriptInterface(it, "KairemaAttach") }
         // Контейнер для WebView: его отступы = системные панели и клавиатура (считает SystemBridge).
         val root = FrameLayout(this)
         root.setBackgroundColor(bg)
@@ -126,18 +121,6 @@ class MainActivity : Activity() {
         setContentView(root)
         Inbox.accept(this, intent)
         web.loadUrl("file:///android_asset/ui/index.html")
-    }
-
-    // Видимость нужна, чтобы «ответ готов» приходило уведомлением только когда приложение свёрнуто или экран выключен.
-    override fun onStart() {
-        super.onStart()
-        AppState.visible = true
-        Notifier.clear(this)
-    }
-
-    override fun onStop() {
-        AppState.visible = false
-        super.onStop()
     }
 
     private fun granted(p: String) = checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED
@@ -187,9 +170,7 @@ class MainActivity : Activity() {
 
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == Attach.REQ) {
-            attach?.onResult(resultCode, data)
-        } else if (requestCode == REQ_FILE) {
+        if (requestCode == REQ_FILE) {
             val cam = cameraUri
             val result: Array<Uri>? = if (cam != null) {
                 if (resultCode == RESULT_OK) {

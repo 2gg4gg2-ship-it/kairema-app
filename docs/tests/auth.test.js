@@ -1,7 +1,7 @@
 const {JSDOM,VirtualConsole}=require('jsdom');const fs=require('fs');const assert=require('assert');
 const dir=process.env.UI_DIR||require('path').join(__dirname,'../../app/src/main/assets/ui/');
 const errs=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errs.push(e.message));
-const html=fs.readFileSync(dir+'index.html','utf8').replace(/<script src="([^"]+)"><\/script>/g,(m,f)=>'<script>'+fs.readFileSync(dir+f,'utf8').replace(/<\/script>/g,'<\\/script>').replace(/supabaseUrl:'[^']*'/,"supabaseUrl:''").replace(/supabaseAnonKey:'[^']*'/,"supabaseAnonKey:''")+'</script>');
+const html=fs.readFileSync(dir+'index.html','utf8').replace(/<script src="([^"]+)"><\/script>/g,(m,f)=>'<script>'+fs.readFileSync(dir+f,'utf8').replace(/<\/script>/g,'<\\/script>')+'</script>');
 const reqs=[];let mode='ok',EXP=3600;
 const users={};
 const dom=new JSDOM(html,{runScripts:'dangerously',pretendToBeVisual:true,virtualConsole:vc,url:'http://localhost/ui/index.html',

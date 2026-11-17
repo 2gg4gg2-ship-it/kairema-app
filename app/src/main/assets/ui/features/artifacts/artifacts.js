@@ -22,12 +22,14 @@ const Art={
  title(code,def){const t=(String(code).match(/<title[^>]*>([^<]{1,80})/i)||[])[1];return (t&&t.trim())||def||'Kairema'},
  /* Страница для печати и предпросмотра: SVG оборачиваем в HTML. */
  page(code,lang){return lang==='svg'?'<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;display:grid;place-items:center;min-height:100vh">'+code+'</body></html>':code},
- /* Масштаб предпросмотра: в страницу добавляется маленький скрипт, он меняет zoom по сообщению от кнопок «−/+» (шаг 10%). Щипок пальцами отключён намеренно (владелец просил кнопки).
+ /* Масштаб предпросмотра: в страницу добавляется маленький скрипт, он меняет zoom по сообщению от кнопок «−/+» и по щипку двумя пальцами.
     Страница изолирована (sandbox), поэтому управление идёт через postMessage. Исходный код для PDF и файлов не меняется. */
- zoomJs:'<script>(function(){var z=1;function set(v){z=Math.max(.3,Math.min(4,Math.round(v*20)/20));document.documentElement.style.zoom=z;try{parent.postMessage({kz:z},"*")}catch(e){}}'
-  +'addEventListener("message",function(e){var d=e.data;if(!d)return;if(d.kz!==undefined)set(d.kz==="reset"?1:d.kz);else if(d.kd!==undefined)set(z+d.kd)});'
-  +'document.addEventListener("gesturestart",function(e){e.preventDefault()});'
-  +'})()<\/script>',
+ zoomJs:'<script>(function(){var z=1,d0=0,z0=1;function set(v){z=Math.max(.5,Math.min(4,v));document.documentElement.style.zoom=z;try{parent.postMessage({kz:z},"*")}catch(e){}}'
+  +'addEventListener("message",function(e){var d=e.data;if(d&&d.kz!==undefined)set(d.kz==="reset"?1:z*d.kz)});'
+  +'function dist(e){var a=e.touches[0],b=e.touches[1];return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}'
+  +'addEventListener("touchstart",function(e){if(e.touches.length===2){d0=dist(e);z0=z}},{passive:true});'
+  +'addEventListener("touchmove",function(e){if(e.touches.length===2&&d0){e.preventDefault();set(z0*dist(e)/d0)}},{passive:false});'
+  +'addEventListener("touchend",function(e){if(e.touches.length<2)d0=0})})()<\/script>',
  /* Игра (canvas с управлением или игровой цикл) открывается горизонтально; остальное приложение всегда вертикальное. */
  isGame(html,title){const s=String(html).slice(0,200000);return(/<canvas/i.test(s)&&/(requestAnimationFrame|keydown|touchstart|pointerdown|setInterval)/i.test(s))||/(landscape|горизонтальн)/i.test(s)||(/(игр|game)/i.test(String(title||''))&&/requestAnimationFrame/.test(s))},
  orient(m){try{if(typeof KairemaBridge!=='undefined'&&KairemaBridge.setOrientation)KairemaBridge.setOrientation(m)}catch(e){}},
@@ -43,17 +45,15 @@ const Art={
   const zb=document.createElement('div');zb.className='art-z';
   zb.innerHTML='<button type="button" data-zo aria-label="Отдалить">−</button><button type="button" data-zr class="art-zl">100%</button><button type="button" data-zi aria-label="Приблизить">+</button>';
   const send=v=>{try{fr.contentWindow.postMessage({kz:v},'*')}catch(e){}};
-  const step=v=>{try{fr.contentWindow.postMessage({kd:v},'*')}catch(e){}};
-  $('[data-zo]',zb).onclick=()=>step(-.1);$('[data-zi]',zb).onclick=()=>step(.1);$('[data-zr]',zb).onclick=()=>send('reset');
+  $('[data-zo]',zb).onclick=()=>send(.8);$('[data-zi]',zb).onclick=()=>send(1.25);$('[data-zr]',zb).onclick=()=>send('reset');
   const on=e=>{if(e.source===fr.contentWindow&&e.data&&typeof e.data.kz==='number')$('[data-zr]',zb).textContent=Math.round(e.data.kz*100)+'%'};
   window.addEventListener('message',on);const oc=d.close;d.close=()=>{window.removeEventListener('message',on);oc()};$('[data-bk]',d).onclick=()=>d.close();
-  /* Масштаб и кнопки действий лежат вместе: в горизонтальном положении они встают в один ряд и оставляют место странице */
-  const bot=document.createElement('div');bot.className='art-bot';ft.replaceWith(bot);bot.append(zb,ft);
+  ft.before(zb);
   let land=false;const setLand=on=>{land=on;Art.orient(on?'landscape':'portrait');d.classList.toggle('art-land',on);rb.setAttribute('aria-pressed',on)};
   const rb=document.createElement('button');rb.type='button';rb.className='ib art-rot';rb.setAttribute('aria-label','Повернуть');rb.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="11" rx="2"/><path d="M7 4.5h3M17 20.5h-3"/></svg>';
   rb.onclick=()=>setLand(!land);$('.top',d).append(rb);
   const oc2=d.close;d.close=()=>{Art.orient('portrait');oc2()};
-  if(Art.isGame(html,title)){d.classList.add('art-game');setLand(true)}
+  if(Art.isGame(html,title))setLand(true);
   ft.append(Art.btn('PDF','fil',()=>Sx.pdf(title,html)),Art.btn('Скачать','dwn',()=>Sx.save(nm,Art.mime[ex],code)),Art.btn('Поделиться','shr',()=>Sx.file(nm,Art.mime[ex],code)));
   return d},
  /* Таблица Markdown в строки ячеек. */

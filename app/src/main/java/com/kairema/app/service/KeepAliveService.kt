@@ -11,7 +11,6 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
-import android.os.PowerManager
 import android.os.Looper
 import com.kairema.app.MainActivity
 
@@ -22,31 +21,7 @@ import com.kairema.app.MainActivity
  */
 class KeepAliveService : Service() {
 
-    private var wake: PowerManager.WakeLock? = null
-
     override fun onBind(intent: Intent?): IBinder? = null
-
-    // Пока служба работает, процессор не засыпает при выключенном экране: запрос к модели идёт, пока телефон заблокирован.
-    override fun onCreate() {
-        super.onCreate()
-        try {
-            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-            wake = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "kairema:work").also {
-                it.setReferenceCounted(false)
-                it.acquire(60L * 60 * 1000) // не дольше часа на случай сбоя
-            }
-        } catch (_: Exception) {
-        }
-    }
-
-    override fun onDestroy() {
-        try {
-            wake?.let { if (it.isHeld) it.release() }
-        } catch (_: Exception) {
-        }
-        wake = null
-        super.onDestroy()
-    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -75,7 +50,7 @@ class KeepAliveService : Service() {
     companion object {
         private const val CHANNEL = "kairema_work"
         private const val ID = 4101
-        private const val GRACE_MS = 90_000L
+        private const val GRACE_MS = 20_000L
         private var active = 0
         private var running = false
         private val handler = Handler(Looper.getMainLooper())
