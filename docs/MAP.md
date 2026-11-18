@@ -50,6 +50,7 @@
 | Терминал, команды из ответов, агент | `features/terminal/*` (`term-compat.js` разбор ответов любых моделей), `terminal/Shell.kt`, `assets/terminal/*.sh`, `TermuxRunner.kt`, `features/filediff/*` | Опасные команды требуют подтверждения |
 | Готовые сервисы (адрес подставляется), встроенный поиск модели, исследование | `features/presets/presets.js`, `features/tools/tools.js` (`webKind`, `webArg`, `research`), `bridge/Bridge.kt` (`web`, `buildSearchRequest`) | Новый сервис: строка в `PRESETS_AI` или `PRESETS_SEARCH` |
 | Дизайн-слой (спокойный вид, список в Настройках), стартовые плитки пустого чата | `features/design/design.css`, `design.js` | Плитки подсказок: `TILES` в design.js |
+| Шрифты (локальные), автосжатие истории | `features/fonts/fonts.css`, `features/ctx/ctx.js` (`auto`) | Порог автосжатия: `AUTO` в ctx.js |
 | Качество ответов, подсказки слабым моделям, фильтр иероглифов | `features/quality/quality.js` (`qualityPrompt` в `sysPrompt`, `Quality.filter` в `core/messages.js`) | Правила таблиц и языка менять только здесь |
 | Журнал ошибок | `features/log/log.js` | Ключи и почты заменяются на *** перед записью |
 | Справка (инструкция в приложении) | `features/help/help-data.js` (тексты), `help.js`, `help.css` | Поменял функцию, поправь её раздел справки |
@@ -115,7 +116,7 @@
 | `core/base.js` | 54 | core/base.js: УТИЛИТЫ, ШАБЛОНЫ, СОСТОЯНИЕ, UI-ХЕЛПЕРЫ (page, sheet, меню, формы). |
 | `core/config.js` | 8 | НАСТРОЙКИ ПРИЛОЖЕНИЯ ===== APP_VERSION меняем при каждой сборке вместе с app/build.gradle.kts и README.md. |
 | `core/hooks.js` | 11 | ЯДРО: события и переводы для подключаемых модулей ===== Модуль не правит core/app.js: он подписывается на события (Hooks.on) и добавляет свои переводы (i18nAdd). |
-| `core/messages.js` | 164 | core/messages.js: СООБЩЕНИЯ, МОСТ К ANDROID (Native), ЧАТ. |
+| `core/messages.js` | 166 | core/messages.js: СООБЩЕНИЯ, МОСТ К ANDROID (Native), ЧАТ. |
 | `core/onboarding.js` | 58 | core/onboarding.js: ОНБОРДИНГ и FUTURE API. |
 | `core/settings.js` | 131 | core/settings.js: ПРОВАЙДЕРЫ, ПАМЯТЬ, ШАБЛОНЫ, ПРОФИЛЬ, НАСТРОЙКИ, ВКЛАДКИ. |
 | `core/styles.css` | 257 | 01. ТОКЕНЫ: цвета, шрифты, easing |
@@ -141,13 +142,14 @@
 | `features/cost/cost.css` | 10 |  |
 | `features/cost/cost.js` | 94 | СЧЁТЧИК ТОКЕНОВ И РАСХОДОВ ===== Под каждым ответом ИИ: сколько токенов ушло и примерная цена. |
 | `features/ctx/ctx.css` | 2 |  |
-| `features/ctx/ctx.js` | 61 | СЖАТИЕ КОНТЕКСТА ===== Команда «/compact» (список «/» из модуля roles): старая часть чата заменяется кратким пересказом, который уходит модели вместо длинной истории. |
+| `features/ctx/ctx.js` | 90 | СЖАТИЕ КОНТЕКСТА ===== Команда «/compact» (список «/» из модуля roles): старая часть чата заменяется кратким пересказом, который уходит модели вместо длинной истории. |
 | `features/design/design.css` | 45 | ДИЗАЙН-СЛОЙ 0.34: спокойный вид, один акцентный цвет ===== Только стили поверх ядра (подключается последним). |
 | `features/design/design.js` | 28 | ДИЗАЙН: спокойный вид и стартовые плитки пустого чата ===== Настройки и Справка оформлены только стилями (design.css): один цвет, ровные карточки, без пёстрых плиток. |
 | `features/draft/draft.js` | 30 | ЧЕРНОВИК: недописанное сообщение не пропадает ===== Раньше текст в поле ввода исчезал, если уйти в настройки или терминал (поле строится заново) или закрыть приложение. |
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 150 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
-| `features/help/help-data.js` | 150 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
+| `features/fonts/fonts.css` | 12 | ШРИФТЫ ВНУТРИ ПРИЛОЖЕНИЯ (работают без интернета) ===== Space Grotesk (заголовки), Manrope (текст интерфейса), JetBrains Mono (код), Source Serif 4 (ответы ИИ). |
+| `features/help/help-data.js` | 152 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
 | `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
 | `features/help/help.js` | 89 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
@@ -164,7 +166,7 @@
 | `features/presets/presets.css` | 12 | Стили модуля presets: выбор готового сервиса в форме провайдера. |
 | `features/presets/presets.js` | 68 | ГОТОВЫЕ СЕРВИСЫ: выбрал в списке, адрес (API URL) подставился сам ===== В форме нового провайдера (чат или поиск) сверху список сервисов. |
 | `features/providers/providers.css` | 46 | Стили модуля providers: выбор модели и провайдера (лист снизу). |
-| `features/providers/providers.js` | 157 | ПРОВАЙДЕРЫ ИИ: название, адрес, ключ → проверка ключа → выбор модели из списка |
+| `features/providers/providers.js` | 160 | ПРОВАЙДЕРЫ ИИ: название, адрес, ключ → проверка ключа → выбор модели из списка |
 | `features/quality/quality.css` | 3 | Стили модуля quality: значение справа в строке настроек. |
 | `features/quality/quality.js` | 65 | КАЧЕСТВО ОТВЕТОВ ДЛЯ ЛЮБЫХ МОДЕЛЕЙ (от самых слабых до лучших) ===== 1) Quality.prompt(): короткие жёсткие правила в системную подсказку: язык ответа, никаких иероглифов, |
 | `features/roles/roles.css` | 21 | Команды «/» и плашка роли над полем ввода |
@@ -196,7 +198,7 @@
 |---|---|---|
 | `MainActivity.kt` | 255 | Оболочка: показывает интерфейс из assets/index.html. * Следующие шаги добавят сюда мост между кнопками интерфейса и нативным кодом. |
 | `attach/Attach.kt` | 329 | Выбор фото и файлов без файлового выбора WebView. |
-| `bridge/Bridge.kt` | 692 | Мост между интерфейсом (JS) и нативным кодом. |
+| `bridge/Bridge.kt` | 693 | Мост между интерфейсом (JS) и нативным кодом. |
 | `bridge/Guard.kt` | 22 | Защита моста. |
 | `data/ChatDb.kt` | 79 | Хранилище чатов на устройстве (SQLite, файл kairema.db). |
 | `data/DbBridge.kt` | 77 | Мост JS <-> хранилище (в JS это KairemaDb): чаты в SQLite, картинки и вложения файлами в filesDir/media. |
@@ -239,7 +241,7 @@
 | `memory:changed` | memory.js | backup.js, memory-ai.js, memory-ui.js, settings.js |
 | `msg:render` | attview.js, branch.js, cost.js, ctx.js, draft.js, share.js, tools.js | messages.js |
 | `settings:grouped` | — | settings.js |
-| `settings:rendered` | auth-ui.js, backup.js, cost.js, filediff.js, help.js, log.js, quality.js, roles.js | settings.js |
+| `settings:rendered` | auth-ui.js, backup.js, cost.js, ctx.js, filediff.js, help.js, log.js, quality.js, roles.js | settings.js |
 | `sync:delete` | search.js, sync.js | chats.js, memory.js, sync.js |
 | `sync:left` | auth-ui.js | sync.js |
 | `sync:register` | chats.js, memory.js, sync.js | sync.js |

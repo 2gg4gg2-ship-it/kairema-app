@@ -57,4 +57,33 @@ const Ctx=(()=>{
  Hooks.on('msg:render',(d,m)=>{if(m&&m.x&&m.x.cx&&!d.querySelector('.cxm')){const n=el('<div class="cxm"></div>');n.textContent='✂ '+L('Контекст сжат');d.append(n)}});
  let hinted=0;
  Hooks.on('chat:answer',()=>{if(!hinted&&api.size(S.apiMsgs)>LIM&&api.cut(S.apiMsgs)>=0){hinted=1;toast(L('Чат длинный. Наберите /compact, чтобы сжать контекст'))}});
+
+ /* ---- Автосжатие: без команды, когда история стала длинной или провайдер ответил «запрос слишком большой» ---- */
+ const AUTO=80000;
+ const autoOn=()=>{try{return localStorage.getItem('kcauto')!=='0'}catch(e){return true}};
+ let running=0;
+ api.auto=async()=>{
+  if(running||!autoOn())return false;
+  const ms=S.apiMsgs,c=api.cut(ms),pv=actProv();if(c<0||!pv||!Native.on)return false;
+  running=1;
+  try{
+   toast(L('Сжимаю историю чата…'));
+   const from=mark(ms)+1;let text=transcript(ms,from,c);
+   if(text.length>30000)text=text.slice(0,10000)+'\n[…]\n'+text.slice(-19000);
+   let out='';
+   await Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:SUMMARY_SYS,think:0}),JSON.stringify([{role:'user',content:'Summarize this conversation:\n\n'+text}])],t=>{const k=t.charCodeAt(0);if(k===1||k===2||k===3)return;out+=t});
+   out=out.trim();if(!out)return false;
+   const last=ms[c-1];last.x=Object.assign({},last.x,{cx:out.slice(0,8000)});Chx.save(Chx.cur);
+   toast(L('История чата сжата: модель получает краткий пересказ'));return true}
+  catch(e){return false}finally{running=0}};
+ Hooks.on('chat:answer',()=>{if(api.size(S.apiMsgs)>AUTO&&api.cut(S.apiMsgs)>=0)api.auto()});
+ api.autoOn=autoOn;
+ Hooks.on('settings:rendered',v=>{
+  const ab=$('[data-go="about"]',v);if(!ab||$('[data-ca]',v))return;
+  const r=el('<button class="sr" data-ca><span class="si c">'+ic('tpl')+'</span><span class="m"><b></b><small></small></span><span class="sw"></span></button>');
+  $('b',r).textContent=L('Автосжатие истории');$('small',r).textContent=L('Длинный чат сам заменяется кратким пересказом для модели, на экране ничего не пропадает');
+  const sw=$('.sw',r),d=()=>sw.classList.toggle('on',autoOn());d();
+  r.onclick=()=>{try{localStorage.setItem('kcauto',autoOn()?'0':'1')}catch(e){}d()};
+  ab.insertAdjacentElement('beforebegin',r)});
+ i18nAdd({"Сжимаю историю чата…":"Compressing chat history…","История чата сжата: модель получает краткий пересказ":"Chat history compressed: the model gets a short summary","Автосжатие истории":"Auto-compress history","Длинный чат сам заменяется кратким пересказом для модели, на экране ничего не пропадает":"A long chat is replaced by a short summary for the model; nothing disappears on screen"});
  return api})();

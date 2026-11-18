@@ -41,7 +41,9 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
   let got=false;window.GEN={stopped:0,pr:null,stop(){this.stopped=1;Native.cancel(this.pr&&this.pr.id)}};if(Chat.cmp&&Chat.cmp.upd)Chat.cmp.upd();
   try{
    const run=h=>{const pr=Native.run('chat',[JSON.stringify({id:pv.id,url:pv.url,model:pv.model,system:sysPrompt()+(typeof Tools!=='undefined'?Tools.sysx(last):'')+sysExtra(msgs),think:typeof Tools!=='undefined'?Tools.think():0,notify:1,...(typeof Tools!=='undefined'?Tools.webArg(nat):{})}),JSON.stringify(h)],t=>{if(t.charCodeAt(0)===3){m.cut=1;return}if(t.charCodeAt(0)===2){if(typeof Cost!=='undefined')Cost.usage(m,t.slice(1));return}if(t.charCodeAt(0)===1){if(typeof Tools!=='undefined')Tools.thought(d,m,t.slice(1));return}if(typeof Quality!=='undefined'){t=Quality.filter(t);if(!t)return}if(!got){got=true;bd.textContent='';m.t='';if(typeof Tools!=='undefined')Tools.thoughtDone(d)}m.t+=t;mdLive(bd,m,()=>scl(box))});if(window.GEN)GEN.pr=pr;return pr};
-   await run(hist);
+   try{await run(hist)}catch(e0){
+    /* «Запрос слишком большой»: сжимаем историю и пробуем один раз ещё */
+    if(!got&&!(window.GEN&&window.GEN.stopped)&&/слишком большой/.test(String(e0&&e0.message))&&typeof Ctx!=='undefined'&&Ctx.autoOn&&Ctx.autoOn()&&await Ctx.auto())await run(mkHist(ctx));else throw e0}
    /* Пустой ответ при включённом поиске: повторяем один раз без результатов поиска */
    if(!got&&ctx&&!GEN.stopped){src=[];serr='модель не ответила с результатами поиска, ответ без них';await run(mkHist(''))}
    if(!got&&GEN.stopped)throw new Error('Canceled');

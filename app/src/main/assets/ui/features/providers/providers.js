@@ -114,7 +114,10 @@ function chatProvForm(i,done){
   if(i<0&&typeof Presets!=='undefined')Presets.mount(b,'chat');
   /* Если поменяли адрес или ключ, список моделей устарел: проверяем ключ заново. */
   $$('[data-k=url],[data-k=key]',b).forEach(x=>x.addEventListener('input',()=>{okList=null;delete MCACHE[id];sv.innerHTML='Проверить ключ'}));
+  /* Ключ проверяется сам: через секунду после того, как вы вставили ключ и адрес (без открытия списка моделей). */
+  let at=0;$$('[data-k=url],[data-k=key]',b).forEach(x=>x.addEventListener('input',()=>{clearTimeout(at);at=setTimeout(()=>{if(!d.isConnected||sv.disabled||okList)return;const kk=$('[data-k=key]',b).value.trim(),uu=$('[data-k=url]',b).value.trim();if(kk.length>=8&&R.url(uu)){sv._auto=1;sv.click()}},1100)}));
   sv.onclick=async()=>{
+   const auto=!!sv._auto;sv._auto=0;
    const g=k=>$(`[data-k=${k}]`,b).value.trim(),kv=g('key'),url=g('url'),name=g('name');
    const reset=()=>{sv.disabled=false};
    const choose=()=>pickModel(okList,e.model,async m=>{
@@ -139,7 +142,7 @@ function chatProvForm(i,done){
     stt.className='stat bad';stt.textContent='✗ '+err;sv.innerHTML='Проверить ключ';reset();
     if(i>=0&&kv){S.providers[i].ok=false;saveProviders();done()}
     return}
-   okList=normModels(list);MCACHE[id]={t:Date.now(),l:okList};if(typeof Caps!=='undefined')Caps.learn(id,okList);stt.className='stat ok';stt.textContent='✓ Ключ принят. Выберите модель'+(okList.some(x=>x.free!==undefined)?' · '+(LANG==='en'?'Free: ':'Бесплатных: ')+okList.filter(x=>x.free).length+', '+(LANG==='en'?'paid: ':'платных: ')+okList.filter(x=>x.free===false).length:'');sv.innerHTML='Выбрать модель';reset();choose()}
+   okList=normModels(list);MCACHE[id]={t:Date.now(),l:okList};if(typeof Caps!=='undefined')Caps.learn(id,okList);stt.className='stat ok';stt.textContent='✓ Ключ принят. Выберите модель'+(okList.some(x=>x.free!==undefined)?' · '+(LANG==='en'?'Free: ':'Бесплатных: ')+okList.filter(x=>x.free).length+', '+(LANG==='en'?'paid: ':'платных: ')+okList.filter(x=>x.free===false).length:'');sv.innerHTML='Выбрать модель';reset();if(!auto)choose()}
  });
  /* Закрыли форму, а новый провайдер не сохранён: ключ с устройства удаляем. */
  const oc=d.close;

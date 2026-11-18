@@ -1,0 +1,11 @@
+/* ===== ШРИФТЫ ВНУТРИ ПРИЛОЖЕНИЯ (работают без интернета) =====
+   Space Grotesk (заголовки), Manrope (текст интерфейса), JetBrains Mono (код), Source Serif 4 (ответы ИИ).
+   Файлы .woff рядом: переменные шрифты, обрезаны до латиницы, кириллицы и нужных знаков, поэтому весят около 350 КБ.
+   Space Grotesk не содержит кириллицы: русские заголовки берут Manrope (так задано в --disp в core/styles.css).
+   Лицензия всех четырёх: SIL Open Font License 1.1 (файлы OFL-*.txt рядом).
+   Убрать модуль: удалить папку features/fonts и строку в index.html (шрифты вернутся к системным). */
+@font-face{font-family:'Space Grotesk';src:url(SpaceGrotesk.woff) format('woff');font-weight:300 700;font-style:normal;font-display:swap}
+@font-face{font-family:'Manrope';src:url(Manrope.woff) format('woff');font-weight:200 800;font-style:normal;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url(JetBrainsMono.woff) format('woff');font-weight:100 800;font-style:normal;font-display:swap}
+@font-face{font-family:'Source Serif 4';src:url(SourceSerif4.woff) format('woff');font-weight:200 900;font-style:normal;font-display:swap}
+@font-face{font-family:'Source Serif 4';src:url(SourceSerif4-Italic.woff) format('woff');font-weight:200 900;font-style:italic;font-display:swap}

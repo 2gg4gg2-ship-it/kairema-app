@@ -35,8 +35,9 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(300, TimeUnit.SECONDS)
         .build()
-    // Ответ модели может молчать долго (размышления): для запроса чата ждём до 10 минут между кусками, а не 2.
-    private val httpLong = http.newBuilder().readTimeout(600, TimeUnit.SECONDS).build()
+    // Ответ модели может молчать долго (размышления, поиск на стороне провайдера): для запроса чата ждём до 30 минут между кусками.
+    // Если модель всё ещё думает, соединение не рвём; остановить можно кнопкой «Стоп».
+    private val httpLong = http.newBuilder().readTimeout(1800, TimeUnit.SECONDS).build()
     private val pool = Executors.newCachedThreadPool()
     /** Начало ответа для уведомления «ответ готов»: только основные ответы чата (в запросе notify=1). */
     private val previews = ConcurrentHashMap<String, StringBuilder>()
