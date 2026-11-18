@@ -6,6 +6,7 @@ import android.webkit.WebView
 import com.kairema.app.search.WebRelevance
 import com.kairema.app.data.SecureKeys
 import com.kairema.app.service.KeepAliveService
+import com.kairema.app.service.Notifier
 import com.kairema.app.share.Share
 import com.kairema.app.share.Inbox
 import com.kairema.app.terminal.Shell
@@ -34,7 +35,11 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(300, TimeUnit.SECONDS)
         .build()
+    // Ответ модели может молчать долго (размышления): для запроса чата ждём до 10 минут между кусками, а не 2.
+    private val httpLong = http.newBuilder().readTimeout(600, TimeUnit.SECONDS).build()
     private val pool = Executors.newCachedThreadPool()
+    /** Начало ответа для уведомления «ответ готов»: только основные ответы чата (в запросе notify=1). */
+    private val previews = ConcurrentHashMap<String, StringBuilder>()
     private val calls = ConcurrentHashMap<String, Call>()
     private val sh = Shell(ctx)
     private val tm = TermuxRunner(ctx)
@@ -178,6 +183,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         pool.execute {
             try {
                 val p = JSONObject(provider)
+                if (p.optInt("notify", 0) == 1) previews[reqId] = StringBuilder()
                 val anthropic = p.getString("url").contains("anthropic.com")
                 var first = open(reqId, p, JSONArray(messages), null)
                 // Старые модели Claude не принимают большой max_tokens: повторяем с 4096.
@@ -625,7 +631,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         } else if (webMode == "oai" && base.contains("api.openai.com")) {
             body.put("web_search_options", JSONObject())
         }
-        val call = http.newCall(
+        val call = httpLong.newCall(
             rb.url(endpoint)
                 .post(body.toString().toRequestBody("application/json".toMediaType()))
                 .build()
@@ -657,8 +663,11 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         web.post { web.evaluateJavascript(code, null) }
     }
 
-    private fun push(id: String, text: String) =
+    private fun push(id: String, text: String) {
+        val pv = previews[id]
+        if (pv != null && pv.length < 240 && !text.startsWith("\u0001") && !text.startsWith("\u0002")) pv.append(text)
         js("KairemaNative.chunk(${JSONObject.quote(id)},${JSONObject.quote(text)})")
+    }
 
     /** Долгие задачи держат службу переднего плана, пока не вызван done. */
     private val tracked = ConcurrentHashMap.newKeySet<String>()
@@ -670,6 +679,12 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     private fun done(id: String, err: String?) {
         if (tracked.remove(id)) KeepAliveService.end(ctx)
         calls.remove(id)
+        // Приложение свёрнуто или экран выключен: сообщаем, что ответ готов (если открыто, уведомление не показывается).
+        val pv = previews.remove(id)
+        if (pv != null) {
+            if (err == null) Notifier.done(ctx, "Ответ готов", pv.toString().replace(Regex("\\s+"), " ").trim().take(180).ifEmpty { "Откройте Kairema, чтобы прочитать" })
+            else if (err != "canceled") Notifier.done(ctx, "Не удалось получить ответ", err.take(180))
+        }
         js("KairemaNative.done(${JSONObject.quote(id)},${if (err == null) "null" else JSONObject.quote(err)})")
     }
 }

@@ -10,6 +10,8 @@ UI_DIR=../../app/src/main/assets/ui/ node auth.test.js
 UI_DIR=../../app/src/main/assets/ui/ node sync.test.js
 UI_DIR=../../app/src/main/assets/ui/ node terminal.test.js
 UI_DIR=../../app/src/main/assets/ui/ node search.test.js
+UI_DIR=../../app/src/main/assets/ui/ node understand.test.js
+UI_DIR=../../app/src/main/assets/ui/ node ui031.test.js
 UI_DIR=../../app/src/main/assets/ui/ node welcome.test.js
 UI_DIR=../../app/src/main/assets/ui/ node menu.test.js
 ```
@@ -33,3 +35,8 @@ Playwright (Chromium), без jsdom: `python3 -I docs/tests/ui020.test.py` и `p
 Настоящий Android и Kotlin он не запускает. Скриншоты кладёт в папку из переменной `SHOTS` (по умолчанию /tmp).
 
 Тест 0.27.0: `python3 -I docs/tests/term027.test.py` (терминал и совместимость моделей, настоящий /bin/sh) и `python3 -I docs/tests/help027.test.py [папка_скриншотов]` (Справка: карточка в Настройках, 14 статей, поиск, «?», тёмная и светлая тема).
+
+Тесты 0.32.0: `node docs/tests/pdf031.test.js` (чтение PDF, файлы в `docs/tests/fixtures`), `python3 -I docs/tests/attach031.test.py` (выбор фото и PDF с подменой моста), `python3 -I docs/tests/preview031.test.py /tmp` (предпросмотр: кнопки −/+, поворот). Kotlin они не запускают.
+
+Тест 0.33.0: `python3 -I docs/tests/model033.test.py /tmp` (факты о модели в подсказке, просмотр вложений в поле ввода, метка «Поиск», подписи в меню «+»).
+

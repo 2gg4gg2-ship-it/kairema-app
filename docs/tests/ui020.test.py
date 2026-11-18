@@ -84,7 +84,7 @@ with sync_playwright() as p:
     pg.evaluate("S.providers[0].model='deepseek/deepseek-r1'")
     rows = menu(); names = [r[0] for r in rows]
     check('R1: картинки недоступны', 'Изображение' in off(rows), rows)
-    check('R1: подпись про настоящее размышление', 'Рассуждает' in {r[0]: r[1] for r in rows}.get('Думать', ''), rows)
+    check('R1: подпись про настоящее размышление', 'Think есть' in {r[0]: r[1] for r in rows}.get('Думать', ''), rows)
     # параметр запроса
     pg.evaluate("Tools.setThink('think')")
     check('R1: think=1 уходит провайдеру', pg.evaluate("Tools.think()") == 1)

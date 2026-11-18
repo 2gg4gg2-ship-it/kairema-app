@@ -49,8 +49,7 @@
 | Резервная копия (экспорт/импорт) | `features/backup/backup.js` | Добавляй новые данные сюда тоже |
 | Терминал, команды из ответов, агент | `features/terminal/*` (`term-compat.js` разбор ответов любых моделей), `terminal/Shell.kt`, `assets/terminal/*.sh`, `TermuxRunner.kt`, `features/filediff/*` | Опасные команды требуют подтверждения |
 | Готовые сервисы (адрес подставляется), встроенный поиск модели, исследование | `features/presets/presets.js`, `features/tools/tools.js` (`webKind`, `webArg`, `research`), `bridge/Bridge.kt` (`web`, `buildSearchRequest`) | Новый сервис: строка в `PRESETS_AI` или `PRESETS_SEARCH` |
-| Дизайн-слой, мозаика Настроек, стартовые плитки | `features/design/design.css`, `design.js` (хук `settings:grouped`) | Размер плитки: словарь `MAP` в design.js |
-| Код в ответах (свёрнутый, полный экран) | `features/codeview/codeview.js` (вызов из `mdBlocks`) | Порог свёртки: `SHORT`, `HEAD` |
+| Дизайн-слой, мозаика Настроек и Справки, стартовые плитки | `features/design/design.css`, `design.js` (хук `settings:grouped`) | Размер плитки: словарь `MAP` в design.js |
 | Качество ответов, подсказки слабым моделям, фильтр иероглифов | `features/quality/quality.js` (`qualityPrompt` в `sysPrompt`, `Quality.filter` в `core/messages.js`) | Правила таблиц и языка менять только здесь |
 | Журнал ошибок | `features/log/log.js` | Ключи и почты заменяются на *** перед записью |
 | Справка (инструкция в приложении) | `features/help/help-data.js` (тексты), `help.js`, `help.css` | Поменял функцию, поправь её раздел справки |
@@ -116,14 +115,17 @@
 | `core/base.js` | 54 | core/base.js: УТИЛИТЫ, ШАБЛОНЫ, СОСТОЯНИЕ, UI-ХЕЛПЕРЫ (page, sheet, меню, формы). |
 | `core/config.js` | 8 | НАСТРОЙКИ ПРИЛОЖЕНИЯ ===== APP_VERSION меняем при каждой сборке вместе с app/build.gradle.kts и README.md. |
 | `core/hooks.js` | 11 | ЯДРО: события и переводы для подключаемых модулей ===== Модуль не правит core/app.js: он подписывается на события (Hooks.on) и добавляет свои переводы (i18nAdd). |
-| `core/messages.js` | 156 | core/messages.js: СООБЩЕНИЯ, МОСТ К ANDROID (Native), ЧАТ. |
+| `core/messages.js` | 159 | core/messages.js: СООБЩЕНИЯ, МОСТ К ANDROID (Native), ЧАТ. |
 | `core/onboarding.js` | 58 | core/onboarding.js: ОНБОРДИНГ и FUTURE API. |
 | `core/settings.js` | 131 | core/settings.js: ПРОВАЙДЕРЫ, ПАМЯТЬ, ШАБЛОНЫ, ПРОФИЛЬ, НАСТРОЙКИ, ВКЛАДКИ. |
 | `core/styles.css` | 257 | 01. ТОКЕНЫ: цвета, шрифты, easing |
 | `features/about/about.css` | 32 | Стили модуля about: экран «О приложении». |
 | `features/about/about.js` | 24 | О ПРИЛОЖЕНИИ: логотип, версия, карточки возможностей ===== Модуль подменяет экран 'about' (SCREENS.about) после запуска приложения: core/app.js не правится. |
-| `features/artifacts/artifacts.css` | 21 | Стили модуля artifacts: панель под блоком кода и таблицей, предпросмотр страницы. |
+| `features/artifacts/artifacts.css` | 29 | Стили модуля artifacts: панель под блоком кода и таблицей, предпросмотр страницы. |
 | `features/artifacts/artifacts.js` | 86 | ФАЙЛЫ ИЗ ОТВЕТОВ ИИ: таблицы, HTML-страницы, PDF, CSV ===== Модель не умеет создавать файлы сама, поэтому приложение делает их из ответа: - блок ```html → «Предпросмотр», |
+| `features/attach/attach.js` | 33 | ВЛОЖЕНИЯ ЧЕРЕЗ KOTLIN: фото из галереи и файлы ===== Системный выбор файлов внутри WebView у части телефонов ничего не возвращает (фото «не прикрепляется»). |
+| `features/attview/attview.css` | 14 |  |
+| `features/attview/attview.js` | 77 | ВЛОЖЕНИЯ В ЧАТЕ: открыть, прочитать, посмотреть ===== Под сообщением пользователя, у которого есть вложения (m.parts), показываются плитки: фото (превью), файлы (имя и ра |
 | `features/auth/auth-methods.js` | 13 | ЯДРО АККАУНТА: реестр способов входа (модуль auth) ===== Экран «Вход или регистрация» сам ничего не знает о способах: он рисует всё, что добавлено сюда. |
 | `features/auth/auth-ui.js` | 111 | АККАУНТ: экраны (модуль auth) ===== Экран «Аккаунт» (вход, профиль), стартовое окно «с аккаунтом / без аккаунта», строка «Аккаунт» в настройках. |
 | `features/auth/auth.css` | 15 | Стили модуля auth. |
@@ -133,35 +135,36 @@
 | `features/backup/backup.js` | 103 | РЕЗЕРВНАЯ КОПИЯ: чаты, память, шаблоны, настройки и список провайдеров одним файлом (JSON) ===== Нужна для автономности: копия делается без облака и аккаунта, восстановит |
 | `features/branch/branch.css` | 6 |  |
 | `features/branch/branch.js` | 56 | ВЕТВЛЕНИЕ ОТВЕТОВ: «Другой ответ» и переключатель ‹ 1/2 › ===== Под ПОСЛЕДНИМ ответом ИИ появляется кнопка ↻ «Другой ответ»: ответ запрашивается заново, прежний не пропад |
-| `features/caps/caps.js` | 64 | ВОЗМОЖНОСТИ МОДЕЛЕЙ: что умеет выбранная модель (авто-определение) ===== Источник 1: данные провайдера (OpenRouter сообщает выходные форматы и параметр reasoning), приход |
+| `features/caps/caps.js` | 73 | ВОЗМОЖНОСТИ МОДЕЛЕЙ: что умеет выбранная модель (авто-определение) ===== Источник 1: данные провайдера (OpenRouter сообщает выходные форматы и параметр reasoning), приход |
 | `features/chats/chats.css` | 23 | Стили модуля chats: диалог «Новый чат», кнопка «Удалить все чаты», анимация удаления. |
 | `features/chats/chats.js` | 231 | ИСТОРИЯ ЧАТОВ: список и сохранение ===== В приложении (есть KairemaDb) чаты лежат в SQLite на устройстве, картинки и PDF файлами в filesDir/media, в чате хранится только  |
-| `features/codeview/codeview.css` | 21 | Стили блока кода (features/codeview). Цвета только из токенов. |
-| `features/codeview/codeview.js` | 37 | КОД В ОТВЕТАХ: компактный блок с номерами строк, полный код по нажатию ===== Блок: шапка (язык, «развернуть», «копировать»), номера строк и код. |
 | `features/cost/cost.css` | 10 |  |
 | `features/cost/cost.js` | 94 | СЧЁТЧИК ТОКЕНОВ И РАСХОДОВ ===== Под каждым ответом ИИ: сколько токенов ушло и примерная цена. |
 | `features/ctx/ctx.css` | 2 |  |
 | `features/ctx/ctx.js` | 61 | СЖАТИЕ КОНТЕКСТА ===== Команда «/compact» (список «/» из модуля roles): старая часть чата заменяется кратким пересказом, который уходит модели вместо длинной истории. |
 | `features/design/design.css` | 74 | ДИЗАЙН-СЛОЙ 0.31: разные размеры и компоновки вместо одинаковых строк ===== Только стили поверх ядра (подключается последним) и небольшая раскладка в design.js. |
 | `features/design/design.js` | 50 | ДИЗАЙН: раскладка Настроек мозаикой и стартовые плитки пустого чата ===== Настройки: группы строк получают класс mz, а каждая строка размер (w6 широкая, w4, w2 узкая) и ц |
+| `features/draft/draft.js` | 30 | ЧЕРНОВИК: недописанное сообщение не пропадает ===== Раньше текст в поле ввода исчезал, если уйти в настройки или терминал (поле строится заново) или закрыть приложение. |
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 150 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
 | `features/help/help-data.js` | 150 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
 | `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
 | `features/help/help.js` | 89 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
+| `features/intent/intent.js` | 19 | ПОНИМАНИЕ ЗАПРОСА (для любых моделей) ===== Короткая постоянная инструкция в системном запросе (через реестр window.SYSX, core/base.js sysExtra): • выполнить ВСЕ условия, |
 | `features/log/log.css` | 3 | Стили модуля log: экран «Журнал ошибок». |
 | `features/log/log.js` | 47 | ЖУРНАЛ ОШИБОК: что сломалось, можно скопировать и прислать разработчику ===== Ловит ошибки страницы (error, unhandledrejection, console.error) и ошибки ответов ИИ (Log.ad |
-| `features/markdown/md.css` | 42 | Стили разметки ответов ИИ (модуль markdown). |
-| `features/markdown/md.js` | 115 | MARKDOWN → DOM для ответов ИИ ===== Безопасно: всё строится через createElement и textContent, innerHTML не используется. |
+| `features/markdown/md.css` | 65 | Стили разметки ответов ИИ (модуль markdown). |
+| `features/markdown/md.js` | 147 | MARKDOWN → DOM для ответов ИИ ===== Безопасно: всё строится через createElement и textContent, innerHTML не используется. |
 | `features/memory/memory-ai.js` | 100 | ПАМЯТЬ: извлечение фактов самой моделью ===== После ответа (событие chat:answer) в фоне уходит один короткий запрос тому же провайдеру: «что из сообщения пользователя сто |
 | `features/memory/memory-ui.js` | 115 | ПАМЯТЬ: экран (заменяет старую страницу из core/app.js через SCREENS.memory) ===== Переключатели (память, быстрые правила, умное извлечение), профиль с сохранением, что и |
 | `features/memory/memory.css` | 27 | Стили страницы «Память»: более жирный, читаемый текст; ровный список фактов. |
 | `features/memory/memory.js` | 180 | ПАМЯТЬ (v2): хранилище фактов, профиль, подбор фактов под вопрос, подсказка для модели ===== Модель данных. |
+| `features/pdf/pdf.js` | 255 | PDF ДЛЯ ЛЮБОЙ МОДЕЛИ: текст из файла без библиотек ===== Раньше PDF понимал только Anthropic (он принимает файл целиком). |
 | `features/presets/presets.css` | 12 | Стили модуля presets: выбор готового сервиса в форме провайдера. |
 | `features/presets/presets.js` | 68 | ГОТОВЫЕ СЕРВИСЫ: выбрал в списке, адрес (API URL) подставился сам ===== В форме нового провайдера (чат или поиск) сверху список сервисов. |
 | `features/providers/providers.css` | 46 | Стили модуля providers: выбор модели и провайдера (лист снизу). |
-| `features/providers/providers.js` | 144 | ПРОВАЙДЕРЫ ИИ: название, адрес, ключ → проверка ключа → выбор модели из списка |
+| `features/providers/providers.js` | 157 | ПРОВАЙДЕРЫ ИИ: название, адрес, ключ → проверка ключа → выбор модели из списка |
 | `features/quality/quality.css` | 3 | Стили модуля quality: значение справа в строке настроек. |
 | `features/quality/quality.js` | 61 | КАЧЕСТВО ОТВЕТОВ ДЛЯ ЛЮБЫХ МОДЕЛЕЙ (от самых слабых до лучших) ===== 1) Quality.prompt(): короткие жёсткие правила в системную подсказку: язык ответа, никаких иероглифов, |
 | `features/roles/roles.css` | 21 | Команды «/» и плашка роли над полем ввода |
@@ -170,6 +173,8 @@
 | `features/scroller/scroller.js` | 21 | КНОПКИ ЛИСТАНИЯ: маленькие «вверх» и «вниз» в чате ===== Появляются, когда есть куда листать. |
 | `features/search/search.css` | 15 | ПОИСК ПО ЧАТАМ И КОДУ |
 | `features/search/search.js` | 140 | УМНЫЙ ПОИСК ПО ЧАТАМ И КОДУ (необязательный модуль) ===== В приложении (есть KairemaSearch) текст чатов копируется в отдельный индекс SQLite FTS5 (Kotlin: search/SearchIn |
+| `features/setlayout/setlayout.css` | 13 | Плитки в настройках (модуль setlayout) |
+| `features/setlayout/setlayout.js` | 20 | НАСТРОЙКИ: плитки вместо одного длинного столбца ===== Строки-переходы (иконка, название, подпись, стрелка; без переключателя и полей) подряд в одной группе собираются в  |
 | `features/share/share.css` | 27 | Стили модуля share: кнопки под сообщением, лист «Поделиться», окно «Выделить текст». |
 | `features/share/share.js` | 164 | ПОДЕЛИТЬСЯ: копирование, выделение текста, отправка в Telegram и другие приложения ===== Под каждым ответом ИИ ряд кнопок «Копировать» и «Поделиться»; ваше сообщение: заж |
 | `features/sync/schema.sql` | 32 |  |
@@ -182,14 +187,16 @@
 | `features/terminal/terminal.js` | 248 | ТЕРМИНАЛ: настоящая оболочка Android и запуск команд из ответов ИИ ===== Команды выполняет Kotlin (Shell.kt, /system/bin/sh). |
 | `features/tools/tools.css` | 76 | Меню «+», метки режимов в поле ввода, размышления, изображения |
 | `features/tools/tools.js` | 227 | ФУНКЦИИ ЧАТА: меню «+», режимы ответа, создание изображений, глубокое исследование ===== Кнопка «+» в поле ввода открывает список: вложения (галерея, камера, файлы) и фун |
-| `index.html` | 91 |  |
+| `features/websearch/websearch.js` | 49 | ПОИСК В ИНТЕРНЕТЕ: модель сама решает, нужен ли поиск, и составляет запросы ===== Раньше в поисковик уходил сырой текст вопроса: «а в Москве?» искалось дословно и находил |
+| `index.html` | 98 |  |
 
 ### Индекс файлов Kotlin (`app/src/main/java/com/kairema/app`)
 
 | Файл | Строк | Описание |
 |---|---|---|
-| `MainActivity.kt` | 236 | Оболочка: показывает интерфейс из assets/index.html. * Следующие шаги добавят сюда мост между кнопками интерфейса и нативным кодом. |
-| `bridge/Bridge.kt` | 676 | Мост между интерфейсом (JS) и нативным кодом. |
+| `MainActivity.kt` | 255 | Оболочка: показывает интерфейс из assets/index.html. * Следующие шаги добавят сюда мост между кнопками интерфейса и нативным кодом. |
+| `attach/Attach.kt` | 329 | Выбор фото и файлов без файлового выбора WebView. |
+| `bridge/Bridge.kt` | 691 | Мост между интерфейсом (JS) и нативным кодом. |
 | `bridge/Guard.kt` | 22 | Защита моста. |
 | `data/ChatDb.kt` | 79 | Хранилище чатов на устройстве (SQLite, файл kairema.db). |
 | `data/DbBridge.kt` | 77 | Мост JS <-> хранилище (в JS это KairemaDb): чаты в SQLite, картинки и вложения файлами в filesDir/media. |
@@ -197,23 +204,25 @@
 | `search/SearchBridge.kt` | 43 | Мост JS <-> индекс поиска (в JS это KairemaSearch). |
 | `search/SearchIndex.kt` | 211 | Локальный индекс для поиска по чатам (файл kairema_search.db, отдельно от kairema.db). |
 | `search/WebRelevance.kt` | 57 | Очистка запроса и отбор результатов веб-поиска (вызывается из Bridge.search). |
-| `service/KeepAliveService.kt` | 95 | Передний план на время длинных задач: ответ ИИ, создание изображения, глубокое исследование, команды терминала. |
+| `service/KeepAliveService.kt` | 120 | Передний план на время длинных задач: ответ ИИ, создание изображения, глубокое исследование, команды терминала. |
+| `service/Notifier.kt` | 63 | Видно ли приложение на экране (MainActivity ставит в onStart и onStop). |
 | `share/Inbox.kt` | 76 | Входящее «Поделиться» из других приложений: ACTION_SEND (текст, ссылка, текстовый файл) * и ACTION_PROCESS_TEXT (пункт «Kairema» в меню выделенного текста). |
 | `share/Share.kt` | 166 | Копирование, «Поделиться» (Telegram и другие приложения), сохранение в Загрузки и печать в PDF. |
 | `share/ShareFiles.kt` | 72 | Отдаёт другим приложениям файлы из временной папки cache/share (только чтение). |
-| `system/SystemBridge.kt` | 218 | Системные панели, клавиатура и тема телефона. |
+| `system/SystemBridge.kt` | 226 | Системные панели, клавиатура и тема телефона. |
 | `terminal/Shell.kt` | 146 | Настоящая оболочка Android (/system/bin/sh) для терминала. |
 | `terminal/TermuxResultReceiver.kt` | 14 | Принимает результат команды от Termux и передаёт его в TermuxRunner. |
 | `terminal/TermuxRunner.kt` | 154 | Запуск команд в Termux (если он установлен). |
 
 ### Мосты (`@JavascriptInterface`): как JS вызывает Kotlin
 
+- `attach/Attach.kt`: `attachPick`, `pdfPages`
 - `bridge/Bridge.kt`: `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `chat`, `image`, `saveImage`, `shareImage`, `search`
 - `data/DbBridge.kt`: `loadAll`, `count`, `put`, `remove`, `clear`, `saveFile`, `loadFile`
 - `search/SearchBridge.kt`: `mode`, `sigs`, `put`, `remove`, `clear`, `find`
 - `system/SystemBridge.kt`: `dark`, `bars`
 
-Имена мостов в WebView: `KairemaDb`, `KairemaSearch`, `KairemaSysBridge`
+Имена мостов в WebView: `KairemaDb`, `KairemaSearch`, `KairemaAttach`, `KairemaSysBridge`
 
 ### События Hooks (кто слушает → кто запускает)
 
@@ -223,12 +232,12 @@
 | `app:ready` | about.js, auth-ui.js, backup.js, caps.js, cost.js, filediff.js, help.js, inbox.js, log.js, memory-ui.js, memory.js, roles.js, search.js, sync.js | app.js |
 | `auth:forgot` | auth-ui.js | auth.js |
 | `chat:answer` | branch.js, cost.js, ctx.js, memory-ai.js, memory-ui.js, share.js, terminal.js | messages.js, tools.js |
-| `chat:rendered` | branch.js, design.js, roles.js, scroller.js, share.js | messages.js |
+| `chat:rendered` | branch.js, design.js, draft.js, roles.js, scroller.js, share.js | messages.js |
 | `md:code` | artifacts.js, terminal.js | md.js |
 | `md:table` | artifacts.js | md.js |
 | `memory:auto` | — | memory-ai.js |
 | `memory:changed` | memory.js | backup.js, memory-ai.js, memory-ui.js, settings.js |
-| `msg:render` | branch.js, cost.js, ctx.js, share.js, tools.js | messages.js |
+| `msg:render` | attview.js, branch.js, cost.js, ctx.js, draft.js, share.js, tools.js | messages.js |
 | `settings:grouped` | design.js | settings.js |
 | `settings:rendered` | auth-ui.js, backup.js, cost.js, filediff.js, help.js, log.js, quality.js, roles.js | settings.js |
 | `sync:delete` | search.js, sync.js | chats.js, memory.js, sync.js |
@@ -241,7 +250,7 @@
 - `kairema.accounts.v1`: auth.js
 - `kairema.budget.v1`: cost.js
 - `kairema.chats.v1`: chats.js
-- `kairema.draft.`: messages.js
+- `kairema.draft.v1`: draft.js
 - `kairema.fdiff.v1`: filediff.js
 - `kairema.log.v1`: log.js
 - `kairema.mcaps.v1`: caps.js

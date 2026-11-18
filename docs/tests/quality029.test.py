@@ -102,7 +102,7 @@ with sync_playwright() as p:
     l3 = pg.locator('.art-z [data-zr]').inner_text()
     pg.click('.art-z [data-zr]'); pg.wait_for_timeout(400)
     l4 = pg.locator('.art-z [data-zr]').inner_text()
-    check('предпросмотр: «+» увеличивает, «−» уменьшает, «100%» сбрасывает', (l1, l2, l3, l4) == ('125%', '156%', '125%', '100%'), (l1, l2, l3, l4))
+    check('предпросмотр: «+» увеличивает, «−» уменьшает, «100%» сбрасывает', (l1, l2, l3, l4) == ('110%', '120%', '110%', '100%'), (l1, l2, l3, l4))
     pg.screenshot(path=SHOTS + '/q-preview.png')
     check('нет ошибок в консоли', not errs, errs)
     ctx.close(); b.close()
