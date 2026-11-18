@@ -46,6 +46,30 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     private val tm = TermuxRunner(ctx)
     private val sx = Share(ctx)
 
+    /** Вибро: name = tick | send | done | error, level = 1 (лёгкая) или 2 (обычная). */
+    @JavascriptInterface
+    fun haptic(name: String, level: Int) {
+        try {
+            val v: android.os.Vibrator = if (android.os.Build.VERSION.SDK_INT >= 31) {
+                (ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager).defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                ctx.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+            }
+            if (!v.hasVibrator()) return
+            val k = if (level <= 1) 0.55 else 1.0
+            fun a(x: Int) = (x * k).toInt().coerceIn(1, 255)
+            val e = when (name) {
+                "send" -> android.os.VibrationEffect.createOneShot(12, a(90))
+                "done" -> android.os.VibrationEffect.createWaveform(longArrayOf(0, 16, 70, 22), intArrayOf(0, a(110), 0, a(190)), -1)
+                "error" -> android.os.VibrationEffect.createWaveform(longArrayOf(0, 40, 60, 40), intArrayOf(0, a(220), 0, a(220)), -1)
+                else -> android.os.VibrationEffect.createOneShot(9, a(70))
+            }
+            v.vibrate(e)
+        } catch (_: Exception) {
+        }
+    }
+
     /** Поворот экрана: приложение всегда вертикальное, горизонтально только предпросмотр игры (mode = "landscape"). */
     @JavascriptInterface
     fun setOrientation(mode: String) {
@@ -551,6 +575,9 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                         item.put("pout", pOut * 1_000_000)
                     }
                 }
+                // Размер контекстного окна, если провайдер его сообщает (OpenRouter: context_length).
+                val cl = o.optLong("context_length", 0L)
+                if (cl > 0L) item.put("cl", cl)
                 // Возможности модели, если провайдер их сообщает (OpenRouter): картинки на выходе и размышление.
                 val inMods = o.optJSONObject("architecture")?.optJSONArray("input_modalities")
                 if (inMods != null) {

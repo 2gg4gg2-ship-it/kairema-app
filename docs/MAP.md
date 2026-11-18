@@ -50,6 +50,8 @@
 | Терминал, команды из ответов, агент | `features/terminal/*` (`term-compat.js` разбор ответов любых моделей), `terminal/Shell.kt`, `assets/terminal/*.sh`, `TermuxRunner.kt`, `features/filediff/*` | Опасные команды требуют подтверждения |
 | Готовые сервисы (адрес подставляется), встроенный поиск модели, исследование | `features/presets/presets.js`, `features/tools/tools.js` (`webKind`, `webArg`, `research`), `bridge/Bridge.kt` (`web`, `buildSearchRequest`) | Новый сервис: строка в `PRESETS_AI` или `PRESETS_SEARCH` |
 | Дизайн-слой (спокойный вид, список в Настройках), стартовые плитки пустого чата | `features/design/design.css`, `design.js` | Плитки подсказок: `TILES` в design.js |
+| Вибро и звуки | `features/feel/feel.js`, `Bridge.kt` (`haptic`) | Рисунки вибро в `PAT`, ноты в `SND` |
+| Шкала контекста | `features/ctxbar/ctxbar.js` | Размер окна: `GUESS`, `api.window()` |
 | Шрифты (локальные), автосжатие истории | `features/fonts/fonts.css`, `features/ctx/ctx.js` (`auto`) | Порог автосжатия: `AUTO` в ctx.js |
 | Качество ответов, подсказки слабым моделям, фильтр иероглифов | `features/quality/quality.js` (`qualityPrompt` в `sysPrompt`, `Quality.filter` в `core/messages.js`) | Правила таблиц и языка менять только здесь |
 | Журнал ошибок | `features/log/log.js` | Ключи и почты заменяются на *** перед записью |
@@ -143,13 +145,16 @@
 | `features/cost/cost.js` | 94 | СЧЁТЧИК ТОКЕНОВ И РАСХОДОВ ===== Под каждым ответом ИИ: сколько токенов ушло и примерная цена. |
 | `features/ctx/ctx.css` | 2 |  |
 | `features/ctx/ctx.js` | 90 | СЖАТИЕ КОНТЕКСТА ===== Команда «/compact» (список «/» из модуля roles): старая часть чата заменяется кратким пересказом, который уходит модели вместо длинной истории. |
+| `features/ctxbar/ctxbar.css` | 7 |  |
+| `features/ctxbar/ctxbar.js` | 58 | ШКАЛА КОНТЕКСТА ===== Тонкая полоска над полем ввода: сколько «окна» модели занято историей чата. |
 | `features/design/design.css` | 45 | ДИЗАЙН-СЛОЙ 0.34: спокойный вид, один акцентный цвет ===== Только стили поверх ядра (подключается последним). |
 | `features/design/design.js` | 28 | ДИЗАЙН: спокойный вид и стартовые плитки пустого чата ===== Настройки и Справка оформлены только стилями (design.css): один цвет, ровные карточки, без пёстрых плиток. |
 | `features/draft/draft.js` | 30 | ЧЕРНОВИК: недописанное сообщение не пропадает ===== Раньше текст в поле ввода исчезал, если уйти в настройки или терминал (поле строится заново) или закрыть приложение. |
+| `features/feel/feel.js` | 82 | ВИБРО И ЗВУКИ ===== Вибро (Android: Bridge.haptic, запасной вариант navigator.vibrate): короткий «тик» на отправку и переключатели, мягкий двойной импульс, когда ИИ закон |
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 150 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
 | `features/fonts/fonts.css` | 12 | ШРИФТЫ ВНУТРИ ПРИЛОЖЕНИЯ (работают без интернета) ===== Space Grotesk (заголовки), Manrope (текст интерфейса), JetBrains Mono (код), Source Serif 4 (ответы ИИ). |
-| `features/help/help-data.js` | 152 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
+| `features/help/help-data.js` | 154 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
 | `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
 | `features/help/help.js` | 89 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
@@ -190,7 +195,7 @@
 | `features/tools/tools.css` | 76 | Меню «+», метки режимов в поле ввода, размышления, изображения |
 | `features/tools/tools.js` | 227 | ФУНКЦИИ ЧАТА: меню «+», режимы ответа, создание изображений, глубокое исследование ===== Кнопка «+» в поле ввода открывает список: вложения (галерея, камера, файлы) и фун |
 | `features/websearch/websearch.js` | 49 | ПОИСК В ИНТЕРНЕТЕ: модель сама решает, нужен ли поиск, и составляет запросы ===== Раньше в поисковик уходил сырой текст вопроса: «а в Москве?» искалось дословно и находил |
-| `index.html` | 98 |  |
+| `index.html` | 101 |  |
 
 ### Индекс файлов Kotlin (`app/src/main/java/com/kairema/app`)
 
@@ -198,7 +203,7 @@
 |---|---|---|
 | `MainActivity.kt` | 255 | Оболочка: показывает интерфейс из assets/index.html. * Следующие шаги добавят сюда мост между кнопками интерфейса и нативным кодом. |
 | `attach/Attach.kt` | 329 | Выбор фото и файлов без файлового выбора WebView. |
-| `bridge/Bridge.kt` | 693 | Мост между интерфейсом (JS) и нативным кодом. |
+| `bridge/Bridge.kt` | 720 | Мост между интерфейсом (JS) и нативным кодом. |
 | `bridge/Guard.kt` | 22 | Защита моста. |
 | `data/ChatDb.kt` | 79 | Хранилище чатов на устройстве (SQLite, файл kairema.db). |
 | `data/DbBridge.kt` | 77 | Мост JS <-> хранилище (в JS это KairemaDb): чаты в SQLite, картинки и вложения файлами в filesDir/media. |
@@ -219,7 +224,7 @@
 ### Мосты (`@JavascriptInterface`): как JS вызывает Kotlin
 
 - `attach/Attach.kt`: `attachPick`, `pdfPages`
-- `bridge/Bridge.kt`: `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `chat`, `image`, `saveImage`, `shareImage`, `search`
+- `bridge/Bridge.kt`: `haptic`, `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `chat`, `image`, `saveImage`, `shareImage`, `search`
 - `data/DbBridge.kt`: `loadAll`, `count`, `put`, `remove`, `clear`, `saveFile`, `loadFile`
 - `search/SearchBridge.kt`: `mode`, `sigs`, `put`, `remove`, `clear`, `find`
 - `system/SystemBridge.kt`: `dark`, `bars`
@@ -233,15 +238,15 @@
 | `account:rendered` | sync-ui.js | auth-ui.js |
 | `app:ready` | about.js, auth-ui.js, backup.js, caps.js, cost.js, filediff.js, help.js, inbox.js, log.js, memory-ui.js, memory.js, roles.js, search.js, sync.js | app.js |
 | `auth:forgot` | auth-ui.js | auth.js |
-| `chat:answer` | branch.js, cost.js, ctx.js, memory-ai.js, memory-ui.js, share.js, terminal.js | messages.js, tools.js |
-| `chat:rendered` | branch.js, design.js, draft.js, roles.js, scroller.js, share.js | messages.js |
+| `chat:answer` | branch.js, cost.js, ctx.js, ctxbar.js, feel.js, memory-ai.js, memory-ui.js, share.js, terminal.js | messages.js, tools.js |
+| `chat:rendered` | branch.js, ctxbar.js, design.js, draft.js, roles.js, scroller.js, share.js | messages.js |
 | `md:code` | artifacts.js, terminal.js | md.js |
 | `md:table` | artifacts.js | md.js |
 | `memory:auto` | — | memory-ai.js |
 | `memory:changed` | memory.js | backup.js, memory-ai.js, memory-ui.js, settings.js |
 | `msg:render` | attview.js, branch.js, cost.js, ctx.js, draft.js, share.js, tools.js | messages.js |
 | `settings:grouped` | — | settings.js |
-| `settings:rendered` | auth-ui.js, backup.js, cost.js, ctx.js, filediff.js, help.js, log.js, quality.js, roles.js | settings.js |
+| `settings:rendered` | auth-ui.js, backup.js, cost.js, ctx.js, feel.js, filediff.js, help.js, log.js, quality.js, roles.js | settings.js |
 | `sync:delete` | search.js, sync.js | chats.js, memory.js, sync.js |
 | `sync:left` | auth-ui.js | sync.js |
 | `sync:register` | chats.js, memory.js, sync.js | sync.js |
@@ -252,8 +257,10 @@
 - `kairema.accounts.v1`: auth.js
 - `kairema.budget.v1`: cost.js
 - `kairema.chats.v1`: chats.js
+- `kairema.ctxwin.v1`: ctxbar.js
 - `kairema.draft.v1`: draft.js
 - `kairema.fdiff.v1`: filediff.js
+- `kairema.feel.v1`: feel.js
 - `kairema.log.v1`: log.js
 - `kairema.mcaps.v1`: caps.js
 - `kairema.memory.v1`: memory.js
