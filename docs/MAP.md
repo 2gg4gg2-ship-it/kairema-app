@@ -49,7 +49,7 @@
 | Резервная копия (экспорт/импорт) | `features/backup/backup.js` | Добавляй новые данные сюда тоже |
 | Терминал, команды из ответов, агент | `features/terminal/*` (`term-compat.js` разбор ответов любых моделей), `terminal/Shell.kt`, `assets/terminal/*.sh`, `TermuxRunner.kt`, `features/filediff/*` | Опасные команды требуют подтверждения |
 | Готовые сервисы (адрес подставляется), встроенный поиск модели, исследование | `features/presets/presets.js`, `features/tools/tools.js` (`webKind`, `webArg`, `research`), `bridge/Bridge.kt` (`web`, `buildSearchRequest`) | Новый сервис: строка в `PRESETS_AI` или `PRESETS_SEARCH` |
-| Дизайн-слой, мозаика Настроек и Справки, стартовые плитки | `features/design/design.css`, `design.js` (хук `settings:grouped`) | Размер плитки: словарь `MAP` в design.js |
+| Дизайн-слой (спокойный вид, список в Настройках), стартовые плитки пустого чата | `features/design/design.css`, `design.js` | Плитки подсказок: `TILES` в design.js |
 | Качество ответов, подсказки слабым моделям, фильтр иероглифов | `features/quality/quality.js` (`qualityPrompt` в `sysPrompt`, `Quality.filter` в `core/messages.js`) | Правила таблиц и языка менять только здесь |
 | Журнал ошибок | `features/log/log.js` | Ключи и почты заменяются на *** перед записью |
 | Справка (инструкция в приложении) | `features/help/help-data.js` (тексты), `help.js`, `help.css` | Поменял функцию, поправь её раздел справки |
@@ -142,8 +142,8 @@
 | `features/cost/cost.js` | 94 | СЧЁТЧИК ТОКЕНОВ И РАСХОДОВ ===== Под каждым ответом ИИ: сколько токенов ушло и примерная цена. |
 | `features/ctx/ctx.css` | 2 |  |
 | `features/ctx/ctx.js` | 61 | СЖАТИЕ КОНТЕКСТА ===== Команда «/compact» (список «/» из модуля roles): старая часть чата заменяется кратким пересказом, который уходит модели вместо длинной истории. |
-| `features/design/design.css` | 74 | ДИЗАЙН-СЛОЙ 0.31: разные размеры и компоновки вместо одинаковых строк ===== Только стили поверх ядра (подключается последним) и небольшая раскладка в design.js. |
-| `features/design/design.js` | 50 | ДИЗАЙН: раскладка Настроек мозаикой и стартовые плитки пустого чата ===== Настройки: группы строк получают класс mz, а каждая строка размер (w6 широкая, w4, w2 узкая) и ц |
+| `features/design/design.css` | 44 | ДИЗАЙН-СЛОЙ 0.34: спокойный вид, один акцентный цвет ===== Только стили поверх ядра (подключается последним). |
+| `features/design/design.js` | 28 | ДИЗАЙН: спокойный вид и стартовые плитки пустого чата ===== Настройки и Справка оформлены только стилями (design.css): один цвет, ровные карточки, без пёстрых плиток. |
 | `features/draft/draft.js` | 30 | ЧЕРНОВИК: недописанное сообщение не пропадает ===== Раньше текст в поле ввода исчезал, если уйти в настройки или терминал (поле строится заново) или закрыть приложение. |
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 150 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
@@ -238,7 +238,7 @@
 | `memory:auto` | — | memory-ai.js |
 | `memory:changed` | memory.js | backup.js, memory-ai.js, memory-ui.js, settings.js |
 | `msg:render` | attview.js, branch.js, cost.js, ctx.js, draft.js, share.js, tools.js | messages.js |
-| `settings:grouped` | design.js | settings.js |
+| `settings:grouped` | — | settings.js |
 | `settings:rendered` | auth-ui.js, backup.js, cost.js, filediff.js, help.js, log.js, quality.js, roles.js | settings.js |
 | `sync:delete` | search.js, sync.js | chats.js, memory.js, sync.js |
 | `sync:left` | auth-ui.js | sync.js |

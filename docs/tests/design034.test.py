@@ -24,12 +24,10 @@ with sync_playwright() as p:
     pg.evaluate("document.querySelectorAll('[data-screen=onboarding]').forEach(x=>x.remove())")
     # --- дизайн: мозаика настроек и стартовые плитки
     pg.evaluate("show('set')"); pg.wait_for_timeout(700)
-    d = pg.evaluate("({mz:document.querySelectorAll('.st .grp.mz').length,w6:document.querySelectorAll('.st .grp.mz>.sr.w6').length,w2:document.querySelectorAll('.st .grp.mz>.sr.w2').length,w4:document.querySelectorAll('.st .grp.mz>.sr.w4').length,over:document.documentElement.scrollWidth>innerWidth})")
-    check('настройки: мозаика, плитки трёх размеров', d['mz'] >= 2 and d['w6'] >= 1 and d['w2'] >= 2 and d['w4'] >= 1 and not d['over'], d)
     pg.evaluate("S.apiMsgs.length=0;show('api')"); pg.wait_for_timeout(300)
     pg.evaluate("show('set');show('api')"); pg.wait_for_timeout(900)
     t = pg.evaluate("({n:document.querySelectorAll('.dz-t').length,w:[...document.querySelectorAll('.dz-t')].map(x=>Math.round(x.getBoundingClientRect().width))})")
-    check('пустой чат: 5 плиток разной ширины', t['n'] == 5 and len(set(t['w'])) >= 3, t)
+    check('пустой чат: 5 плиток, первая широкая', t['n'] == 5 and t['w'][0] > t['w'][1], t)
     pg.click('.dz-t >> nth=0'); pg.wait_for_timeout(200)
     check('плитка вставляет заготовку в поле ввода', pg.input_value('.cmp textarea').startswith('Написать код'), pg.input_value('.cmp textarea'))
     # --- большая вставка не отправляет сообщение

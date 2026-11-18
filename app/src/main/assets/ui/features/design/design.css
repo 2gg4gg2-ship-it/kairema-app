@@ -1,73 +1,43 @@
-/* ===== ДИЗАЙН-СЛОЙ 0.31: разные размеры и компоновки вместо одинаковых строк =====
-   Только стили поверх ядра (подключается последним) и небольшая раскладка в design.js. Цвета только из токенов.
+/* ===== ДИЗАЙН-СЛОЙ 0.34: спокойный вид, один акцентный цвет =====
+   Только стили поверх ядра (подключается последним). Цвета только из токенов: фон, текст и один акцент var(--blue) в мелочах.
    Убрать: удалить папку features/design и её строки в index.html: интерфейс вернётся к прежнему виду. */
-:root{--tint:var(--blue)}
-/* ---- Настройки: шапка-профиль и справка ---- */
-#v-set .st>.card.pf{padding:22px 20px;border-radius:30px 30px 30px 10px;gap:16px;background:radial-gradient(140% 170% at 100% 0%,color-mix(in srgb,var(--blue) 26%,transparent),transparent 62%),var(--s1)}
-#v-set .card.pf .ini{width:64px;height:64px;font-size:26px;background:var(--tx);color:var(--on);border:0}
-#v-set .card.pf b{font-size:22px}
-#v-set .hp-set{border-radius:12px 30px 12px 30px;margin:4px 0;padding:18px;background:radial-gradient(120% 160% at 0% 100%,color-mix(in srgb,var(--g) 22%,transparent),transparent 62%),var(--s1)}
-#v-set .hp-set-i{width:52px;height:52px;border-radius:18px;background:color-mix(in srgb,var(--g) 18%,var(--s2));color:var(--g)}
-/* ---- Мозаика: группы строк становятся плитками разного размера (6 колонок) ---- */
-.st .grp.mz{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;background:none;border:0;border-radius:0;overflow:visible}
-.st .grp.mz>.sr{grid-column:span 3;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:12px;min-height:112px;padding:14px;position:relative;overflow:hidden;
- border:1px solid color-mix(in srgb,var(--c,var(--tx2)) 30%,var(--line));border-radius:22px;
- background:radial-gradient(120% 120% at 100% 0%,color-mix(in srgb,var(--c,var(--tx2)) 16%,transparent),transparent 65%),var(--s1)}
-.st .grp.mz>.sr:last-child{border-bottom:1px solid color-mix(in srgb,var(--c,var(--tx2)) 30%,var(--line))}
-.st .grp.mz>.sr .si{width:42px;height:42px;border-radius:14px;background:color-mix(in srgb,var(--c,var(--tx2)) 20%,var(--s2));color:var(--c,var(--tx))}
-.st .grp.mz>.sr .si svg{width:22px;height:22px}
-.st .grp.mz>.sr .m{flex:none;width:100%}
-.st .grp.mz>.sr b{font-size:15.5px;line-height:1.2}
-.st .grp.mz>.sr small{font-size:12.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.st .grp.mz>.sr>svg.i{position:absolute;top:14px;right:12px;width:16px;height:16px;opacity:.6}
-.st .grp.mz>.sr .sw,.st .grp.mz>.sr .qv{position:absolute;top:14px;right:12px}
-.st .grp.mz>.sr.w6{grid-column:span 6;flex-direction:row;align-items:center;min-height:76px}
-.st .grp.mz>.sr.w6 .m{flex:1;width:auto}
-.st .grp.mz>.sr.w6 .sw,.st .grp.mz>.sr.w6 .qv,.st .grp.mz>.sr.w6>svg.i{position:static}
-.st .grp.mz>.sr.w4{grid-column:span 4}
-.st .grp.mz>.sr.w2{grid-column:span 2;min-height:132px}
-.st .grp.mz>.sr.w2 small{display:none}
-.st .grp.mz>.sr.t{min-height:150px}
-.st .grp.mz>.sr.t b{font-size:17px}
-.st .grp.mz>.sr.t small{-webkit-line-clamp:3}
-/* ---- Справка: чередование широких и узких карточек ---- */
-.hp-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
-.hp-card{grid-column:span 3;border-radius:22px;background:radial-gradient(120% 120% at 100% 0%,color-mix(in srgb,var(--c,var(--blue)) 14%,transparent),transparent 65%),var(--s1)}
-.hp-card:nth-child(5n+1){grid-column:span 6;flex-direction:row;align-items:center;gap:14px;min-height:84px;border-radius:26px 10px 26px 10px}
-.hp-card:nth-child(5n+1) .hp-ce{flex:none}
-.hp-card:nth-child(5n+2){grid-column:span 4}
-.hp-card:nth-child(5n+3){grid-column:span 2;min-height:130px}
-.hp-card:nth-child(5n+3) small{display:none}
-.hp-card:nth-child(5n+4){--c:var(--g)}
-.hp-card:nth-child(5n+5){--c:var(--y);border-radius:10px 26px 10px 26px}
-.hp-card:nth-child(5n+2){--c:var(--r)}
+/* ---- Настройки ---- */
+#v-set .st>.card.pf{padding:20px 18px;border-radius:26px;gap:16px}
+#v-set .card.pf .ini{width:60px;height:60px;font-size:24px}
+#v-set .card.pf b{font-size:21px}
+#v-set .hp-set{margin:10px 0;padding:16px;border-radius:22px;background:var(--s1)}
+#v-set .hp-set-i{background:var(--s2)}
+.st .grp{border-radius:22px}
+/* ---- Справка: одна широкая карточка в начале, дальше ровная сетка ---- */
+.hp-card{border-radius:20px;background:var(--s1)}
+.hp-card:nth-child(1){grid-column:1/-1;flex-direction:row;align-items:center;gap:14px;min-height:84px}
 /* ---- Чат ---- */
-#v-api .top h1{font-size:34px;letter-spacing:-.04em}
-.prow{border-radius:999px;background:radial-gradient(150% 300% at 0% 50%,color-mix(in srgb,var(--g) 14%,transparent),transparent 60%),var(--s1);min-height:46px}
-.prow .stt2{box-shadow:0 0 0 4px color-mix(in srgb,var(--g) 22%,transparent)}
-.msg.u{background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 20%,var(--ub)),var(--ub));border-radius:22px 22px 6px 22px;max-width:84%}
-.msg.a .bd.md h3,.msg.a .bd.md h4,.msg.a .bd.md h5{font-family:var(--disp);letter-spacing:-.02em}
-.msg.a .bd.md blockquote{border-radius:0 14px 14px 0;background:color-mix(in srgb,var(--blue) 8%,transparent)}
-.cmp{border-radius:30px;box-shadow:0 10px 32px color-mix(in srgb,var(--tx) 10%,transparent);transition:box-shadow .3s var(--ease),border-color .3s var(--ease)}
-.cmp:focus-within{border-color:color-mix(in srgb,var(--blue) 55%,var(--line));box-shadow:0 12px 36px color-mix(in srgb,var(--blue) 18%,transparent)}
-.send:not(:disabled){background:linear-gradient(135deg,var(--blue),color-mix(in srgb,var(--blue) 60%,var(--tx)));color:#fff}
+#v-api .top h1{font-size:32px;letter-spacing:-.04em}
+.prow{border-radius:999px;min-height:46px}
+.msg.u{border-radius:22px 22px 6px 22px;max-width:84%}
+.cmp{border-radius:28px}
 /* ---- Навигация: активная вкладка в «таблетке» ---- */
 .tab.on::after{content:"";position:absolute;z-index:-1;top:6px;bottom:6px;left:50%;width:76px;margin-left:-38px;border-radius:999px;background:color-mix(in srgb,var(--tx) 9%,transparent)}
 .tab::before{display:none}
-/* ---- Стартовые подсказки в пустом чате: плитки разного размера ---- */
+/* ---- Стартовые подсказки в пустом чате ---- */
 .dz-wrap{padding:6px 16px 24px}
 .dz-hello{font:700 26px/1.15 var(--disp);letter-spacing:-.03em;margin:8px 2px 14px}
 .dz-hello small{display:block;margin-top:6px;font:500 15px/1.4 var(--body);letter-spacing:0;color:var(--tx2)}
-.dz-g{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
-.dz-t{grid-column:span 3;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:10px;min-height:104px;padding:14px;text-align:left;border-radius:22px;border:1px solid color-mix(in srgb,var(--c) 30%,var(--line));background:radial-gradient(120% 120% at 100% 0%,color-mix(in srgb,var(--c) 18%,transparent),transparent 65%),var(--s1);color:var(--tx);animation:in .5s var(--ease) backwards;animation-delay:calc(var(--i,0)*60ms + .15s);transition:transform .15s var(--ease)}
+.dz-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dz-t{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:100px;padding:14px;text-align:left;border-radius:20px;border:1px solid var(--line);background:var(--s1);color:var(--tx);animation:in .5s var(--ease) backwards;animation-delay:calc(var(--i,0)*60ms + .15s);transition:transform .15s var(--ease)}
 .dz-t:active{transform:scale(.97)}
-.dz-t b{font:650 16px/1.2 var(--body)}
-.dz-t small{color:var(--tx2);font-size:12.5px;line-height:1.35}
-.dz-t i{font-style:normal;display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:14px;color:var(--c);background:color-mix(in srgb,var(--c) 20%,var(--s2))}
+.dz-t.w6{grid-column:1/-1;flex-direction:row;align-items:center;min-height:72px;gap:14px}
+.dz-t i{font-style:normal;display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:14px;background:var(--s2);color:var(--tx)}
 .dz-t i svg{width:22px;height:22px}
-.dz-t span b,.dz-t span small{display:block}.dz-t span small{margin-top:3px}
-.dz-t.w6{gap:14px}
-.dz-t.w6{grid-column:span 6;flex-direction:row;align-items:center;min-height:72px}
-.dz-t.w6 span{flex:1}
-.dz-t.w4{grid-column:span 4}.dz-t.w2{grid-column:span 2;min-height:132px}.dz-t.w2 small{display:none}
-.dz-t.tall{min-height:150px}
+.dz-t span b,.dz-t span small{display:block}
+.dz-t b{font:650 16px/1.2 var(--body)}
+.dz-t small{margin-top:3px;color:var(--tx2);font-size:12.5px;line-height:1.35}
+/* ---- Строки-переходы в Настройках: обычный список в карточке вместо мелких плиток ---- */
+.st .stl{display:block;border:1px solid var(--line);border-radius:22px;background:var(--s1);overflow:hidden}
+.st .stl .sr,.st .stl .sr:last-child:nth-child(odd){position:static;flex-direction:row;align-items:center;gap:12px;min-height:0;padding:13px 14px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none}
+.st .stl .sr:last-child,.st .stl .sr:last-child:nth-child(odd){border-bottom:0}
+.st .stl .sr .si,.st .stl .sr .si.c{width:40px;height:40px;flex:none}
+.st .stl .sr .m,.st .stl .sr:last-child:nth-child(odd) .m{width:auto;flex:1;min-width:0}
+.st .stl .sr b{font-size:16px}
+.st .stl .sr small{display:block;-webkit-line-clamp:unset;font-size:13px}
+.st .stl .sr>svg:last-child,.st .stl .sr:last-child:nth-child(odd)>svg:last-child{position:static;width:18px;height:18px;opacity:.5;flex:none}
