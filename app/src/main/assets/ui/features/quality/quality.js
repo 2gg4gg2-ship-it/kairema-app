@@ -16,9 +16,13 @@ const Quality=(()=>{
  const get=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}};
  const set=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
  const help=()=>get(KH,'auto'),cjkOff=()=>get(KC,'1')==='1';
- const WEAK=/(mini|nano|tiny|small|lite|haiku|instant|gemma|phi-?\d|[-_:/ ](0\.5|1|1\.5|2|3|4|7|8|9|11)b\b|-free\b|:free\b|llama-?3\.[12]|8x7b)/i;
+ /* Слабая модель по названию: «mini», «nano», «lite», «instant», «gemma», «phi», «tiny», бесплатные (:free), старые Haiku,
+    а также любая с размером до 14 млрд параметров в названии (7b, 3.8b, 0.6b). «gemini» под «mini» не попадает. */
+ const WEAK=/((?<![a-z])(mini|nano)(?![a-z])|tiny|lite|instant|gemma|phi-?\d|[-_:/ ]phi\b|-free\b|:free\b|llama-?3\.[12]|8x7b|claude-3.*haiku|haiku(?!.*[4-9]))/i;
+ const SIZE=/[-_:/ ](\d{1,2}(?:\.\d)?)b(?![a-z])/i;
+ const isWeak=n=>{if(WEAK.test(n))return true;const m=SIZE.exec(n);return!!m&&parseFloat(m[1])<=14};
  const model=()=>{try{const p=actProv();return(p&&p.model)||''}catch(e){return''}};
- const weak=()=>{const h=help();return h==='on'||(h==='auto'&&WEAK.test(model()))};
+ const weak=()=>{const h=help();return h==='on'||(h==='auto'&&isWeak(model()))};
  /* Правила для всех моделей. */
  function core(){
   return "\n\nLanguage and quality rules (very important). "
@@ -56,5 +60,5 @@ const Quality=(()=>{
   const sw=$('.sw',r2),d2=()=>sw.classList.toggle('on',cjkOff());d2();
   r2.onclick=()=>{set(KC,cjkOff()?'0':'1');d2()};
   ab.insertAdjacentElement('beforebegin',r1);ab.insertAdjacentElement('beforebegin',r2)});
- return{prompt,filter,watch,weak,core,simple,get allowCjk(){return ok}}})();
+ return{prompt,filter,watch,weak,isWeak,core,simple,get allowCjk(){return ok}}})();
 function qualityPrompt(){try{return Quality.prompt()}catch(e){return''}}

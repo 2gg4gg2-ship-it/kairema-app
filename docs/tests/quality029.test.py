@@ -68,7 +68,7 @@ with sync_playwright() as p:
       await new Promise(r=>setTimeout(r,50));
       inner.style.height='3400px';scl(box);const c=box.scrollTop;                      // потянул вверх: не мешаем
       box.dispatchEvent(new Event('touchmove'));box.scrollTop=box.scrollHeight;box.dispatchEvent(new Event('scroll'));
-      await new Promise(r=>setTimeout(r,50));
+      box.dispatchEvent(new Event('touchend'));await new Promise(r=>setTimeout(r,750));   // палец убрали
       inner.style.height='3600px';scl(box);const d=box.scrollTop,mx=box.scrollHeight-box.clientHeight;  // вернулся вниз: снова следуем
       const sm=getComputedStyle(document.querySelector('.msgs')).scrollBehavior;
       box.remove();return{a,b2,c,d,mx,sm}})()""")

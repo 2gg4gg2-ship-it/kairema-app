@@ -48,6 +48,9 @@ with sync_playwright() as p:
       const box=document.querySelector('.msgs');S.apiMsgs.push({r:'u',q:'q2',t:'q2'});await respond(S.apiMsgs,box,'');
       await new Promise(r=>setTimeout(r,300));const m=S.apiMsgs[S.apiMsgs.length-1];return{t:m.t,err:!!m.err,cont:document.querySelectorAll('.stp-c').length}})()""")
     check('обрыв связи: написанный текст не затёрт ошибкой', r['t'].startswith('Половина') and not r['err'] and r['cont'] >= 1, r)
+    exp = {"deepseek/deepseek-v4.1-flash:free":1,"qwen/qwen3.8-27b":0,"qwen/qwen3-14b":1,"meta-llama/llama-3.1-8b-instruct":1,"llama-3.3-70b-versatile":0,"gpt-4o-mini":1,"gpt-5-nano":1,"claude-haiku-4-5":0,"claude-3-haiku-20240307":1,"claude-sonnet-4-5":0,"gemini-2.5-flash":0,"gemini-3-flash":0,"gemini-2.5-flash-lite":1,"gemma-2-9b-it":1,"mistral-7b-instruct":1,"mistral-small-latest":0,"ministral-3b":1,"qwen2.5-7b-instruct":1,"qwen2.5-coder-32b":0,"openai/gpt-oss-20b":0,"kimi-k2":0,"llama3-8b-8192":1,"phi-4":1,"tinyllama":1,"qwen3-0.6b":1,"qwen3-coder-30b-a3b":0,"gpt-4.1":0,"deepseek-chat":0,"o4-mini":1}
+    bad = [n for n, v in exp.items() if pg.evaluate("n=>Quality.isWeak(n)", n) != bool(v)]
+    check('подсказки для слабых: 29 названий определяются верно (Gemini не считается слабой)', not bad, bad)
     check('нет ошибок', not errs, errs)
     b.close()
 print('\nпройдено %d провалено %d %s  скриншоты: %s' % (OK, len(BAD), BAD, SHOTS))

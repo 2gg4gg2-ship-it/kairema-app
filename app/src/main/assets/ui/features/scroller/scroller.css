@@ -4,3 +4,6 @@
 .scl button.on{display:grid;animation:in .25s var(--ease) backwards}
 .scl button:active{transform:scale(.86);background:var(--s2)}
 .scl svg.i{width:18px;height:18px}
+
+/* Пока ИИ пишет, браузер не должен сам сдвигать чат при перерисовке ответа */
+.msgs{overflow-anchor:none}

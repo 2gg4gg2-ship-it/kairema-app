@@ -7,11 +7,16 @@ function paint(box,msgs,q){box.innerHTML='';if(!msgs.length)box.innerHTML='<div 
  for(let i=from;i<msgs.length;i++)box.append(msgEl(msgs[i],0,q))}
 /* Прокрутка чата. scr: принудительно вниз (отправили сообщение, открыли чат). scl: во время потока ответа ведёт вниз,
    ТОЛЬКО пока читатель внизу; как только он потянул чат вверх, не мешаем (b._stk=false), вернулся к низу снова следуем. */
-function follow(b){if(b._fw)return;b._fw=1;
- const mark=()=>{b._u=Date.now()};['touchstart','touchmove','wheel','pointerdown','keydown'].forEach(e=>b.addEventListener(e,mark,{passive:true}));
- b.addEventListener('scroll',()=>{if(Date.now()-(b._u||0)<1800)b._stk=b.scrollHeight-b.scrollTop-b.clientHeight<90},{passive:true})}
-const scr=b=>{follow(b);b._stk=true;b.scrollTop=1e6};
-const scl=b=>{follow(b);if(b._stk!==false)b.scrollTop=1e6};
+function follow(b){if(b._fw)return;b._fw=1;b._lt=b.scrollTop;
+ /* Палец на экране или инерция после него: не двигаем чат. Любое движение вверх выключает следование, возврат к самому низу включает. */
+ const rel=()=>{clearTimeout(b._tt);b._tt=setTimeout(()=>{b._tch=0},600)};
+ ['touchstart','pointerdown'].forEach(e=>b.addEventListener(e,()=>{b._tch=1;clearTimeout(b._tt)},{passive:true}));
+ ['touchend','touchcancel','pointerup','pointercancel'].forEach(e=>b.addEventListener(e,rel,{passive:true}));
+ b.addEventListener('wheel',()=>{b._tch=1;rel()},{passive:true});
+ b.addEventListener('scroll',()=>{const t=b.scrollTop,d=b.scrollHeight-t-b.clientHeight;if(t<b._lt-2&&!b._prog)b._stk=false;if(d<24)b._stk=true;b._lt=t},{passive:true})}
+const jump=b=>{b._prog=1;b.scrollTop=1e6;b._lt=b.scrollTop;requestAnimationFrame(()=>{b._prog=0})};
+const scr=b=>{follow(b);b._stk=true;jump(b)};
+const scl=b=>{follow(b);if(b._stk!==false&&!b._tch)jump(b)};
 function stopTail(d,lbl){const b=el('<button class="more-old stp-c"></button>');b.textContent=L(lbl||'Остановлено. Продолжить');b.onclick=()=>{b.remove();const c=Chat.cmp;if(!c||!c.setText)return;c.setText(L('Продолжи с того места, где остановился.'));const sd=$('.send',c);if(sd&&!sd.disabled)sd.click()};d.append(b)}
 i18nAdd({"Остановлено. Продолжить":"Stopped. Continue","Ответ оборван лимитом длины. Продолжить":"The answer hit the length limit. Continue","Связь прервалась, ответ неполный. Продолжить":"Connection lost, the answer is incomplete. Continue","Модель только думала и не успела ответить. Нажмите «Быстрый ответ» в меню «+» или повторите вопрос.":"The model only reasoned and did not answer. Pick Quick answer in the + menu or ask again.","Продолжи с того места, где остановился.":"Continue from where you stopped.","Остановить":"Stop"});
 async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=msgEl(m,1);box.append(d);const bd=$('.bd',d);bd.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';scr(box);

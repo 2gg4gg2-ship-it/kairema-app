@@ -121,7 +121,7 @@ const Tools=(()=>{
    if(!x.b||x.b===x.t)r.classList.add('nob');
    tb.append(r)});
   if(e.open)tb.scrollTop=1e6;
-  const b=d.parentNode;if(b&&b._stk!==false&&b.scrollHeight-b.scrollTop-b.clientHeight<160)b.scrollTop=1e6};
+  const b=d.parentNode;if(b&&b._stk!==false&&!b._tch&&b.scrollHeight-b.scrollTop-b.clientHeight<160)b.scrollTop=1e6};
  api.thoughtDone=d=>{const e=d._th;if(!e)return;e._done=true;e.open=false;$('.tk-t',e).textContent=L('Размышления');e.classList.add('done');$$('.tk-st.cur',e).forEach(x=>x.classList.remove('cur'))};
  /* ---- Встроенный поиск модели (у провайдера свой интернет-поиск) ----
     or: OpenRouter, плагин web (подходит любой модели OpenRouter); anthropic: инструмент web_search у Claude; oai: модели OpenAI *search*.

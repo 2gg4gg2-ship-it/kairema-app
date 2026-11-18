@@ -5,8 +5,9 @@
 #v-set .st>.card.pf{padding:20px 18px;border-radius:26px;gap:16px}
 #v-set .card.pf .ini{width:60px;height:60px;font-size:24px}
 #v-set .card.pf b{font-size:21px}
-#v-set .hp-set{margin:10px 0;padding:16px;border-radius:22px;background:var(--s1)}
-#v-set .hp-set-i{background:var(--s2)}
+/* единственный цветной элемент настроек: справка */
+#v-set .hp-set{margin:10px 0;padding:16px;border-radius:22px;border-color:color-mix(in srgb,var(--blue) 40%,var(--line));background:radial-gradient(130% 170% at 0% 0%,color-mix(in srgb,var(--blue) 22%,transparent),transparent 65%),var(--s1)}
+#v-set .hp-set-i{background:color-mix(in srgb,var(--blue) 18%,var(--s2));color:var(--blue)}
 .st .grp{border-radius:22px}
 /* ---- Справка: одна широкая карточка в начале, дальше ровная сетка ---- */
 .hp-card{border-radius:20px;background:var(--s1)}

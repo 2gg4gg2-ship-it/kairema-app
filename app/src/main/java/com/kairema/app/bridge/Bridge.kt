@@ -644,17 +644,18 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         val raw = try { r.body?.string().orEmpty() } catch (_: Exception) { "" }
         val msg = try { JSONObject(raw).optJSONObject("error")?.optString("message") } catch (_: Exception) { null }
         val tail = (msg ?: raw).replace(Regex("\\s+"), " ").take(160)
-        return when (r.code) {
-            401, 403 -> "ключ отклонён (${r.code})"
-            404 -> "адрес или модель не найдены (404)"
-            429 -> "лимит запросов или нет баланса (429)"
+        val big = r.code == 413 || tail.contains("too large", true) || tail.contains("tokens per minute", true) || tail.contains("context length", true) || tail.contains("maximum context", true)
+        return when {
+            big -> "запрос слишком большой для этой модели или лимита провайдера (${r.code}). Начните новый чат или введите /compact, чтобы сжать историю. Подробности: $tail"
+            r.code == 401 || r.code == 403 -> "ключ отклонён (${r.code}): проверьте ключ и что у него есть доступ к этой модели"
+            r.code == 404 -> "адрес или модель не найдены (404): проверьте название модели и адрес API"
+            r.code == 429 -> "лимит запросов или нет баланса (429): подождите минуту или проверьте баланс"
             else -> "ошибка ${r.code}" + if (tail.isNotEmpty()) ": $tail" else ""
         }
     }
-
     private fun netError(e: Exception): String = when (e) {
         is java.net.UnknownHostException -> "нет соединения или неверный адрес"
-        is java.net.SocketTimeoutException -> "время ожидания истекло"
+        is java.net.SocketTimeoutException -> "время ожидания истекло: модель не ответила, повторите или выберите другую"
         is IllegalArgumentException -> "неверный API URL"
         else -> e.message ?: "ошибка сети"
     }
