@@ -48,6 +48,13 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     private val tm = TermuxRunner(ctx)
     private val sx = Share(ctx)
 
+    /** Агент: уведомление «ждёт разрешения» или «закончил» (показывается только если приложение свёрнуто). */
+    @JavascriptInterface
+    fun agentNotify(t: String, title: String, text: String) {
+        if (!Guard.ok(t)) return
+        Notifier.done(ctx, title.take(80), text.replace(Regex("\\s+"), " ").trim().take(180))
+    }
+
     /** Агент: держит службу переднего плана весь прогон (между шагами модели и команд), on = true начать, false закончить. */
     private var agentKeep = false
 

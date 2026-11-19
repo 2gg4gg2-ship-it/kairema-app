@@ -69,6 +69,7 @@ const FileDiff=(()=>{
   if(typeof Term==='undefined'||Term.exec.__fd)return;
   origExec=Term.exec;
   const w=async(cmd,o={})=>{
+   if(o.nodiff)return origExec(cmd,o);
    let ps=[],before=null;
    if(Native.on){try{ps=targets(cmd);if(ps.length)before=await snap(ps,o)}catch(e){ps=[];before=null}}
    const r=await origExec(cmd,o);

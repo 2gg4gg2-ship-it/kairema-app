@@ -33,6 +33,9 @@ Chx.ser=(m,local)=>{
  if(Array.isArray(m.src)&&m.src.length)o.src=m.src.slice(0,5).map(z=>({title:String(z.title||'').slice(0,200),url:String(z.url||'').slice(0,500)}));
  if(m.serr)o.serr=String(m.serr).slice(0,200);
  if(m.x&&(m.x.cx||m.x.vs))o.x=m.x;
+ if(Array.isArray(m.ag)&&m.ag.length)o.ag=m.ag.slice(-60).map(s=>({k:s.k,t:s.t?String(s.t).slice(0,300):undefined,n:s.n,h:s.h?String(s.h).slice(0,120):undefined,st:s.st==='run'?'err':s.st,o:s.o?String(s.o).slice(0,300):undefined}));
+ if(Array.isArray(m.plan)&&m.plan.length)o.plan=m.plan.slice(0,30).map(p=>({t:String(p.t||'').slice(0,160),s:p.s}));
+ if(m.cp&&typeof m.cp.h==='string')o.cp={h:m.cp.h,dir:String(m.cp.dir||'')};
  if(ps.length)o.parts=ps;
  if(nn.length)o.n=nn;
  return o};
@@ -44,6 +47,9 @@ Chx.hyd=o=>{
  if(Array.isArray(o.src)&&o.src.length)m.src=o.src.filter(z=>z&&typeof z.url==='string').slice(0,5);
  if(o.serr)m.serr=String(o.serr);
  if(o.x&&typeof o.x==='object'){const x={};if(typeof o.x.cx==='string')x.cx=o.x.cx.slice(0,8000);if(Array.isArray(o.x.vs)&&o.x.vs.length>1){x.vs=o.x.vs.slice(0,8).filter(v=>v&&typeof v.t==='string').map(v=>({t:v.t,src:Array.isArray(v.src)?v.src.slice(0,5):undefined,serr:v.serr,cost:v.cost}));x.vi=Math.max(0,Math.min(x.vs.length-1,+o.x.vi||0))}if(x.cx||(x.vs&&x.vs.length>1))m.x=x}
+ if(Array.isArray(o.ag)&&o.ag.length)m.ag=o.ag.slice(-60).filter(s=>s&&(s.k==='say'||s.k==='tool'));
+ if(Array.isArray(o.plan)&&o.plan.length)m.plan=o.plan.slice(0,30).filter(p=>p&&typeof p.t==='string');
+ if(o.cp&&/^[0-9a-f]{7,40}$/.test(String(o.cp.h)))m.cp={h:o.cp.h,dir:String(o.cp.dir||'').slice(0,200)};
  if(o.cost&&typeof o.cost==='object')m.cost={i:+o.cost.i||0,o:+o.cost.o||0,c:typeof o.cost.c==='number'?o.cost.c:null,e:o.cost.e?1:0};
  if(Chx.db()&&o.img&&safe(o.img.path))m.img={mime:String(o.img.mime||'image/png'),path:o.img.path};
  if(Array.isArray(o.parts)&&o.parts.length)m.parts=o.parts.filter(p=>p&&(p.k==='text'||(Chx.db()&&(p.k==='image'||p.k==='pdf')&&safe(p.path))));

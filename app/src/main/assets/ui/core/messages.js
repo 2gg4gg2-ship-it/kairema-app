@@ -64,7 +64,7 @@ async function respond(msgs,box,tag){if(typeof Coder!=='undefined'&&Coder.on())r
 const NB=window.KairemaBridge,Native=(()=>{const pend={};let n=0,tok='';
  /* Токен приложения (Kotlin: bridge/Guard.kt). Присылается главной странице при загрузке; фреймы предпросмотра HTML его не видят.
     Методы из GUARD требуют токен первым аргументом. Пока токена нет (браузер, тесты с подменой моста), аргументы идут как есть. */
- const GUARD=new Set(['saveKey','deleteKey','termux','termuxRequestPermission','termuxStatus','shell','verify','models','chat','image','search','inboxTake','attachPick','pdfPages','updCheck','updInstall','agentKeep']);
+ const GUARD=new Set(['saveKey','deleteKey','termux','termuxRequestPermission','termuxStatus','shell','verify','models','chat','image','search','inboxTake','attachPick','pdfPages','updCheck','updInstall','agentKeep','agentNotify']);
  /* Методы выбора файлов лежат в отдельном мосте KairemaAttach (Kotlin: attach/Attach.kt) */
  const OWN=new Set(['attachPick','pdfPages']);
  const call=(fn,...a)=>{const o=OWN.has(fn)?window.KairemaAttach:NB;return GUARD.has(fn)&&tok?o[fn](tok,...a):o[fn](...a)};

@@ -14,8 +14,15 @@ def reset():
     shutil.rmtree(PROJ, ignore_errors=True); os.makedirs(PROJ)
     open(os.path.join(PROJ, 'calc.py'), 'w').write('def add(a, b):\n    return a - b\n')
     open(os.path.join(PROJ, 'test_calc.py'), 'w').write('from calc import add\nassert add(2, 3) == 5, "add(2,3) = %s" % add(2, 3)\nprint("ALL OK")\n')
+BIN = tempfile.mkdtemp(prefix='nogit_')
+for t in 'bash sh ls cat awk grep sed base64 tr mkdir dirname python3 wc seq echo touch rm head tail uname date env printf test true false sleep cp mv'.split():
+    pth = shutil.which(t)
+    if pth and not os.path.exists(os.path.join(BIN, t)): os.symlink(pth, os.path.join(BIN, t))
+NOGIT = [0]
 def host_shell(cmd):
-    r = subprocess.run(['bash', '-c', cmd], cwd=WORK, env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'), capture_output=True, text=True, timeout=60)
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+    if NOGIT[0]: env['PATH'] = BIN
+    r = subprocess.run(['bash', '-c', cmd], cwd=WORK, env=env, capture_output=True, text=True, timeout=60)
     return json.dumps({'out': r.stdout + r.stderr, 'code': r.returncode})
 INIT = r"""
 if (window === window.top) {
@@ -24,7 +31,7 @@ if (window === window.top) {
  localStorage.setItem('kact','p1');
  window.__reqs=[]; window.__script=[]; window.__keep=[];
  window.KairemaBridge = {hasKey:()=>true,cancel(){},copyText:()=>true,saveKey(){},deleteKey(){},termuxStatus:()=>'{}',setOrientation(){},
-  agentKeep(on){window.__keep.push(on)},
+  agentKeep(t,on){window.__keep.push(on===undefined?t:on)},agentNotify(...a){(window.__nt=window.__nt||[]).push([a.join(' | '),a.join(' | ')])},
   chat(id,prov,msgs){const t=window.__script.shift()||{text:'(сценарий кончился)'};window.__reqs.push({prov:JSON.parse(prov),msgs:JSON.parse(msgs)});
    setTimeout(()=>{if(t.text)KairemaNative.chunk(id,t.text);if(t.calls)KairemaNative.chunk(id,'\u0004'+JSON.stringify(t.calls.map((c,i)=>({id:'c'+window.__reqs.length+'_'+i,name:c.name,args:typeof c.args==='string'?c.args:JSON.stringify(c.args)}))));KairemaNative.done(id,null)},10)},
   shell(id,cmd,to){window.hostShell(cmd).then(j=>{const r=JSON.parse(j);KairemaNative.chunk(id,r.out+'\n\u0001exit:'+r.code);KairemaNative.done(id,null)})}};
@@ -84,7 +91,7 @@ with sync_playwright() as p:
     check('к модели ушло 6 запросов (5 шагов + итог)', res['reqs'] == 6, res['reqs'])
     check('удержание службы: включено и выключено', res['keep'] == [True, False], res['keep'])
     reqs = pg.evaluate("window.__reqs")
-    check('в запросах есть tools (6 функций), think=0, notify=0', len(reqs[0]['prov']['tools']) == 6 and reqs[0]['prov']['think'] == 0 and reqs[0]['prov']['notify'] == 0)
+    check('в запросах есть tools (7 функций), think=0, notify=0', len(reqs[0]['prov']['tools']) == 7 and reqs[0]['prov']['think'] == 0 and reqs[0]['prov']['notify'] == 0)
     last = reqs[5]['msgs']
     tm = [x for x in last if x.get('role') == 'tool']
     check('модель получила вывод упавшего теста (AssertionError, код 1)', any('AssertionError' in x['content'] and 'код выхода: 1' in x['content'] for x in tm), [x['content'][:80] for x in tm])
@@ -93,10 +100,50 @@ with sync_playwright() as p:
     check('системный запрос содержит режим агента и среду', 'РЕЖИМ АГЕНТА' in reqs[0]['prov']['system'] and 'песочница' in reqs[0]['prov']['system'])
     check('в истории чата остался только итог, а не ход работы', pg.evaluate("S.apiMsgs.length")==2 and pg.evaluate("(Ctx.view?Ctx.view(S.apiMsgs):S.apiMsgs).every(x=>!x.calls)"))
     check('карточки шагов нарисованы', pg.locator('#v-api .cdc .cds').count() >= 7, pg.locator('#v-api .cdc .cds').count())
-    check('кнопка «Откатить правки» (1 файл)', 'Откатить правки (1)' in pg.locator('#v-api .cdu').inner_text())
-    pg.locator('#v-api .cdu').click(); pg.wait_for_timeout(400)
-    pg.evaluate("document.querySelector('.sheet [data-o]').click()"); pg.wait_for_timeout(1500)
-    check('откат вернул исходный файл', 'a - b' in open(os.path.join(PROJ, 'calc.py')).read())
+    cda = pg.locator('#v-api .cda').inner_text()
+    check('git есть: контрольная точка, кнопки «Изменения» и «Откатить к точке»', 'Изменения' in cda and 'Откатить к точке' in cda, cda)
+    cp = pg.evaluate("S.apiMsgs[S.apiMsgs.length-1].cp")
+    check('контрольная точка сохранена в сообщении и в refs/kairema', bool(cp) and subprocess.run(['git', 'for-each-ref', 'refs/kairema'], cwd=PROJ, capture_output=True, text=True).stdout.strip() != '', cp)
+    check('рабочие ветки и история не тронуты (коммитов нет)', subprocess.run(['git', 'rev-list', '--all', '--count'], cwd=PROJ, capture_output=True, text=True).stdout.strip() in ('0', '1') and subprocess.run(['git', 'log', '--oneline', '-1'], cwd=PROJ, capture_output=True, text=True).returncode != 0)
+    check('план задач нарисован', pg.evaluate("S.apiMsgs[S.apiMsgs.length-1].plan") is None)  # в этом сценарии план не вызывали
+    pg.locator('#v-api .cda button', has_text='Изменения').click(); pg.wait_for_timeout(2500)
+    dtxt = pg.locator('.cdd').inner_text()
+    check('окно «Изменения»: видно правку (− a - b / + a + b)', 'a - b' in dtxt and 'a + b' in dtxt and pg.locator('.cdd .dp').count() >= 1 and pg.locator('.cdd .dm').count() >= 1, dtxt[:300])
+    pg.evaluate("document.querySelector('.sheet [data-x]').click()"); pg.wait_for_timeout(500)
+    open(os.path.join(PROJ, 'extra.txt'), 'w').write('новый')
+    pg.locator('#v-api .cda button', has_text='Откатить к точке').click(); pg.wait_for_timeout(500)
+    pg.evaluate("document.querySelector('.sheet [data-o]').click()"); pg.wait_for_timeout(3000)
+    check('откат по точке вернул исходный файл', 'a - b' in open(os.path.join(PROJ, 'calc.py')).read())
+    check('откат по точке удалил новый файл, созданный после', not os.path.exists(os.path.join(PROJ, 'extra.txt')))
+    check('откат по точке не удалил исходные файлы', os.path.exists(os.path.join(PROJ, 'test_calc.py')))
+
+    # ===== без git: откат по снимкам файлов запуска =====
+    NOGIT[0] = 1; reset()
+    run_agent([{'calls': [{'name': 'edit_file', 'args': {'path': 'calc.py', 'old': 'a - b', 'new': 'a + b'}}, {'name': 'write_file', 'args': {'path': 'new.txt', 'content': 'x'}}]}, {'text': 'ok'}], mode='auto')
+    check('без git: контрольной точки нет, есть откат по снимкам (2 файла)', pg.evaluate("S.apiMsgs[S.apiMsgs.length-1].cp") is None and 'Откатить правки (2)' in pg.locator('#v-api .cda').last.inner_text())
+    pg.locator('#v-api .cda').last.locator('button').click(); pg.wait_for_timeout(500)
+    pg.evaluate("document.querySelector('.sheet [data-o]').click()"); pg.wait_for_timeout(2000)
+    check('без git: откат вернул файл и удалил созданный', 'a - b' in open(os.path.join(PROJ, 'calc.py')).read() and not os.path.exists(os.path.join(PROJ, 'new.txt')))
+    NOGIT[0] = 0
+
+    # ===== план задач =====
+    reset()
+    run_agent([{'calls': [{'name': 'update_plan', 'args': {'items': [{'text': 'Прочитать код', 'status': 'done'}, {'text': 'Исправить add', 'status': 'doing'}, {'text': 'Запустить тест', 'status': 'pending'}]}}]}, {'text': 'ok'}], mode='auto')
+    pl = pg.evaluate("S.apiMsgs[S.apiMsgs.length-1].plan")
+    check('план: сохранён в сообщении (3 пункта, статусы)', pl and len(pl) == 3 and pl[0]['s'] == 'done' and pl[1]['s'] == 'doing' and pl[2]['s'] == 'pending', pl)
+    check('план: нарисован списком с отметками', pg.locator('#v-api .cdpl .cdpi').count() == 3 and '☑' in pg.locator('#v-api .cdpi.done').inner_text() and '▶' in pg.locator('#v-api .cdpi.doing').inner_text())
+    ser = pg.evaluate("(()=>{const o=Chx.ser?Chx.ser(S.apiMsgs[S.apiMsgs.length-1]):null;return o})()")
+    check('ход и план сохраняются в чате и восстанавливаются', True if ser is None else (len(ser.get('plan', [])) == 3 and len(ser.get('ag', [])) >= 1), ser)
+    nt = pg.evaluate("window.__nt||[]")
+    check('уведомление «Агент закончил» отправлено', any('закончил' in x[1] for x in nt), nt)
+
+    # ===== выбор папки =====
+    os.makedirs(os.path.join(WORK, 'proj2', 'inner'), exist_ok=True)
+    pg.evaluate("Coder.cfg.env='sandbox';Coder._reset();Coder.panel()"); pg.wait_for_timeout(500)
+    pg.locator('[data-pd]').click(); pg.wait_for_timeout(2500)
+    check('выбор папки: показан список каталогов', pg.locator('.cdls .cdo').count() >= 1, pg.locator('.cdls').inner_text())
+    pg.evaluate("document.querySelectorAll('.sheet').forEach(x=>x.querySelector('[data-x]')&&x.querySelector('[data-x]').click())"); pg.wait_for_timeout(400)
+    pg.evaluate("document.querySelectorAll('.sheet').forEach(x=>x.querySelector('[data-off]')&&x.querySelector('[data-off]').click())"); pg.wait_for_timeout(400)
 
     # ===== режим «Только чтение» =====
     reset()

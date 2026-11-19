@@ -146,9 +146,9 @@
 | `features/branch/branch.js` | 56 | ВЕТВЛЕНИЕ ОТВЕТОВ: «Другой ответ» и переключатель ‹ 1/2 › ===== Под ПОСЛЕДНИМ ответом ИИ появляется кнопка ↻ «Другой ответ»: ответ запрашивается заново, прежний не пропад |
 | `features/caps/caps.js` | 73 | ВОЗМОЖНОСТИ МОДЕЛЕЙ: что умеет выбранная модель (авто-определение) ===== Источник 1: данные провайдера (OpenRouter сообщает выходные форматы и параметр reasoning), приход |
 | `features/chats/chats.css` | 23 | Стили модуля chats: диалог «Новый чат», кнопка «Удалить все чаты», анимация удаления. |
-| `features/chats/chats.js` | 231 | ИСТОРИЯ ЧАТОВ: список и сохранение ===== В приложении (есть KairemaDb) чаты лежат в SQLite на устройстве, картинки и PDF файлами в filesDir/media, в чате хранится только  |
-| `features/coder/coder.css` | 18 |  |
-| `features/coder/coder.js` | 237 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
+| `features/chats/chats.js` | 237 | ИСТОРИЯ ЧАТОВ: список и сохранение ===== В приложении (есть KairemaDb) чаты лежат в SQLite на устройстве, картинки и PDF файлами в filesDir/media, в чате хранится только  |
+| `features/coder/coder.css` | 24 |  |
+| `features/coder/coder.js` | 286 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
 | `features/cost/cost.css` | 10 |  |
 | `features/cost/cost.js` | 94 | СЧЁТЧИК ТОКЕНОВ И РАСХОДОВ ===== Под каждым ответом ИИ: сколько токенов ушло и примерная цена. |
 | `features/ctx/ctx.css` | 2 |  |
@@ -160,7 +160,7 @@
 | `features/draft/draft.js` | 30 | ЧЕРНОВИК: недописанное сообщение не пропадает ===== Раньше текст в поле ввода исчезал, если уйти в настройки или терминал (поле строится заново) или закрыть приложение. |
 | `features/feel/feel.js` | 82 | ВИБРО И ЗВУКИ ===== Вибро (Android: Bridge.haptic, запасной вариант navigator.vibrate): короткий «тик» на отправку и переключатели, мягкий двойной импульс, когда ИИ закон |
 | `features/filediff/filediff.css` | 11 |  |
-| `features/filediff/filediff.js` | 150 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
+| `features/filediff/filediff.js` | 151 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
 | `features/fonts/fonts.css` | 12 | ШРИФТЫ ВНУТРИ ПРИЛОЖЕНИЯ (работают без интернета) ===== Space Grotesk (заголовки), Manrope (текст интерфейса), JetBrains Mono (код), Source Serif 4 (ответы ИИ). |
 | `features/help/help-data.js` | 164 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
 | `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
@@ -168,7 +168,7 @@
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
 | `features/intent/intent.js` | 19 | ПОНИМАНИЕ ЗАПРОСА (для любых моделей) ===== Короткая постоянная инструкция в системном запросе (через реестр window.SYSX, core/base.js sysExtra): • выполнить ВСЕ условия, |
 | `features/log/log.css` | 3 | Стили модуля log: экран «Журнал ошибок». |
-| `features/log/log.js` | 47 | ЖУРНАЛ ОШИБОК: что сломалось, можно скопировать и прислать разработчику ===== Ловит ошибки страницы (error, unhandledrejection, console.error) и ошибки ответов ИИ (Log.ad |
+| `features/log/log.js` | 48 | ЖУРНАЛ ОШИБОК: что сломалось, можно скопировать и прислать разработчику ===== Ловит ошибки страницы (error, unhandledrejection, console.error) и ошибки ответов ИИ (Log.ad |
 | `features/markdown/md.css` | 65 | Стили разметки ответов ИИ (модуль markdown). |
 | `features/markdown/md.js` | 147 | MARKDOWN → DOM для ответов ИИ ===== Безопасно: всё строится через createElement и textContent, innerHTML не используется. |
 | `features/memory/memory-ai.js` | 100 | ПАМЯТЬ: извлечение фактов самой моделью ===== После ответа (событие chat:answer) в фоне уходит один короткий запрос тому же провайдеру: «что из сообщения пользователя сто |
@@ -214,7 +214,7 @@
 |---|---|---|
 | `MainActivity.kt` | 255 | Оболочка: показывает интерфейс из assets/index.html. * Следующие шаги добавят сюда мост между кнопками интерфейса и нативным кодом. |
 | `attach/Attach.kt` | 329 | Выбор фото и файлов без файлового выбора WebView. |
-| `bridge/Bridge.kt` | 785 | Мост между интерфейсом (JS) и нативным кодом. |
+| `bridge/Bridge.kt` | 792 | Мост между интерфейсом (JS) и нативным кодом. |
 | `bridge/Guard.kt` | 22 | Защита моста. |
 | `bridge/Texts.kt` | 41 | Чистые функции моста без Android и без сети: тексты ошибок и разбор адреса. |
 | `bridge/ToolCalls.kt` | 71 | Сбор вызовов инструментов из потока ответа модели (без Android и без org.json — проверяется юнит-тестами). |
@@ -239,7 +239,7 @@
 ### Мосты (`@JavascriptInterface`): как JS вызывает Kotlin
 
 - `attach/Attach.kt`: `attachPick`, `pdfPages`
-- `bridge/Bridge.kt`: `agentKeep`, `haptic`, `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `updCheck`, `updInstall`, `chat`, `image`, `saveImage`, `shareImage`, `search`
+- `bridge/Bridge.kt`: `agentNotify`, `agentKeep`, `haptic`, `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `updCheck`, `updInstall`, `chat`, `image`, `saveImage`, `shareImage`, `search`
 - `data/DbBridge.kt`: `loadAll`, `count`, `put`, `remove`, `clear`, `saveFile`, `loadFile`
 - `search/SearchBridge.kt`: `mode`, `sigs`, `put`, `remove`, `clear`, `find`
 - `system/SystemBridge.kt`: `dark`, `bars`

@@ -24,7 +24,7 @@ const Coder=(()=>{
  const sq=s=>"'"+String(s).replace(/'/g,"'\\''")+"'";
  /* Путь внутри проекта: относительный, без «..»; иначе null. */
  const rel=p=>{p=String(p==null?'.':p).trim().replace(/^\.\//,'');if(!p)p='.';if(p[0]==='/'||p[0]==='~'||/^[A-Za-z]:/.test(p)||p.split('/').some(x=>x==='..'))return null;return p};
- const dirq=()=>{let d=String(cfg.dir||'kairema-work').trim();if(d.startsWith('~/'))return'"$HOME"/'+sq(d.slice(2));if(d==='~')return'"$HOME"';return sq(d)};
+ const dirq=dd=>{let d=String(dd||cfg.dir||'kairema-work').trim();if(d.startsWith('~/'))return'"$HOME"/'+sq(d.slice(2));if(d==='~')return'"$HOME"';return sq(d)};
  const trunc=(s,n=MAXOUT)=>{s=String(s==null?'':s);if(s.length<=n)return s;const h=Math.round(n*.35),t=n-h;return s.slice(0,h)+'\n…[пропущено '+(s.length-n)+' знаков]…\n'+s.slice(-t)};
  const SAFE1=new Set('ls cat pwd head tail wc grep egrep fgrep echo which whoami date uname df du stat file tree sort uniq cut basename dirname'.split(' '));
  const SAFEGIT=new Set('status diff log show branch rev-parse remote ls-files blame'.split(' '));
@@ -38,6 +38,7 @@ const Coder=(()=>{
   {name:'search',description:'Поиск по файлам (grep -rn, регулярное выражение). Возвращает до 100 совпадений вида файл:строка:текст.',parameters:P({pattern:{type:'string'},path:{type:'string',description:'где искать, по умолчанию весь проект'},glob:{type:'string',description:'маска файлов, например *.kt'},literal:{type:'boolean',description:'искать как обычный текст'}},['pattern'])},
   {name:'edit_file',description:'Заменяет точный фрагмент old на new в существующем файле. old должен встречаться ровно один раз (или поставь replace_all). Сначала прочитай файл.',parameters:P({path:{type:'string'},old:{type:'string'},new:{type:'string'},replace_all:{type:'boolean'}},['path','old','new'])},
   {name:'write_file',description:'Создаёт файл или полностью перезаписывает его. Для небольших правок используй edit_file.',parameters:P({path:{type:'string'},content:{type:'string'}},['path','content'])},
+  {name:'update_plan',description:'Ведёт список задач для пользователя. Для работы из 3 и более шагов сначала составь план и обновляй статусы по ходу (pending, doing, done). Каждый вызов передаёт список целиком.',parameters:P({items:{type:'array',items:{type:'object',properties:{text:{type:'string'},status:{type:'string',enum:['pending','doing','done']}},required:['text','status']}}},['items'])},
   {name:'run_command',description:'Выполняет команду оболочки в папке проекта (каждый вызов в новой оболочке, cd не сохраняется; делай «cd sub && …»). Только неинтерактивные команды, которые завершаются. Возвращает вывод и код выхода.',parameters:P({command:{type:'string'},timeout:{type:'integer',description:'секунд, по умолчанию 120, максимум 600'}},['command'])}];
  const defs=anth=>TOOLS.map(t=>anth?{name:t.name,description:t.description,input_schema:t.parameters}:{type:'function',function:{name:t.name,description:t.description,parameters:t.parameters}});
  /* ---- Нейтральная история → формат провайдера ---- */
@@ -55,7 +56,8 @@ const Coder=(()=>{
  const toolChars=conv=>conv.reduce((a,e)=>a+(e.role==='tool'?e.results.reduce((b,r)=>b+r.content.length,0):0),0);
  /* ---- Среда выполнения ---- */
  let envC=null;
- const sh=async(cmd,o={})=>{if(typeof Term==='undefined')return{code:-1,out:'',err:'терминал недоступен'};const be=envC&&envC.be||'android';return Term.exec('mkdir -p '+dirq()+' && cd '+dirq()+' || exit 1\n'+cmd,Object.assign({backend:be},o))};
+ const sh=async(cmd,o={},dd)=>{if(typeof Term==='undefined')return{code:-1,out:'',err:'терминал недоступен'};const be=envC&&envC.be||'android';return Term.exec('mkdir -p '+dirq(dd)+' && cd '+dirq(dd)+' || exit 1\n'+cmd,Object.assign({backend:be,nodiff:1},o))};
+ const shRaw=async(cmd,o={})=>{if(typeof Term==='undefined')return{code:-1,out:'',err:'терминал недоступен'};const be=envC&&envC.be||'android';return Term.exec(cmd,Object.assign({backend:be,nodiff:1},o))};
  async function env(force){
   if(envC&&!force)return envC;
   let be='android';
@@ -64,7 +66,7 @@ const Coder=(()=>{
   envC={be,info:''};
   try{const r=await sh('echo "cwd: $PWD"; uname -sm 2>/dev/null; for c in git python python3 pip node npm java gradle make gcc cargo go; do command -v $c >/dev/null 2>&1 && echo "есть: $c"; done',{timeout:30});envC.info=(r.out||'').trim().replace(/\n+/g,'; ')}catch(e){}
   return envC}
- const sysAgent=()=>'\n\n[РЕЖИМ АГЕНТА-ПРОГРАММИСТА]\nТы автономный агент в приложении Kairema на телефоне. Инструменты: list_dir, read_file, search, edit_file, write_file, run_command. Работай циклом: изучи код → внеси минимальные правки → запусти проверку (тесты, сборку, линтер, если есть) → если ошибка, прочитай вывод, исправь, повтори, пока не заработает или не упрёшься в блокер.\nПравила: читай файл перед правкой; edit_file лучше write_file; не выдумывай содержимое файлов, которых не читал; пути относительные к папке проекта; каждая команда идёт в новой оболочке в папке проекта (cd не сохраняется); только неинтерактивные команды, которые завершаются; не читай огромные файлы целиком (диапазоны строк, search); не говори «готово», пока не проверил, а если проверить нельзя, скажи это прямо. Если действие отклонили, не обходи отказ другим способом, спроси пользователя.\nКогда закончишь, напиши коротко: что изменено (файлы), что проверено и с каким результатом, что осталось. Отвечай на языке пользователя.\nСреда: '+(envC?(envC.be==='termux'?'Termux':'песочница приложения (Android sh, без git и python)')+'. '+envC.info:'неизвестна')+'. Папка проекта: '+cfg.dir+'. Режим подтверждений: '+MODES[cfg.mode][0]+'.';
+ const sysAgent=()=>'\n\n[РЕЖИМ АГЕНТА-ПРОГРАММИСТА]\nТы автономный агент в приложении Kairema на телефоне. Инструменты: list_dir, read_file, search, edit_file, write_file, run_command, update_plan. Если задача из трёх и более шагов, сначала составь план через update_plan и обновляй статусы. Работай циклом: изучи код → внеси минимальные правки → запусти проверку (тесты, сборку, линтер, если есть) → если ошибка, прочитай вывод, исправь, повтори, пока не заработает или не упрёшься в блокер.\nПравила: читай файл перед правкой; edit_file лучше write_file; не выдумывай содержимое файлов, которых не читал; пути относительные к папке проекта; каждая команда идёт в новой оболочке в папке проекта (cd не сохраняется); только неинтерактивные команды, которые завершаются; не читай огромные файлы целиком (диапазоны строк, search); не говори «готово», пока не проверил, а если проверить нельзя, скажи это прямо. Если действие отклонили, не обходи отказ другим способом, спроси пользователя.\nКогда закончишь, напиши коротко: что изменено (файлы), что проверено и с каким результатом, что осталось. Отвечай на языке пользователя.\nСреда: '+(envC?(envC.be==='termux'?'Termux':'песочница приложения (Android sh, без git и python)')+'. '+envC.info:'неизвестна')+'. Папка проекта: '+cfg.dir+'. Режим подтверждений: '+MODES[cfg.mode][0]+'.';
  /* ---- Выполнение инструментов ---- */
  const dec=b=>{const bin=atob(b.replace(/\s+/g,''));const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new TextDecoder().decode(u)};
  const enc=t=>{const u=new TextEncoder().encode(t);let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)};
@@ -73,6 +75,20 @@ const Coder=(()=>{
   if(!b.length){const r=await sh('mkdir -p "$(dirname '+sq(p)+')" && : > '+sq(p),{timeout:30});if(r.code!==0)throw new Error(trunc(r.out||r.err,500));return}
   for(let i=0;i<b.length;i+=CH){const r=await sh((first?'mkdir -p "$(dirname '+sq(p)+')" && ':'')+'printf %s '+sq(b.slice(i,i+CH))+' | base64 -d '+(first?'>':'>>')+' '+sq(p),{timeout:60});first=0;if(r.code!==0)throw new Error(trunc(r.out||r.err||('код '+r.code),500))}}
  let snaps=new Map(),curCmd=null,run=null;
+ const GENV='GIT_AUTHOR_NAME=kairema GIT_AUTHOR_EMAIL=kairema@local GIT_COMMITTER_NAME=kairema GIT_COMMITTER_EMAIL=kairema@local';
+ const hexOk=h=>/^[0-9a-f]{7,40}$/.test(String(h));
+ /* Контрольная точка: снимок всех файлов проекта (без игнорируемых) как коммит-объект на ссылке refs/kairema/…, не трогая ветки, индекс и историю. */
+ async function checkpoint(){
+  const r=await sh('command -v git >/dev/null 2>&1 || { echo NOGIT; exit 0; }; [ -d .git ] || git init -q 2>&1; export GIT_INDEX_FILE=.git/kairema-idx; rm -f "$GIT_INDEX_FILE"; git add -A >/dev/null 2>&1; T=$(git write-tree) && C=$(echo "kairema checkpoint" | env '+GENV+' git commit-tree $T) && git update-ref refs/kairema/cp-$(date +%s) $C && echo "CP:$C"; rm -f "$GIT_INDEX_FILE"',{timeout:90});
+  const mm=/CP:([0-9a-f]{7,40})/.exec(r.out||'');return mm?mm[1]:null}
+ async function restoreCp(h,dd){
+  if(!hexOk(h))throw new Error('неверная контрольная точка');
+  const r=await sh('export GIT_INDEX_FILE=.git/kairema-idx; rm -f "$GIT_INDEX_FILE"; git read-tree '+h+' && git checkout-index -a -f && git ls-files -o --exclude-standard | while IFS= read -r f; do rm -f -- "$f"; done; rm -f "$GIT_INDEX_FILE"; echo RESTORED',{timeout:120},dd);
+  if(!/RESTORED/.test(r.out||''))throw new Error(trunc(r.out||r.err||'не удалось',400))}
+ async function changesCp(h,dd,full){
+  if(!hexOk(h))return'';
+  const r=await sh('export GIT_INDEX_FILE=.git/kairema-idx; rm -f "$GIT_INDEX_FILE"; git read-tree '+h+' && git add -A >/dev/null 2>&1; git diff --cached --stat '+h+' 2>&1 | tail -40; '+(full?'echo; git diff --cached --no-color -U2 '+h+' 2>&1 | head -600;':'')+' rm -f "$GIT_INDEX_FILE"',{timeout:90},dd);return(r.out||'').trim()}
+
  const snap=async p=>{if(!snaps.has(p))snaps.set(p,await readRaw(p))};
  const prev=(o,n)=>'− '+String(o).slice(0,500).split('\n').join('\n− ')+'\n+ '+String(n).slice(0,500).split('\n').join('\n+ ');
  async function exTool(n,a){
@@ -91,6 +107,7 @@ const Coder=(()=>{
    await snap(p);await writeRaw(p,a.replace_all?t.split(a.old).join(a.new):t.replace(a.old,()=>a.new));return 'изменён '+p+(c>1?' ('+c+' замен)':'')}
   if(n==='write_file'){if(!a.path)bad('path');if(typeof a.content!=='string')bad('content');const p=rel(a.path);if(!p)throw new Error('путь вне папки проекта');
    await snap(p);await writeRaw(p,a.content);return 'записан '+p+' ('+a.content.length+' знаков, строк '+(a.content.split('\n').length)+')'}
+  if(n==='update_plan'){if(!Array.isArray(a.items))bad('items');const it=a.items.slice(0,30).map(x=>({t:String(x&&x.text||'').slice(0,160),s:['pending','doing','done'].includes(x&&x.status)?x.status:'pending'})).filter(x=>x.t);if(run)run.m.plan=it;if(run)run.redraw();return 'план обновлён ('+it.filter(x=>x.s==='done').length+'/'+it.length+')'}
   if(n==='run_command'){if(!a.command)bad('command');const tm=Math.min(600,Math.max(5,parseInt(a.timeout)||120));
    const r=await sh('{ '+a.command+'\n} 2>&1',{timeout:tm,onStart:id=>{curCmd=id}});curCmd=null;
    return trunc(r.out||'')+'\n'+(r.err?('['+r.err+']'):'[код выхода: '+r.code+']')}
@@ -114,6 +131,7 @@ const Coder=(()=>{
   else if(allow[kind]&&!dng)need=0;
   if(!need)return{ok:1};
   const body=kind==='run'?'$ '+a.command+(dng?'\n\n⚠ Команда выглядит опасной.':''):(n==='edit_file'?a.path+'\n\n'+prev(a.old,a.new):a.path+'\n\n'+String(a.content||'').slice(0,1200)+(String(a.content||'').length>1200?'\n…':''));
+  Native.sync('agentNotify','Агент ждёт разрешения',(kind==='run'?'$ '+a.command:a.path)||'');
   const v=await ASK(kind==='run'?L('Выполнить команду?'):(n==='edit_file'?L('Изменить файл?'):L('Записать файл?')),body);
   if(v==='no')return{ok:0,why:'Пользователь отклонил это действие. Не повторяй его, предложи другой путь или спроси, что делать.'};
   if(v==='always'&&!dng)allow[kind]=1;
@@ -121,8 +139,22 @@ const Coder=(()=>{
  /* ---- Карточки шагов ---- */
  const short=(n,a)=>{const x=a.path||a.command||a.pattern||'';return n+(x?' '+String(x).replace(/\s+/g,' ').slice(0,80):'')};
  const stepEl=s=>{const d=document.createElement('details');d.className='cds '+(s.k==='say'?'say':s.st||'');const u=document.createElement('summary');u.textContent=s.k==='say'?'💬 '+String(s.t).replace(/\s+/g,' ').slice(0,90):({run:'⏳ ',ok:'✓ ',err:'✗ ',no:'⊘ '}[s.st]||'')+s.h;d.append(u);const b=document.createElement('pre');b.textContent=s.k==='say'?s.t:(s.d||'')+(s.o?(s.d?'\n\n':'')+s.o:'');if(b.textContent)d.append(b);return d};
- const cardsFor=(d,m)=>{let c=$('.cdc',d);if(!c){c=document.createElement('div');c.className='cdc';const bd=$('.bd',d);d.insertBefore(c,bd)}c.innerHTML='';(m.ag||[]).forEach(s=>c.append(stepEl(s)));return c};
- Hooks.on('msg:render',(d,m)=>{if(m&&m.ag&&m.ag.length)cardsFor(d,m)});
+ const cardsFor=(d,m)=>{let c=$('.cdc',d);if(!c){c=document.createElement('div');c.className='cdc';const bd=$('.bd',d);d.insertBefore(c,bd)}c.innerHTML='';if(m.plan&&m.plan.length){const pl=document.createElement('div');pl.className='cdpl';m.plan.forEach(x=>{const r=document.createElement('div');r.className='cdpi '+x.s;r.textContent=({done:'☑ ',doing:'▶ ',pending:'☐ '}[x.s]||'☐ ')+x.t;pl.append(r)});c.append(pl)}(m.ag||[]).forEach(s=>c.append(stepEl(s)));return c};
+ const colorDiff=(pre,t)=>{pre.textContent='';String(t).split('\n').forEach(l=>{const r=document.createElement('div');r.textContent=l||' ';if(/^\+(?!\+\+)/.test(l))r.className='dp';else if(/^-(?!--)/.test(l))r.className='dm';else if(/^@@/.test(l))r.className='dh';pre.append(r)})};
+ /* Кнопки под ответом агента: «Изменения» и откат (по контрольной точке git или по снимкам файлов этого запуска). */
+ function actions(d,m,mine){
+  const old=$('.cda',d);if(old)old.remove();
+  if(!m.cp&&!(mine&&mine.size))return;
+  const w=document.createElement('div');w.className='cda';
+  const btn=(t,fn)=>{const b=el('<button class="more-old"></button>');b.textContent=t;b.onclick=fn;w.append(b);return b};
+  if(m.cp){
+   btn(L('Изменения'),async()=>{const s=sheet('<h2></h2><pre class="cdp cdd"></pre><button class="btn ghost" data-x style="width:100%;margin-top:10px"></button>');$('h2',s).textContent=L('Изменения агента');$('[data-x]',s).textContent=L('Закрыть');$('[data-x]',s).onclick=()=>s.close();const pre=$('.cdd',s);pre.textContent=L('Загружаю…');try{envC=envC||await env();const t=await changesCp(m.cp.h,m.cp.dir,1);colorDiff(pre,t||L('Изменений нет'))}catch(e){pre.textContent=e.message}});
+   btn(L('Откатить к точке')+' '+m.cp.h.slice(0,7),()=>ask(L('Откатить к точке?'),L('Файлы проекта вернутся к состоянию до этого запуска агента, новые файлы удалятся. Ваши правки после запуска тоже пропадут.'),L('Откатить'),async()=>{try{envC=envC||await env();await restoreCp(m.cp.h,m.cp.dir);toast(L('Правки откатаны'))}catch(e){toast(e.message)}}));
+  }else{
+   const keep=new Map(mine);btn(L('Откатить правки')+' ('+keep.size+')',()=>ask(L('Откатить правки?'),L('Файлы вернутся к состоянию до этого запуска агента.'),L('Откатить'),async()=>{w.remove();envC=envC||await env();for(const[f,o]of keep){try{if(o===null)await sh('rm -f '+sq(f),{timeout:20});else await writeRaw(f,o)}catch(e){}}toast(L('Правки откатаны'))}))}
+  d.append(w)}
+
+ Hooks.on('msg:render',(d,m)=>{if(m&&((m.ag&&m.ag.length)||(m.plan&&m.plan.length)))cardsFor(d,m);if(m&&m.cp&&!$('.cda',d))actions(d,m)});
  /* ---- Основной цикл ---- */
  async function respond(msgs,box,tag){
   const p=actProv(),anth=/anthropic\.com/.test(p.url);
@@ -138,6 +170,9 @@ const Coder=(()=>{
   Native.sync('agentKeep',true);
   try{
    await env();
+   run={m,redraw};let cpH=null;
+   try{if(navigator.getBattery){const bt=await navigator.getBattery();if(bt&&!bt.charging&&bt.level<.15&&!window.__cdBat){window.__cdBat=1;toast(L('Батарея ниже 15%: долгий прогон агента может не завершиться'))}}}catch(e){}
+   if(/есть: git/.test(envC.info||''))try{cpH=await checkpoint()}catch(e){}
    const last=msgs.filter(x=>x.r==='u').pop();
    const base=(typeof Ctx!=='undefined'?Ctx.view(msgs):msgs).filter(x=>x!==m&&!x.err&&x.t).map(x=>({role:x.r==='u'?'user':'assistant',content:toContent(x,anth,'')}));
    const conv=base.slice();
@@ -196,12 +231,13 @@ const Coder=(()=>{
    if(stopped){m.stopped=1;final=final||'⏹ Остановлено.'}
    m.t=final||'(агент закончил без текста)';
    mdRender(bd,m.t,m);
-   if(snaps.size){const bt=el('<button class="more-old cdu"></button>');bt.textContent=L('Откатить правки')+' ('+snaps.size+')';const mine=new Map(snaps);bt.onclick=()=>ask(L('Откатить правки?'),L('Файлы вернутся к состоянию до этого запуска агента.'),L('Откатить'),async()=>{bt.remove();envC=envC||await env();for(const[f,o]of mine){try{if(o===null)await sh('rm -f '+sq(f),{timeout:20});else await writeRaw(f,o)}catch(e){}}toast(L('Правки откатаны'))});d.append(bt)}
+   if(cpH)m.cp={h:cpH,dir:cfg.dir};
+   actions(d,m,snaps.size?new Map(snaps):null);
    if(!m.stopped)Hooks.run('chat:answer',m,bd);
   }catch(e){
    if(stopped){m.stopped=1;m.t=m.t||'⏹ Остановлено.';mdRender(bd,m.t,m)}
    else fail('Агент остановился: '+e.message)
-  }finally{Native.sync('agentKeep',false);window.GEN=null;if(Chat.cmp&&Chat.cmp.upd)Chat.cmp.upd()}
+  }finally{run=null;Native.sync('agentNotify','Kairema',m.stopped?'Агент остановлен':(m.err?'Агент остановился с ошибкой':'Агент закончил: '+String(m.t||'').slice(0,120)));Native.sync('agentKeep',false);window.GEN=null;if(Chat.cmp&&Chat.cmp.upd)Chat.cmp.upd()}
  }
  /* ---- Интерфейс: кнопка в композере и окно настроек ---- */
  const fold=()=>(cfg.dir||'kairema-work');
@@ -212,13 +248,26 @@ const Coder=(()=>{
   if(!b){const tb=$('[data-tb]',cmp);if(!tb)return;b=el('<button class="cb cdt" data-coder aria-label="Агент-программист" title="Агент-программист">'+ic('term')+'</button>');tb.before(b);b.onclick=()=>{cfg.on=cfg.on?0:1;save();if(cfg.on&&!localStorage.getItem('kairema.coder.seen')){try{localStorage.setItem('kairema.coder.seen','1')}catch(e){}panel()}bar(v)}}
   b.classList.toggle('on',!!cfg.on);b.setAttribute('aria-pressed',cfg.on?'true':'false');
   if(cfg.on){const x=el('<button class="cdb"></button>');x.textContent='🤖 '+L('Агент')+' · '+L(MODES[cfg.mode][0])+' · '+fold();x.onclick=panel;cmp.before(x)}}
+ /* Выбор папки проекта: обзор каталогов в Termux или песочнице. */
+ async function pickDir(done){
+  const s=sheet('<h2></h2><div class="cdwd" data-w></div><div class="cdls" data-l></div><div class="two" style="margin-top:10px"><button class="btn ghost" data-x></button><button class="btn" data-ok></button></div>');
+  $('h2',s).textContent=L('Папка проекта');$('[data-x]',s).textContent=L('Отмена');$('[data-ok]',s).textContent=L('Выбрать эту папку');
+  let cur=null;const wd=$('[data-w]',s),ls=$('[data-l]',s);
+  const go=async p=>{ls.textContent=L('Загружаю…');try{await env();const r=await shRaw((p?'cd '+sq(p)+' 2>/dev/null || cd "$HOME" 2>/dev/null; ':'cd "$HOME" 2>/dev/null; ')+'echo "__PWD__$PWD"; ls -1Ap 2>/dev/null | grep "/$" | head -200',{timeout:30});const o=String(r.out||'').split('\n');const pw=o.find(x=>x.startsWith('__PWD__'));cur=pw?pw.slice(7).trim():'';wd.textContent=cur;ls.innerHTML='';
+   const row=(t,fn)=>{const b=el('<button class="cdo"></button>');b.textContent=t;b.onclick=fn;ls.append(b)};
+   if(cur&&cur!=='/')row('↑ ..',()=>go(cur.replace(/\/[^\/]*$/,'')||'/'));
+   o.filter(x=>x&&!x.startsWith('__PWD__')&&x.endsWith('/')&&x!=='./'&&x!=='../').forEach(x=>row(x,()=>go((cur==='/'?'':cur)+'/'+x.slice(0,-1))));
+   if(!ls.children.length)ls.textContent=L('Папок нет')}catch(e){ls.textContent=e.message}};
+  $('[data-x]',s).onclick=()=>s.close();$('[data-ok]',s).onclick=()=>{if(cur){cfg.dir=cur;envC=null;save();done&&done(cur)}s.close()};
+  go('')}
  function panel(){
-  const s=sheet('<h2></h2><p class="sub" style="margin:6px 0 10px"></p><div class="cdm"></div><label class="cdl"></label><input class="cdi" data-d autocomplete="off" autocapitalize="off" spellcheck="false"><label class="cdl"></label><div class="cdr" data-s></div><label class="cdl"></label><div class="cdr" data-e></div><div class="cdi2" data-i></div><button class="btn ghost" data-ck style="width:100%;margin-top:8px"></button><button class="btn" data-ok style="width:100%;margin-top:8px"></button><button class="btn ghost" data-off style="width:100%;margin-top:8px"></button>');
+  const s=sheet('<h2></h2><p class="sub" style="margin:6px 0 10px"></p><div class="cdm"></div><label class="cdl"></label><input class="cdi" data-d autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn ghost" data-pd style="width:100%;margin-top:6px"></button><label class="cdl"></label><div class="cdr" data-s></div><label class="cdl"></label><div class="cdr" data-e></div><div class="cdi2" data-i></div><button class="btn ghost" data-ck style="width:100%;margin-top:8px"></button><button class="btn" data-ok style="width:100%;margin-top:8px"></button><button class="btn ghost" data-off style="width:100%;margin-top:8px"></button>');
   $('h2',s).textContent=L('Агент-программист');
   $('.sub',s).textContent=L('Модель сама читает файлы, правит код, запускает команды и повторяет, пока не заработает. Нужна модель с поддержкой вызова инструментов.');
   const L1=$$('.cdl',s);L1[0].textContent=L('Папка проекта (внутри Termux или песочницы)');L1[1].textContent=L('Лимит шагов за запрос');L1[2].textContent=L('Где выполнять команды');
   const mm=$('.cdm',s),rm=()=>{mm.innerHTML='';Object.keys(MODES).forEach(k=>{const b=el('<button class="cdo"><b></b><small></small></button>');$('b',b).textContent=L(MODES[k][0]);$('small',b).textContent=L(MODES[k][1]);b.classList.toggle('on',cfg.mode===k);b.onclick=()=>{cfg.mode=k;save();rm()};mm.append(b)})};rm();
   const di=$('[data-d]',s);di.value=cfg.dir;di.onchange=()=>{const v=di.value.trim();cfg.dir=v&&!/\.\./.test(v)?v:'kairema-work';di.value=cfg.dir;envC=null;save()};
+  const pd=$('[data-pd]',s);pd.textContent=L('Выбрать папку…');pd.onclick=()=>pickDir(v=>{di.value=v});
   const seg=(box,opts,get,set)=>{const r=()=>{box.innerHTML='';opts.forEach(([v,t])=>{const b=el('<button class="cdg"></button>');b.textContent=t;b.classList.toggle('on',get()===v);b.onclick=()=>{set(v);save();r()};box.append(b)})};r()};
   seg($('[data-s]',s),[[20,'20'],[40,'40'],[80,'80'],[150,'150']],()=>cfg.steps,v=>cfg.steps=v);
   seg($('[data-e]',s),[['auto',L('Авто')],['sandbox',L('Песочница')],['termux','Termux']],()=>cfg.env,v=>{cfg.env=v;envC=null});
@@ -232,5 +281,5 @@ const Coder=(()=>{
   const r=el('<button class="sr" data-coder-s><span class="si c">'+ic('term')+'</span><span class="m"><b></b><small></small></span>'+ic('chevR')+'</button>');
   $('b',r).textContent=L('Агент-программист');$('small',r).textContent=L('Модель сама правит код и запускает проверки (Termux или песочница)');
   r.onclick=panel;ab.before(r)});
- i18nAdd({"Агент-программист":"Coding agent","Агент":"Agent","Только чтение":"Read only","Спрашивать":"Ask first","Правки сами":"Auto-edit","Полный авто":"Full auto","Читает и ищет, ничего не меняет и не запускает":"Reads and searches only","Читает сам; каждую правку и команду показывает и ждёт разрешения":"Reads on its own; asks before every edit and command","Файлы правит сам; команды (кроме безопасных вроде ls, git status) спрашивает":"Edits files itself; asks before commands (except safe ones like ls, git status)","Правит и запускает всё сам; опасные команды (rm -r, sudo…) всё равно спрашивает":"Edits and runs everything itself; still asks for dangerous commands (rm -r, sudo…)","Отклонить":"Deny","Разрешить":"Allow","Разрешать такое до конца чата":"Allow this kind until the chat ends","Изменить файл?":"Change the file?","Записать файл?":"Write the file?","Откатить правки":"Undo changes","Откатить правки?":"Undo changes?","Откатить":"Undo","Правки откатаны":"Changes undone","Файлы вернутся к состоянию до этого запуска агента.":"Files will return to the state before this agent run.","Готово":"Done","Выключить агента":"Turn the agent off","Проверить окружение":"Check the environment","Проверяю…":"Checking…","Песочница":"Sandbox","Авто":"Auto","Лимит шагов за запрос":"Step limit per request","Где выполнять команды":"Where to run commands","Папка проекта (внутри Termux или песочницы)":"Project folder (inside Termux or the sandbox)","Модель сама читает файлы, правит код, запускает команды и повторяет, пока не заработает. Нужна модель с поддержкой вызова инструментов.":"The model reads files, edits code, runs commands and repeats until it works. Needs a model that supports tool calling.","Авто: Termux, если он установлен и разрешён, иначе песочница приложения (без git и python).":"Auto: Termux if installed and allowed, otherwise the app sandbox (no git or python).","Модель сама правит код и запускает проверки (Termux или песочница)":"The model edits code and runs checks itself (Termux or sandbox)"});
+ i18nAdd({"Изменения":"Changes","Изменения агента":"Agent changes","Закрыть":"Close","Загружаю…":"Loading…","Изменений нет":"No changes","Откатить к точке":"Roll back to checkpoint","Откатить к точке?":"Roll back to the checkpoint?","Файлы проекта вернутся к состоянию до этого запуска агента, новые файлы удалятся. Ваши правки после запуска тоже пропадут.":"Project files return to the state before this agent run; new files are deleted. Your own edits made since then are lost too.","Папка проекта":"Project folder","Выбрать папку…":"Choose a folder…","Выбрать эту папку":"Use this folder","Отмена":"Cancel","Папок нет":"No folders","Батарея ниже 15%: долгий прогон агента может не завершиться":"Battery below 15%: a long agent run may not finish","Агент-программист":"Coding agent","Агент":"Agent","Только чтение":"Read only","Спрашивать":"Ask first","Правки сами":"Auto-edit","Полный авто":"Full auto","Читает и ищет, ничего не меняет и не запускает":"Reads and searches only","Читает сам; каждую правку и команду показывает и ждёт разрешения":"Reads on its own; asks before every edit and command","Файлы правит сам; команды (кроме безопасных вроде ls, git status) спрашивает":"Edits files itself; asks before commands (except safe ones like ls, git status)","Правит и запускает всё сам; опасные команды (rm -r, sudo…) всё равно спрашивает":"Edits and runs everything itself; still asks for dangerous commands (rm -r, sudo…)","Отклонить":"Deny","Разрешить":"Allow","Разрешать такое до конца чата":"Allow this kind until the chat ends","Изменить файл?":"Change the file?","Записать файл?":"Write the file?","Откатить правки":"Undo changes","Откатить правки?":"Undo changes?","Откатить":"Undo","Правки откатаны":"Changes undone","Файлы вернутся к состоянию до этого запуска агента.":"Files will return to the state before this agent run.","Готово":"Done","Выключить агента":"Turn the agent off","Проверить окружение":"Check the environment","Проверяю…":"Checking…","Песочница":"Sandbox","Авто":"Auto","Лимит шагов за запрос":"Step limit per request","Где выполнять команды":"Where to run commands","Папка проекта (внутри Termux или песочницы)":"Project folder (inside Termux or the sandbox)","Модель сама читает файлы, правит код, запускает команды и повторяет, пока не заработает. Нужна модель с поддержкой вызова инструментов.":"The model reads files, edits code, runs commands and repeats until it works. Needs a model that supports tool calling.","Авто: Termux, если он установлен и разрешён, иначе песочница приложения (без git и python).":"Auto: Termux if installed and allowed, otherwise the app sandbox (no git or python).","Модель сама правит код и запускает проверки (Termux или песочница)":"The model edits code and runs checks itself (Termux or sandbox)"});
  return{on:()=>!!cfg.on,respond,cfg,tools:TOOLS,defs,toOAI,toAnth,safeCmd,rel,trunc,shrink,panel,env,MODES,get envC(){return envC},_reset(){envC=null}}})();
