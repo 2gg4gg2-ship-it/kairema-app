@@ -18,12 +18,11 @@ import java.io.File
  * Скачивать разрешено только с github.com из релизов указанного репозитория.
  */
 object Updater {
-    private val REPO = Regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
     const val FILE = "kairema-update.apk"
 
     /** JSON: {tag, name, body, page, url, size}; {none:true}, если релизов ещё нет. */
     fun latest(http: OkHttpClient, repo: String): String {
-        require(REPO.matches(repo)) { "неверный репозиторий" }
+        require(UpdateRules.repoOk(repo)) { "неверный репозиторий" }
         val req = Request.Builder()
             .url("https://api.github.com/repos/$repo/releases/latest")
             .header("Accept", "application/vnd.github+json")
@@ -52,9 +51,8 @@ object Updater {
 
     /** Скачать APK в cache/share. progress(скачано, всего). */
     fun download(http: OkHttpClient, repo: String, url: String, dest: File, onCall: (Call) -> Unit, progress: (Long, Long) -> Unit) {
-        require(REPO.matches(repo)) { "неверный репозиторий" }
-        val u = Uri.parse(url)
-        require(u.scheme == "https" && u.host == "github.com" && (u.path ?: "").startsWith("/$repo/releases/download/")) { "адрес обновления не из релизов репозитория" }
+        require(UpdateRules.repoOk(repo)) { "неверный репозиторий" }
+        require(UpdateRules.urlOk(repo, url)) { "адрес обновления не из релизов репозитория" }
         dest.parentFile?.mkdirs()
         val call = http.newCall(Request.Builder().url(url).header("User-Agent", "Kairema").build())
         onCall(call)

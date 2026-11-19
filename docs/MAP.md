@@ -50,6 +50,8 @@
 | Терминал, команды из ответов, агент | `features/terminal/*` (`term-compat.js` разбор ответов любых моделей), `terminal/Shell.kt`, `assets/terminal/*.sh`, `TermuxRunner.kt`, `features/filediff/*` | Опасные команды требуют подтверждения |
 | Готовые сервисы (адрес подставляется), встроенный поиск модели, исследование | `features/presets/presets.js`, `features/tools/tools.js` (`webKind`, `webArg`, `research`), `bridge/Bridge.kt` (`web`, `buildSearchRequest`) | Новый сервис: строка в `PRESETS_AI` или `PRESETS_SEARCH` |
 | Дизайн-слой (спокойный вид, список в Настройках), стартовые плитки пустого чата | `features/design/design.css`, `design.js` | Плитки подсказок: `TILES` в design.js |
+| Подпись и сборка release | `app/build.gradle.kts`, `app/proguard-rules.pro`, `docs/RELEASE_SETUP.md`, `docs/build.yml.example` | Секреты: `KAIREMA_KEYSTORE_B64`, `KAIREMA_STORE_PASS` |
+| Тесты Kotlin | `app/src/test/java/...`, `docs/tests/kotlin_local.sh` | Чистая логика: `bridge/Texts.kt`, `bridge/Guard.kt`, `update/UpdateRules.kt` |
 | Поиск по большим файлам | `features/rag/rag.js` (+ 2 строки в `readFiles`, `core/messages.js`) | Порог `RAGMIN`, размер куска `CH`, число кусков `TOPK` |
 | Обновление из приложения | `features/updater/updater.js`, `update/Updater.kt`, `Bridge.kt` (`updCheck`, `updInstall`), `docs/UPDATER_SETUP.md` | Репозиторий: `REPO` в updater.js |
 | Ошибка терминала → ИИ | `features/terminal/terminal.js` (`failMsg`, кнопка `[data-fix]`) | |
@@ -209,8 +211,9 @@
 |---|---|---|
 | `MainActivity.kt` | 255 | Оболочка: показывает интерфейс из assets/index.html. * Следующие шаги добавят сюда мост между кнопками интерфейса и нативным кодом. |
 | `attach/Attach.kt` | 329 | Выбор фото и файлов без файлового выбора WebView. |
-| `bridge/Bridge.kt` | 760 | Мост между интерфейсом (JS) и нативным кодом. |
+| `bridge/Bridge.kt` | 743 | Мост между интерфейсом (JS) и нативным кодом. |
 | `bridge/Guard.kt` | 22 | Защита моста. |
+| `bridge/Texts.kt` | 41 | Чистые функции моста без Android и без сети: тексты ошибок и разбор адреса. |
 | `data/ChatDb.kt` | 79 | Хранилище чатов на устройстве (SQLite, файл kairema.db). |
 | `data/DbBridge.kt` | 77 | Мост JS <-> хранилище (в JS это KairemaDb): чаты в SQLite, картинки и вложения файлами в filesDir/media. |
 | `data/SecureKeys.kt` | 66 | API-ключи провайдеров. |
@@ -226,7 +229,8 @@
 | `terminal/Shell.kt` | 146 | Настоящая оболочка Android (/system/bin/sh) для терминала. |
 | `terminal/TermuxResultReceiver.kt` | 14 | Принимает результат команды от Termux и передаёт его в TermuxRunner. |
 | `terminal/TermuxRunner.kt` | 154 | Запуск команд в Termux (если он установлен). |
-| `update/Updater.kt` | 105 | Обновление из приложения: берёт последний релиз с GitHub (releases/latest), скачивает APK и открывает системную установку. |
+| `update/UpdateRules.kt` | 21 | Правила обновления без Android: какой репозиторий и какой адрес APK разрешены. Проверяются тестами. |
+| `update/Updater.kt` | 103 | Обновление из приложения: берёт последний релиз с GitHub (releases/latest), скачивает APK и открывает системную установку. |
 
 ### Мосты (`@JavascriptInterface`): как JS вызывает Kotlin
 
