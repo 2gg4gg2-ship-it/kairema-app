@@ -28,7 +28,7 @@ with sync_playwright() as p:
         pg.goto('file://' + UI); pg.wait_for_timeout(5500)
         if theme == 'light': pg.evaluate("S.theme='light';document.documentElement.dataset.theme='light'")
         ids = pg.evaluate('Help.list()')
-        check(theme + ': 12 разделов', len(ids) == 12, ids)
+        check(theme + ': 13 разделов', len(ids) == 13, ids)
         # карточка в настройках
         pg.evaluate("openScreen && 0"); pg.evaluate("document.querySelector('[data-tab=set],[data-v=set]')&&document.querySelector('[data-tab=set],[data-v=set]').click()")
         pg.evaluate("setView&&setView('set')") if pg.evaluate("typeof setView")=='function' else None
@@ -40,11 +40,11 @@ with sync_playwright() as p:
             pg.locator('[data-help-go]').click(); pg.wait_for_timeout(700)
         else:
             pg.evaluate("Help.open()"); pg.wait_for_timeout(700)
-        check(theme + ': список карточек', pg.locator('.hp-card').count() == 12)
+        check(theme + ': список карточек', pg.locator('.hp-card').count() == 13)
         pg.screenshot(path=f'{SHOTS}/{theme}-index.png')
         pg.fill('.hp-search', 'termux'); pg.wait_for_timeout(200)
         vis = pg.locator('.hp-card:not([hidden])').count()
-        check(theme + ': поиск «termux» сужает список', 0 < vis < 12, vis)
+        check(theme + ': поиск «termux» сужает список', 0 < vis < 13, vis)
         pg.fill('.hp-search', 'абракадабраяя'); pg.wait_for_timeout(200)
         check(theme + ': поиск без результата показывает пояснение', pg.locator('.hp-empty:visible').count() == 1)
         pg.fill('.hp-search', ''); pg.wait_for_timeout(200)
@@ -61,7 +61,7 @@ with sync_playwright() as p:
         pg.evaluate("document.querySelectorAll('[data-screen=help]').forEach(e=>{e.hpArt=false;e.close&&e.close()})"); pg.wait_for_timeout(350)
         pg.evaluate("Help.open('providers')"); pg.wait_for_timeout(400)
         pg.locator('[data-screen=help] [data-bk]').click(); pg.wait_for_timeout(500)
-        check(theme + ': «Назад» из статьи остаётся в справке (список)', pg.locator('.hp-card').count() == 12 and pg.locator('[data-screen=help]').count() == 1)
+        check(theme + ': «Назад» из статьи остаётся в справке (список)', pg.locator('.hp-card').count() == 13 and pg.locator('[data-screen=help]').count() == 1)
         pg.evaluate("document.querySelector('[data-screen=help]').close()"); pg.wait_for_timeout(500)
         check(theme + ': «Назад» из списка закрывает справку', pg.locator('[data-screen=help]').count() == 0)
         check(theme + ': нет эмодзи-значков, есть svg', pg.evaluate("Help.open&&1") and True)

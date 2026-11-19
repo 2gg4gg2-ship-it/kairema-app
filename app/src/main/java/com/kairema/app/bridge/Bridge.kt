@@ -48,6 +48,18 @@ class Bridge(private val ctx: Context, private val web: WebView) {
     private val tm = TermuxRunner(ctx)
     private val sx = Share(ctx)
 
+    /** Агент: держит службу переднего плана весь прогон (между шагами модели и команд), on = true начать, false закончить. */
+    private var agentKeep = false
+
+    @JavascriptInterface
+    fun agentKeep(t: String, on: Boolean) {
+        if (!Guard.ok(t)) return
+        synchronized(this) {
+            if (on && !agentKeep) { agentKeep = true; KeepAliveService.begin(ctx) }
+            else if (!on && agentKeep) { agentKeep = false; KeepAliveService.end(ctx) }
+        }
+    }
+
     /** Вибро: name = tick | send | done | error, level = 1 (лёгкая) или 2 (обычная). */
     @JavascriptInterface
     fun haptic(name: String, level: Int) {
@@ -267,6 +279,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                     var uOut = -1L
                     var uCost = -1.0
                     var cut = false // ответ оборван лимитом длины
+                    val tc = ToolCalls() // вызовы инструментов (режим агента)
                     while (true) {
                         val line = src.readUtf8Line() ?: break
                         if (!line.startsWith("data:")) continue
@@ -296,6 +309,16 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                         var text: String? = null
                         var thought: String? = null
                         if (anthropic) {
+                            if (j.optString("type") == "content_block_start") {
+                                j.optJSONObject("content_block")?.let {
+                                    if (it.optString("type") == "tool_use") tc.anthStart(j.optInt("index"), it.optString("id"), it.optString("name"))
+                                }
+                            }
+                            if (j.optString("type") == "content_block_delta") {
+                                j.optJSONObject("delta")?.let {
+                                    if (it.optString("type") == "input_json_delta") tc.anthDelta(j.optInt("index"), it.optString("partial_json"))
+                                }
+                            }
                             val delta = if (j.optString("type") == "content_block_delta") j.optJSONObject("delta") else null
                             if (delta != null) {
                                 if (delta.optString("type") == "thinking_delta") thought = delta.optString("thinking")
@@ -307,6 +330,18 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                             val d = ch0?.optJSONObject("delta")
                             if (d != null) {
                                 if (!d.isNull("content")) text = d.optString("content")
+                                d.optJSONArray("tool_calls")?.let { arr ->
+                                    for (n in 0 until arr.length()) {
+                                        val c = arr.optJSONObject(n) ?: continue
+                                        val f = c.optJSONObject("function")
+                                        tc.oai(
+                                            if (c.has("index")) c.optInt("index") else null,
+                                            if (c.isNull("id")) null else c.optString("id"),
+                                            if (f == null || f.isNull("name")) null else f.optString("name"),
+                                            if (f == null || f.isNull("arguments")) null else f.optString("arguments")
+                                        )
+                                    }
+                                }
                                 val r = if (!d.isNull("reasoning_content")) d.optString("reasoning_content")
                                 else if (!d.isNull("reasoning")) d.optString("reasoning") else null
                                 if (!r.isNullOrEmpty()) thought = r
@@ -317,6 +352,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
                         if (!text.isNullOrEmpty()) push(reqId, text)
                     }
                     if (cut) push(reqId, "\u0003")
+                    if (!tc.isEmpty()) push(reqId, "\u0004" + tc.json())
                     if (uIn >= 0 || uOut >= 0) {
                         val u = JSONObject().put("i", uIn).put("o", uOut)
                         if (uCost >= 0) u.put("c", uCost)
@@ -695,6 +731,12 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         } else if (webMode == "oai" && base.contains("api.openai.com")) {
             body.put("web_search_options", JSONObject())
         }
+        // Режим агента: инструменты в формате провайдера присылает интерфейс (tools), модель сама решает, что вызвать.
+        val agentTools = p.optJSONArray("tools")
+        if (agentTools != null && agentTools.length() > 0) {
+            body.put("tools", agentTools)
+            if (!anthropic) body.put("tool_choice", "auto")
+        }
         val call = httpLong.newCall(
             rb.url(endpoint)
                 .post(body.toString().toRequestBody("application/json".toMediaType()))
@@ -717,7 +759,7 @@ class Bridge(private val ctx: Context, private val web: WebView) {
 
     private fun push(id: String, text: String) {
         val pv = previews[id]
-        if (pv != null && pv.length < 240 && !text.startsWith("\u0001") && !text.startsWith("\u0002")) pv.append(text)
+        if (pv != null && pv.length < 240 && !text.startsWith("\u0001") && !text.startsWith("\u0002") && !text.startsWith("\u0004")) pv.append(text)
         js("KairemaNative.chunk(${JSONObject.quote(id)},${JSONObject.quote(text)})")
     }
 

@@ -19,7 +19,7 @@ const scr=b=>{follow(b);b._stk=true;jump(b)};
 const scl=b=>{follow(b);if(b._stk!==false&&!b._tch)jump(b)};
 function stopTail(d,lbl){const b=el('<button class="more-old stp-c"></button>');b.textContent=L(lbl||'Остановлено. Продолжить');b.onclick=()=>{b.remove();const c=Chat.cmp;if(!c||!c.setText)return;c.setText(L('Продолжи с того места, где остановился.'));const sd=$('.send',c);if(sd&&!sd.disabled)sd.click()};d.append(b)}
 i18nAdd({"Остановлено. Продолжить":"Stopped. Continue","Ответ оборван лимитом длины. Продолжить":"The answer hit the length limit. Continue","Связь прервалась, ответ неполный. Продолжить":"Connection lost, the answer is incomplete. Continue","Модель только думала и не успела ответить. Нажмите «Быстрый ответ» в меню «+» или повторите вопрос.":"The model only reasoned and did not answer. Pick Quick answer in the + menu or ask again.","Продолжи с того места, где остановился.":"Continue from where you stopped.","Остановить":"Stop"});
-async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=msgEl(m,1);box.append(d);const bd=$('.bd',d);bd.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';scr(box);
+async function respond(msgs,box,tag){if(typeof Coder!=='undefined'&&Coder.on())return Coder.respond(msgs,box,tag);const m={r:'a',t:''};msgs.push(m);const d=msgEl(m,1);box.append(d);const bd=$('.bd',d);bd.innerHTML='<span class="typing"><i></i><i></i><i></i></span>';scr(box);
  const pv=actProv();
  if(Native.on&&pv){
   const anth=/anthropic\.com/.test(pv.url),last=[...msgs].reverse().find(x=>x.r==='u');
@@ -64,7 +64,7 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
 const NB=window.KairemaBridge,Native=(()=>{const pend={};let n=0,tok='';
  /* Токен приложения (Kotlin: bridge/Guard.kt). Присылается главной странице при загрузке; фреймы предпросмотра HTML его не видят.
     Методы из GUARD требуют токен первым аргументом. Пока токена нет (браузер, тесты с подменой моста), аргументы идут как есть. */
- const GUARD=new Set(['saveKey','deleteKey','termux','termuxRequestPermission','termuxStatus','shell','verify','models','chat','image','search','inboxTake','attachPick','pdfPages','updCheck','updInstall']);
+ const GUARD=new Set(['saveKey','deleteKey','termux','termuxRequestPermission','termuxStatus','shell','verify','models','chat','image','search','inboxTake','attachPick','pdfPages','updCheck','updInstall','agentKeep']);
  /* Методы выбора файлов лежат в отдельном мосте KairemaAttach (Kotlin: attach/Attach.kt) */
  const OWN=new Set(['attachPick','pdfPages']);
  const call=(fn,...a)=>{const o=OWN.has(fn)?window.KairemaAttach:NB;return GUARD.has(fn)&&tok?o[fn](tok,...a):o[fn](...a)};

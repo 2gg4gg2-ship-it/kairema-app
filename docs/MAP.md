@@ -56,6 +56,7 @@
 | Обновление из приложения | `features/updater/updater.js`, `update/Updater.kt`, `Bridge.kt` (`updCheck`, `updInstall`), `docs/UPDATER_SETUP.md` | Репозиторий: `REPO` в updater.js |
 | Ошибка терминала → ИИ | `features/terminal/terminal.js` (`failMsg`, кнопка `[data-fix]`) | |
 | Вибро и звуки | `features/feel/feel.js`, `Bridge.kt` (`haptic`) | Рисунки вибро в `PAT`, ноты в `SND` |
+| Агент-программист | `features/coder/coder.js`, `bridge/ToolCalls.kt`, `Bridge.kt` (`chat`, `open`, `agentKeep`), `core/messages.js` (вызов `Coder.respond` в `respond`) | Инструменты `TOOLS`, режимы `MODES`, `permit`, `safeCmd` |
 | Шкала контекста | `features/ctxbar/ctxbar.js` | Размер окна: `GUESS`, `api.window()` |
 | Шрифты (локальные), автосжатие истории | `features/fonts/fonts.css`, `features/ctx/ctx.js` (`auto`) | Порог автосжатия: `AUTO` в ctx.js |
 | Качество ответов, подсказки слабым моделям, фильтр иероглифов | `features/quality/quality.js` (`qualityPrompt` в `sysPrompt`, `Quality.filter` в `core/messages.js`) | Правила таблиц и языка менять только здесь |
@@ -146,6 +147,8 @@
 | `features/caps/caps.js` | 73 | ВОЗМОЖНОСТИ МОДЕЛЕЙ: что умеет выбранная модель (авто-определение) ===== Источник 1: данные провайдера (OpenRouter сообщает выходные форматы и параметр reasoning), приход |
 | `features/chats/chats.css` | 23 | Стили модуля chats: диалог «Новый чат», кнопка «Удалить все чаты», анимация удаления. |
 | `features/chats/chats.js` | 231 | ИСТОРИЯ ЧАТОВ: список и сохранение ===== В приложении (есть KairemaDb) чаты лежат в SQLite на устройстве, картинки и PDF файлами в filesDir/media, в чате хранится только  |
+| `features/coder/coder.css` | 18 |  |
+| `features/coder/coder.js` | 237 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
 | `features/cost/cost.css` | 10 |  |
 | `features/cost/cost.js` | 94 | СЧЁТЧИК ТОКЕНОВ И РАСХОДОВ ===== Под каждым ответом ИИ: сколько токенов ушло и примерная цена. |
 | `features/ctx/ctx.css` | 2 |  |
@@ -159,7 +162,7 @@
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 150 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
 | `features/fonts/fonts.css` | 12 | ШРИФТЫ ВНУТРИ ПРИЛОЖЕНИЯ (работают без интернета) ===== Space Grotesk (заголовки), Manrope (текст интерфейса), JetBrains Mono (код), Source Serif 4 (ответы ИИ). |
-| `features/help/help-data.js` | 157 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
+| `features/help/help-data.js` | 164 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
 | `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
 | `features/help/help.js` | 89 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
@@ -203,7 +206,7 @@
 | `features/updater/updater.css` | 4 |  |
 | `features/updater/updater.js` | 64 | ОБНОВЛЕНИЕ ИЗ ПРИЛОЖЕНИЯ ===== Настройки → «Обновление»: проверяет последний релиз репозитория на GitHub (releases/latest), показывает, что нового, и по кнопке скачивает  |
 | `features/websearch/websearch.js` | 49 | ПОИСК В ИНТЕРНЕТЕ: модель сама решает, нужен ли поиск, и составляет запросы ===== Раньше в поисковик уходил сырой текст вопроса: «а в Москве?» искалось дословно и находил |
-| `index.html` | 104 |  |
+| `index.html` | 106 |  |
 
 ### Индекс файлов Kotlin (`app/src/main/java/com/kairema/app`)
 
@@ -211,9 +214,10 @@
 |---|---|---|
 | `MainActivity.kt` | 255 | Оболочка: показывает интерфейс из assets/index.html. * Следующие шаги добавят сюда мост между кнопками интерфейса и нативным кодом. |
 | `attach/Attach.kt` | 329 | Выбор фото и файлов без файлового выбора WebView. |
-| `bridge/Bridge.kt` | 743 | Мост между интерфейсом (JS) и нативным кодом. |
+| `bridge/Bridge.kt` | 785 | Мост между интерфейсом (JS) и нативным кодом. |
 | `bridge/Guard.kt` | 22 | Защита моста. |
 | `bridge/Texts.kt` | 41 | Чистые функции моста без Android и без сети: тексты ошибок и разбор адреса. |
+| `bridge/ToolCalls.kt` | 71 | Сбор вызовов инструментов из потока ответа модели (без Android и без org.json — проверяется юнит-тестами). |
 | `data/ChatDb.kt` | 79 | Хранилище чатов на устройстве (SQLite, файл kairema.db). |
 | `data/DbBridge.kt` | 77 | Мост JS <-> хранилище (в JS это KairemaDb): чаты в SQLite, картинки и вложения файлами в filesDir/media. |
 | `data/SecureKeys.kt` | 66 | API-ключи провайдеров. |
@@ -235,7 +239,7 @@
 ### Мосты (`@JavascriptInterface`): как JS вызывает Kotlin
 
 - `attach/Attach.kt`: `attachPick`, `pdfPages`
-- `bridge/Bridge.kt`: `haptic`, `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `updCheck`, `updInstall`, `chat`, `image`, `saveImage`, `shareImage`, `search`
+- `bridge/Bridge.kt`: `agentKeep`, `haptic`, `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `updCheck`, `updInstall`, `chat`, `image`, `saveImage`, `shareImage`, `search`
 - `data/DbBridge.kt`: `loadAll`, `count`, `put`, `remove`, `clear`, `saveFile`, `loadFile`
 - `search/SearchBridge.kt`: `mode`, `sigs`, `put`, `remove`, `clear`, `find`
 - `system/SystemBridge.kt`: `dark`, `bars`
@@ -249,15 +253,15 @@
 | `account:rendered` | sync-ui.js | auth-ui.js |
 | `app:ready` | about.js, auth-ui.js, backup.js, caps.js, cost.js, filediff.js, help.js, inbox.js, log.js, memory-ui.js, memory.js, roles.js, search.js, sync.js, updater.js | app.js |
 | `auth:forgot` | auth-ui.js | auth.js |
-| `chat:answer` | branch.js, cost.js, ctx.js, ctxbar.js, feel.js, memory-ai.js, memory-ui.js, share.js, terminal.js | messages.js, tools.js |
-| `chat:rendered` | branch.js, ctxbar.js, design.js, draft.js, rag.js, roles.js, scroller.js, share.js | messages.js |
+| `chat:answer` | branch.js, cost.js, ctx.js, ctxbar.js, feel.js, memory-ai.js, memory-ui.js, share.js, terminal.js | coder.js, messages.js, tools.js |
+| `chat:rendered` | branch.js, coder.js, ctxbar.js, design.js, draft.js, rag.js, roles.js, scroller.js, share.js | messages.js |
 | `md:code` | artifacts.js, terminal.js | md.js |
 | `md:table` | artifacts.js | md.js |
 | `memory:auto` | — | memory-ai.js |
 | `memory:changed` | memory.js | backup.js, memory-ai.js, memory-ui.js, settings.js |
-| `msg:render` | attview.js, branch.js, cost.js, ctx.js, draft.js, share.js, tools.js | messages.js |
+| `msg:render` | attview.js, branch.js, coder.js, cost.js, ctx.js, draft.js, share.js, tools.js | messages.js |
 | `settings:grouped` | — | settings.js |
-| `settings:rendered` | auth-ui.js, backup.js, cost.js, ctx.js, feel.js, filediff.js, help.js, log.js, quality.js, rag.js, roles.js, updater.js | settings.js |
+| `settings:rendered` | auth-ui.js, backup.js, coder.js, cost.js, ctx.js, feel.js, filediff.js, help.js, log.js, quality.js, rag.js, roles.js, updater.js | settings.js |
 | `sync:delete` | search.js, sync.js | chats.js, memory.js, sync.js |
 | `sync:left` | auth-ui.js | sync.js |
 | `sync:register` | chats.js, memory.js, sync.js | sync.js |
@@ -268,6 +272,8 @@
 - `kairema.accounts.v1`: auth.js
 - `kairema.budget.v1`: cost.js
 - `kairema.chats.v1`: chats.js
+- `kairema.coder.seen`: coder.js
+- `kairema.coder.v1`: coder.js
 - `kairema.ctxwin.v1`: ctxbar.js
 - `kairema.draft.v1`: draft.js
 - `kairema.fdiff.v1`: filediff.js
