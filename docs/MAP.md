@@ -50,6 +50,9 @@
 | Терминал, команды из ответов, агент | `features/terminal/*` (`term-compat.js` разбор ответов любых моделей), `terminal/Shell.kt`, `assets/terminal/*.sh`, `TermuxRunner.kt`, `features/filediff/*` | Опасные команды требуют подтверждения |
 | Готовые сервисы (адрес подставляется), встроенный поиск модели, исследование | `features/presets/presets.js`, `features/tools/tools.js` (`webKind`, `webArg`, `research`), `bridge/Bridge.kt` (`web`, `buildSearchRequest`) | Новый сервис: строка в `PRESETS_AI` или `PRESETS_SEARCH` |
 | Дизайн-слой (спокойный вид, список в Настройках), стартовые плитки пустого чата | `features/design/design.css`, `design.js` | Плитки подсказок: `TILES` в design.js |
+| Поиск по большим файлам | `features/rag/rag.js` (+ 2 строки в `readFiles`, `core/messages.js`) | Порог `RAGMIN`, размер куска `CH`, число кусков `TOPK` |
+| Обновление из приложения | `features/updater/updater.js`, `update/Updater.kt`, `Bridge.kt` (`updCheck`, `updInstall`), `docs/UPDATER_SETUP.md` | Репозиторий: `REPO` в updater.js |
+| Ошибка терминала → ИИ | `features/terminal/terminal.js` (`failMsg`, кнопка `[data-fix]`) | |
 | Вибро и звуки | `features/feel/feel.js`, `Bridge.kt` (`haptic`) | Рисунки вибро в `PAT`, ноты в `SND` |
 | Шкала контекста | `features/ctxbar/ctxbar.js` | Размер окна: `GUESS`, `api.window()` |
 | Шрифты (локальные), автосжатие истории | `features/fonts/fonts.css`, `features/ctx/ctx.js` (`auto`) | Порог автосжатия: `AUTO` в ctx.js |
@@ -118,7 +121,7 @@
 | `core/base.js` | 54 | core/base.js: УТИЛИТЫ, ШАБЛОНЫ, СОСТОЯНИЕ, UI-ХЕЛПЕРЫ (page, sheet, меню, формы). |
 | `core/config.js` | 8 | НАСТРОЙКИ ПРИЛОЖЕНИЯ ===== APP_VERSION меняем при каждой сборке вместе с app/build.gradle.kts и README.md. |
 | `core/hooks.js` | 11 | ЯДРО: события и переводы для подключаемых модулей ===== Модуль не правит core/app.js: он подписывается на события (Hooks.on) и добавляет свои переводы (i18nAdd). |
-| `core/messages.js` | 166 | core/messages.js: СООБЩЕНИЯ, МОСТ К ANDROID (Native), ЧАТ. |
+| `core/messages.js` | 167 | core/messages.js: СООБЩЕНИЯ, МОСТ К ANDROID (Native), ЧАТ. |
 | `core/onboarding.js` | 58 | core/onboarding.js: ОНБОРДИНГ и FUTURE API. |
 | `core/settings.js` | 131 | core/settings.js: ПРОВАЙДЕРЫ, ПАМЯТЬ, ШАБЛОНЫ, ПРОФИЛЬ, НАСТРОЙКИ, ВКЛАДКИ. |
 | `core/styles.css` | 257 | 01. ТОКЕНЫ: цвета, шрифты, easing |
@@ -154,7 +157,7 @@
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 150 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
 | `features/fonts/fonts.css` | 12 | ШРИФТЫ ВНУТРИ ПРИЛОЖЕНИЯ (работают без интернета) ===== Space Grotesk (заголовки), Manrope (текст интерфейса), JetBrains Mono (код), Source Serif 4 (ответы ИИ). |
-| `features/help/help-data.js` | 154 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
+| `features/help/help-data.js` | 157 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
 | `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
 | `features/help/help.js` | 89 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
@@ -174,6 +177,7 @@
 | `features/providers/providers.js` | 160 | ПРОВАЙДЕРЫ ИИ: название, адрес, ключ → проверка ключа → выбор модели из списка |
 | `features/quality/quality.css` | 3 | Стили модуля quality: значение справа в строке настроек. |
 | `features/quality/quality.js` | 65 | КАЧЕСТВО ОТВЕТОВ ДЛЯ ЛЮБЫХ МОДЕЛЕЙ (от самых слабых до лучших) ===== 1) Quality.prompt(): короткие жёсткие правила в системную подсказку: язык ответа, никаких иероглифов, |
+| `features/rag/rag.js` | 115 | ПОИСК ПО БОЛЬШИМ ФАЙЛАМ (локальный RAG) ===== Большой текстовый файл (или текст PDF) больше RAGMIN знаков не вставляется в запрос целиком. |
 | `features/roles/roles.css` | 21 | Команды «/» и плашка роли над полем ввода |
 | `features/roles/roles.js` | 148 | РОЛИ И КОМАНДЫ «/» ===== В поле ввода набираете «/» и появляется список команд. |
 | `features/scroller/scroller.css` | 10 | Кнопки листания чата: маленькие, над полем ввода справа. |
@@ -190,12 +194,14 @@
 | `features/system/system.css` | 7 | КЛАВИАТУРА: класс .kb ставит system.js, когда Kotlin сообщил, что клавиатура открыта ===== Окно сжимается Kotlin плавно, кадр за кадром вместе с клавиатурой системы (Syst |
 | `features/system/system.js` | 26 | СИСТЕМА: статус-бар, клавиатура, системная тема ===== Отступы под статус-бар, панель навигации и клавиатуру теперь применяет Kotlin (com.kairema.app.system.SystemBridge): |
 | `features/terminal/term-compat.js` | 110 | ТЕРМИНАЛ: совместимость с любыми моделями (от самых слабых до лучших) ===== Слабые модели не всегда оформляют команды правильно: забывают язык у блока, пишут «$ ls» вмест |
-| `features/terminal/terminal.css` | 53 | Стили модуля terminal. |
-| `features/terminal/terminal.js` | 248 | ТЕРМИНАЛ: настоящая оболочка Android и запуск команд из ответов ИИ ===== Команды выполняет Kotlin (Shell.kt, /system/bin/sh). |
+| `features/terminal/terminal.css` | 54 | Стили модуля terminal. |
+| `features/terminal/terminal.js` | 255 | ТЕРМИНАЛ: настоящая оболочка Android и запуск команд из ответов ИИ ===== Команды выполняет Kotlin (Shell.kt, /system/bin/sh). |
 | `features/tools/tools.css` | 76 | Меню «+», метки режимов в поле ввода, размышления, изображения |
 | `features/tools/tools.js` | 227 | ФУНКЦИИ ЧАТА: меню «+», режимы ответа, создание изображений, глубокое исследование ===== Кнопка «+» в поле ввода открывает список: вложения (галерея, камера, файлы) и фун |
+| `features/updater/updater.css` | 4 |  |
+| `features/updater/updater.js` | 64 | ОБНОВЛЕНИЕ ИЗ ПРИЛОЖЕНИЯ ===== Настройки → «Обновление»: проверяет последний релиз репозитория на GitHub (releases/latest), показывает, что нового, и по кнопке скачивает  |
 | `features/websearch/websearch.js` | 49 | ПОИСК В ИНТЕРНЕТЕ: модель сама решает, нужен ли поиск, и составляет запросы ===== Раньше в поисковик уходил сырой текст вопроса: «а в Москве?» искалось дословно и находил |
-| `index.html` | 101 |  |
+| `index.html` | 104 |  |
 
 ### Индекс файлов Kotlin (`app/src/main/java/com/kairema/app`)
 
@@ -203,7 +209,7 @@
 |---|---|---|
 | `MainActivity.kt` | 255 | Оболочка: показывает интерфейс из assets/index.html. * Следующие шаги добавят сюда мост между кнопками интерфейса и нативным кодом. |
 | `attach/Attach.kt` | 329 | Выбор фото и файлов без файлового выбора WebView. |
-| `bridge/Bridge.kt` | 720 | Мост между интерфейсом (JS) и нативным кодом. |
+| `bridge/Bridge.kt` | 760 | Мост между интерфейсом (JS) и нативным кодом. |
 | `bridge/Guard.kt` | 22 | Защита моста. |
 | `data/ChatDb.kt` | 79 | Хранилище чатов на устройстве (SQLite, файл kairema.db). |
 | `data/DbBridge.kt` | 77 | Мост JS <-> хранилище (в JS это KairemaDb): чаты в SQLite, картинки и вложения файлами в filesDir/media. |
@@ -220,11 +226,12 @@
 | `terminal/Shell.kt` | 146 | Настоящая оболочка Android (/system/bin/sh) для терминала. |
 | `terminal/TermuxResultReceiver.kt` | 14 | Принимает результат команды от Termux и передаёт его в TermuxRunner. |
 | `terminal/TermuxRunner.kt` | 154 | Запуск команд в Termux (если он установлен). |
+| `update/Updater.kt` | 105 | Обновление из приложения: берёт последний релиз с GitHub (releases/latest), скачивает APK и открывает системную установку. |
 
 ### Мосты (`@JavascriptInterface`): как JS вызывает Kotlin
 
 - `attach/Attach.kt`: `attachPick`, `pdfPages`
-- `bridge/Bridge.kt`: `haptic`, `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `chat`, `image`, `saveImage`, `shareImage`, `search`
+- `bridge/Bridge.kt`: `haptic`, `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `updCheck`, `updInstall`, `chat`, `image`, `saveImage`, `shareImage`, `search`
 - `data/DbBridge.kt`: `loadAll`, `count`, `put`, `remove`, `clear`, `saveFile`, `loadFile`
 - `search/SearchBridge.kt`: `mode`, `sigs`, `put`, `remove`, `clear`, `find`
 - `system/SystemBridge.kt`: `dark`, `bars`
@@ -236,17 +243,17 @@
 | Событие | Слушают (`Hooks.on`) | Запускают (`Hooks.run`) |
 |---|---|---|
 | `account:rendered` | sync-ui.js | auth-ui.js |
-| `app:ready` | about.js, auth-ui.js, backup.js, caps.js, cost.js, filediff.js, help.js, inbox.js, log.js, memory-ui.js, memory.js, roles.js, search.js, sync.js | app.js |
+| `app:ready` | about.js, auth-ui.js, backup.js, caps.js, cost.js, filediff.js, help.js, inbox.js, log.js, memory-ui.js, memory.js, roles.js, search.js, sync.js, updater.js | app.js |
 | `auth:forgot` | auth-ui.js | auth.js |
 | `chat:answer` | branch.js, cost.js, ctx.js, ctxbar.js, feel.js, memory-ai.js, memory-ui.js, share.js, terminal.js | messages.js, tools.js |
-| `chat:rendered` | branch.js, ctxbar.js, design.js, draft.js, roles.js, scroller.js, share.js | messages.js |
+| `chat:rendered` | branch.js, ctxbar.js, design.js, draft.js, rag.js, roles.js, scroller.js, share.js | messages.js |
 | `md:code` | artifacts.js, terminal.js | md.js |
 | `md:table` | artifacts.js | md.js |
 | `memory:auto` | — | memory-ai.js |
 | `memory:changed` | memory.js | backup.js, memory-ai.js, memory-ui.js, settings.js |
 | `msg:render` | attview.js, branch.js, cost.js, ctx.js, draft.js, share.js, tools.js | messages.js |
 | `settings:grouped` | — | settings.js |
-| `settings:rendered` | auth-ui.js, backup.js, cost.js, ctx.js, feel.js, filediff.js, help.js, log.js, quality.js, roles.js | settings.js |
+| `settings:rendered` | auth-ui.js, backup.js, cost.js, ctx.js, feel.js, filediff.js, help.js, log.js, quality.js, rag.js, roles.js, updater.js | settings.js |
 | `sync:delete` | search.js, sync.js | chats.js, memory.js, sync.js |
 | `sync:left` | auth-ui.js | sync.js |
 | `sync:register` | chats.js, memory.js, sync.js | sync.js |
@@ -278,6 +285,8 @@
 - `kairema.term.backend.v1`: terminal.js
 - `kairema.term.caps.v1`: term-compat.js
 - `kairema.term.hist.v1`: terminal.js
+- `kairema.upd.auto`: updater.js
+- `kairema.upd.t`: updater.js
 - `kairema.usage.v1`: backup.js, cost.js
 - `kairema.welcome.v1`: auth-ui.js
 

@@ -11,8 +11,8 @@ android {
         applicationId = "com.kairema.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 56
-        versionName = "0.36.0"
+        versionCode = 57
+        versionName = "0.37.0"
     }
     // Постоянный ключ подписи ТОЛЬКО для debug-сборок: новые APK ставятся поверх старых.
     signingConfigs {

@@ -2,11 +2,11 @@
    Команды выполняет Kotlin (Shell.kt, /system/bin/sh). В ответах ИИ у блоков ```bash появляется кнопка «Выполнить»;
    команда запускается только после вашего подтверждения, результат можно отправить ИИ одной кнопкой.
    Убрать модуль: удалить папку features/terminal и её строки в index.html (вкладка Терминал тогда пустая). */
-i18nAdd({"Всё":"All","Последний вывод":"Last output","Выделить":"Select","Отправить":"Send","Нечего копировать":"Nothing to copy","Последний вывод скопирован":"Last output copied","Весь вывод скопирован":"Whole output copied","▶ Выполнить":"▶ Run","Выполнить":"Run","Всё равно выполнить":"Run anyway","Выполнить команду?":"Run the command?","Диагностика":"Diagnostics","Остановить":"Stop","Очистить":"Clear","Выберите оболочку: Android (встроенная, без python и git) или Termux (полноценный Linux, нужна установка Termux). «Диагностика» показывает, что доступно.":"Choose the shell: Android (built-in, no python or git) or Termux (a full Linux, Termux must be installed). “Diagnostics” shows what is available.","Демо: вне приложения команды не выполняются.":"Demo: commands do not run outside the app.","команда, например ls":"command, e.g. ls","Команда может удалить или изменить файлы. Проверьте её внимательно.":"The command may delete or change files. Check it carefully.","Команда выполнится в песочнице приложения на этом телефоне.":"The command will run in the app sandbox on this phone.","Отправить результат ИИ":"Send the result to AI","Исправить с ИИ":"Fix with AI","Выполняется…":"Running…","Дождитесь ответа":"Wait for the reply","Результат отправлен":"Result sent","Сессия не запущена. Нажмите «Активировать сессию», чтобы выполнять команды.":"The session is not running. Tap “Start session” to run commands.","● сессия запущена":"● session started","— сессия остановлена":"— session stopped","Оболочка":"Shell","Проверить Termux":"Check Termux","Выполнить и продолжать сам":"Run and continue automatically","Стоп":"Stop","Агент":"Agent","Запустить":"Start","Выключить":"Turn off","Что доступно на этом телефоне":"What is available on this phone","Сессия не запущена. Нажмите «Запустить», чтобы выполнять команды.":"The session is not running. Tap “Start” to run commands."});
+i18nAdd({"Отправить ошибку ИИ на разбор":"Send the error to the AI","Ошибка отправлена ИИ":"Error sent to the AI","Дождитесь ответа":"Wait for the answer","Всё":"All","Последний вывод":"Last output","Выделить":"Select","Отправить":"Send","Нечего копировать":"Nothing to copy","Последний вывод скопирован":"Last output copied","Весь вывод скопирован":"Whole output copied","▶ Выполнить":"▶ Run","Выполнить":"Run","Всё равно выполнить":"Run anyway","Выполнить команду?":"Run the command?","Диагностика":"Diagnostics","Остановить":"Stop","Очистить":"Clear","Выберите оболочку: Android (встроенная, без python и git) или Termux (полноценный Linux, нужна установка Termux). «Диагностика» показывает, что доступно.":"Choose the shell: Android (built-in, no python or git) or Termux (a full Linux, Termux must be installed). “Diagnostics” shows what is available.","Демо: вне приложения команды не выполняются.":"Demo: commands do not run outside the app.","команда, например ls":"command, e.g. ls","Команда может удалить или изменить файлы. Проверьте её внимательно.":"The command may delete or change files. Check it carefully.","Команда выполнится в песочнице приложения на этом телефоне.":"The command will run in the app sandbox on this phone.","Отправить результат ИИ":"Send the result to AI","Исправить с ИИ":"Fix with AI","Выполняется…":"Running…","Дождитесь ответа":"Wait for the reply","Результат отправлен":"Result sent","Сессия не запущена. Нажмите «Активировать сессию», чтобы выполнять команды.":"The session is not running. Tap “Start session” to run commands.","● сессия запущена":"● session started","— сессия остановлена":"— session stopped","Оболочка":"Shell","Проверить Termux":"Check Termux","Выполнить и продолжать сам":"Run and continue automatically","Стоп":"Stop","Агент":"Agent","Запустить":"Start","Выключить":"Turn off","Что доступно на этом телефоне":"What is available on this phone","Сессия не запущена. Нажмите «Запустить», чтобы выполнять команды.":"The session is not running. Tap “Start” to run commands."});
 let TERMUX_WAIT=25;
 const Term=(()=>{
  const KH='kairema.term.hist.v1',MARK='\u0001',CAP=30000;
- let log=[],cur=null,redraw=null,hist=[],st='off',mark='off',backend='android',probing=0;
+ let fail=null,log=[],cur=null,redraw=null,hist=[],st='off',mark='off',backend='android',probing=0;
  const KB='kairema.term.backend.v1';
  try{if(localStorage.getItem(KB)==='termux')backend='termux'}catch(e){}
  const T2=(a,b)=>LANG==='en'?b:a;
@@ -44,6 +44,7 @@ const Term=(()=>{
   cur={};tick();
   const r=await exec(cmd,{onStart:id=>{cur.id=id},onChunk:t=>{e.t=t.slice(-CAP);upd(e)},timeout:label?30:60});
   cur=null;e.t=(r.out||'').slice(-CAP);
+  fail=(!label&&(r.err||r.code!==0))?{cmd,r}:null;
   if(!e.t){const k=log.indexOf(e);if(k>=0)log.splice(k,1)}
   if(r.err||r.code!==0)add('e',exitText(r));
   tick()}
@@ -116,7 +117,9 @@ echo "== Запуск файла из папки приложения"; printf '
 echo "== Папка"; pwd; echo "Папка библиотек: $KAIREMA_LIB"; ls $KAIREMA_LIB 2>&1 | head -5
 echo "== Сеть"; ping -c 1 -W 2 1.1.1.1 2>&1 | tail -2
 echo "== Место"; df -h . 2>&1 | tail -2`;
- return{exec,run,record,feedback,probe,selfTest,stop,clear,activate,deactivate,setBackend,checkTermux,get backend(){return backend},get st(){return st},get mark(){return mark},danger,DIAG,get busy(){return!!cur},bind(f){redraw=f},text(last){let a=log;if(last){const i=log.map(e=>e.c).lastIndexOf('c');if(i>=0)a=log.slice(i)}return a.map(e=>e.t).join('\n')},drawLog(out){out.innerHTML='';log.slice(-300).forEach(e=>{const d=document.createElement('div');d.className=e.c;d.textContent=e.t;e.el=d;out.append(d)});scr(out)},hist:()=>hist}})();
+ /* Ошибка последней команды из терминала → готовое сообщение для ИИ (null, если последняя команда прошла) */
+ const failMsg=()=>fail?'The command failed (I ran it in the terminal). Explain what the error means and suggest a fix.\n\n'+feedback(fail.cmd,fail.r):null;
+ return{exec,run,record,feedback,failMsg,dismiss(){fail=null},get fail(){return fail},probe,selfTest,stop,clear,activate,deactivate,setBackend,checkTermux,get backend(){return backend},get st(){return st},get mark(){return mark},danger,DIAG,get busy(){return!!cur},bind(f){redraw=f},text(last){let a=log;if(last){const i=log.map(e=>e.c).lastIndexOf('c');if(i>=0)a=log.slice(i)}return a.map(e=>e.t).join('\n')},drawLog(out){out.innerHTML='';log.slice(-300).forEach(e=>{const d=document.createElement('div');d.className=e.c;d.textContent=e.t;e.el=d;out.append(d)});scr(out)},hist:()=>hist}})();
 function termView(){
  const v=$('#v-term');
  if(!P.diag)P.diag='<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>';
@@ -129,6 +132,9 @@ function termView(){
   if(typeof Sx==='undefined'){copy(t);return}
   if(k==='sel')Sx.selectSheet(t);else if(k==='shr')Sx.text('Terminal',t);else Sx.copyToast(t,k==='last'?'Последний вывод скопирован':'Весь вывод скопирован')});
  const out=$('.tout',v),inp=$('.tin input',v),send=$('.tin .send',v);
+ const fx=document.createElement('button');fx.type='button';fx.className='btn ghost tm-fix';fx.setAttribute('data-fix','');fx.hidden=true;fx.textContent=L('Отправить ошибку ИИ на разбор');
+ $('.tin',v).after(fx);
+ fx.onclick=()=>{const m=Term.failMsg();if(!m){fx.hidden=true;return}if(typeof show==='function')show('api');setTimeout(()=>{if(Chat.send(m)){Term.dismiss();toast(L('Ошибка отправлена ИИ'))}else toast(L('Дождитесь ответа'))},400)};
  const ui=()=>{
   const r=Term.busy,s=Term.st,m=Term.mark;
   $('.ses',v).dataset.mark=m;
@@ -141,6 +147,7 @@ function termView(){
   $('[data-tchk]',v).style.display=Term.backend==='termux'?'':'none';
   $('[data-tchk]',v).disabled=r;
   inp.disabled=s!=='on'||r;
+  fx.hidden=!(Term.fail&&!r&&s==='on');
   send.innerHTML=r?ic('stop'):ic('enter');send.setAttribute('aria-label',r?'Stop':'Enter');send.disabled=!(r||s==='on')};
  $('[data-bk]',v).append(seg(['Android','Termux'],Term.backend==='termux'?1:0,i=>Term.setBackend(i?'termux':'android')));
  $('[data-tchk]',v).onclick=()=>Term.checkTermux();

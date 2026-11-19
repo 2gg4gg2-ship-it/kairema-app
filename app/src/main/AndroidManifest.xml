@@ -16,6 +16,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Вибро при отправке и конце ответа -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Обновление из приложения: открыть установщик со скачанным APK -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <!-- Видимость пакета Termux (Android 11+) -->

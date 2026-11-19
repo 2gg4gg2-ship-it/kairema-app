@@ -64,7 +64,7 @@ async function respond(msgs,box,tag){const m={r:'a',t:''};msgs.push(m);const d=m
 const NB=window.KairemaBridge,Native=(()=>{const pend={};let n=0,tok='';
  /* Токен приложения (Kotlin: bridge/Guard.kt). Присылается главной странице при загрузке; фреймы предпросмотра HTML его не видят.
     Методы из GUARD требуют токен первым аргументом. Пока токена нет (браузер, тесты с подменой моста), аргументы идут как есть. */
- const GUARD=new Set(['saveKey','deleteKey','termux','termuxRequestPermission','termuxStatus','shell','verify','models','chat','image','search','inboxTake','attachPick','pdfPages']);
+ const GUARD=new Set(['saveKey','deleteKey','termux','termuxRequestPermission','termuxStatus','shell','verify','models','chat','image','search','inboxTake','attachPick','pdfPages','updCheck','updInstall']);
  /* Методы выбора файлов лежат в отдельном мосте KairemaAttach (Kotlin: attach/Attach.kt) */
  const OWN=new Set(['attachPick','pdfPages']);
  const call=(fn,...a)=>{const o=OWN.has(fn)?window.KairemaAttach:NB;return GUARD.has(fn)&&tok?o[fn](tok,...a):o[fn](...a)};
@@ -95,12 +95,13 @@ async function readFiles(list,anth){
     if(f.size>8*1048576){toast('Файл больше 8 МБ: '+f.name);out.push({k:'text',name:f.name,text:'[Файл не передан: больше 8 МБ.]'});continue}
     out.push({k:'pdf',name:f.name,data:b64(await f.arrayBuffer())})}
    else if(f.type.startsWith('text/')||/^application\/(json|xml)/.test(f.type)||TXT_EXT.test(f.name)){
-    let t=await f.text();if(t.length>200000)t=t.slice(0,200000)+'\n[… файл обрезан]';
+    let t=await f.text();if(typeof Rag!=='undefined'&&Rag.big(t)){out.push(await Rag.part(f.name,t));continue}
+    if(t.length>200000)t=t.slice(0,200000)+'\n[… файл обрезан]';
     out.push({k:'text',name:f.name,text:t})}
    else{toast('Формат не поддерживается: '+f.name);out.push({k:'text',name:f.name,text:'[Файл не передан: формат не поддерживается приложением. Скажи пользователю, что содержимое файла ты не видишь.]'})}
   }catch(e){const hc=/\.hei[cf]$/i.test(f.name||'');toast(hc?'Формат HEIC не читается: выберите JPEG или сделайте скриншот':'Не удалось прочитать: '+f.name);out.push({k:'text',name:f.name,text:'[Файл не передан: не удалось прочитать. Скажи пользователю, что содержимое файла ты не видишь.]'})}
  }
- return out}
+ return typeof Rag!=='undefined'?await Rag.wrap(out):out}
 const toContent=(m,anth,pre)=>{
  const parts=m.parts||[];let txt=(pre||'')+m.t;
  if(!parts.length)return txt;

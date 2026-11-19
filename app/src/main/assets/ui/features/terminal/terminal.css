@@ -50,3 +50,4 @@
 .tout{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .tout *{-webkit-user-select:text;user-select:text}
 .tout::selection,.tout *::selection{background:#fff;color:#000}
+.tm-fix{margin:10px 0 0;width:100%;min-height:44px}

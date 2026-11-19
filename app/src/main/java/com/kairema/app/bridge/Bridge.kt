@@ -11,6 +11,8 @@ import com.kairema.app.share.Share
 import com.kairema.app.share.Inbox
 import com.kairema.app.terminal.Shell
 import com.kairema.app.terminal.TermuxRunner
+import com.kairema.app.update.Updater
+import com.kairema.app.share.ShareFiles
 import okhttp3.Call
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
@@ -190,6 +192,44 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         pool.execute {
             try {
                 push(reqId, fetchModels(reqId, JSONObject(provider)))
+                done(reqId, null)
+            } catch (e: Exception) {
+                done(reqId, netError(e))
+            }
+        }
+    }
+
+    /** Проверка обновления: последний релиз репозитория на GitHub. Ответ: JSON одним куском. */
+    @JavascriptInterface
+    fun updCheck(t: String, reqId: String, repo: String) {
+        if (!Guard.ok(t)) {
+            done(reqId, "отказано: запрос не из приложения")
+            return
+        }
+        pool.execute {
+            try {
+                push(reqId, Updater.latest(http, repo))
+                done(reqId, null)
+            } catch (e: Exception) {
+                done(reqId, netError(e))
+            }
+        }
+    }
+
+    /** Скачать APK из релиза и открыть установку. Куски: "p:скачано/всего" (прогресс), в конце "ok" или "perm". */
+    @JavascriptInterface
+    fun updInstall(t: String, reqId: String, repo: String, url: String) {
+        if (!Guard.ok(t)) {
+            done(reqId, "отказано: запрос не из приложения")
+            return
+        }
+        track(reqId)
+        pool.execute {
+            try {
+                val dest = java.io.File(java.io.File(ctx.cacheDir, ShareFiles.DIR), Updater.FILE)
+                val client = http.newBuilder().readTimeout(120, TimeUnit.SECONDS).build()
+                Updater.download(client, repo, url, dest, { calls[reqId] = it }) { d, tot -> push(reqId, "p:$d/$tot") }
+                push(reqId, Updater.install(ctx, dest))
                 done(reqId, null)
             } catch (e: Exception) {
                 done(reqId, netError(e))
