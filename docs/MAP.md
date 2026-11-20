@@ -56,6 +56,7 @@
 | Обновление из приложения | `features/updater/updater.js`, `update/Updater.kt`, `Bridge.kt` (`updCheck`, `updInstall`), `docs/UPDATER_SETUP.md` | Репозиторий: `REPO` в updater.js |
 | Ошибка терминала → ИИ | `features/terminal/terminal.js` (`failMsg`, кнопка `[data-fix]`) | |
 | Вибро и звуки | `features/feel/feel.js`, `Bridge.kt` (`haptic`) | Рисунки вибро в `PAT`, ноты в `SND` |
+| Копия с зашифрованными ключами | `features/backup/backup.js`, `backup-keys.js`, `Bridge.kt` (`keysExport`, `keysImport`) | Шифрование: `BackupKeys` |
 | Теги, закладки | `features/organize/organize.js` | `Org`, крючки `chats:*` в `chats.js` |
 | Размер текста, TalkBack | `features/a11y/a11y.js` | `A11y` |
 | Команды «/» приложения | `features/cmds/cmds.js` | список `A` |
@@ -146,7 +147,8 @@
 | `features/auth/auth.js` | 92 | ЯДРО АККАУНТА: сервис входа (Supabase Auth по REST, без интерфейса) ===== Способы: код на почту (основной, он же регистрация), почта и пароль (старые аккаунты, в интерфей |
 | `features/auth/method-device.js` | 35 | ВХОД: аккаунты этого телефона (модуль auth, способ «device») ===== Кнопка показывает аккаунты, в которые уже входили на этом телефоне по почте. |
 | `features/auth/method-email.js` | 36 | ВХОД: почта и код (модуль auth, способ «email») ===== Один поток для регистрации и входа: ввели почту, получили код, ввели код. |
-| `features/backup/backup.js` | 103 | РЕЗЕРВНАЯ КОПИЯ: чаты, память, шаблоны, настройки и список провайдеров одним файлом (JSON) ===== Нужна для автономности: копия делается без облака и аккаунта, восстановит |
+| `features/backup/backup-keys.js` | 35 | РЕЗЕРВНАЯ КОПИЯ: ЗАШИФРОВАННЫЕ API-КЛЮЧИ ===== По умолчанию ключи в копию не попадают. |
+| `features/backup/backup.js` | 147 | РЕЗЕРВНАЯ КОПИЯ: чаты, память, шаблоны, настройки и список провайдеров одним файлом (JSON) ===== Нужна для автономности: копия делается без облака и аккаунта, восстановит |
 | `features/branch/branch.css` | 6 |  |
 | `features/branch/branch.js` | 56 | ВЕТВЛЕНИЕ ОТВЕТОВ: «Другой ответ» и переключатель ‹ 1/2 › ===== Под ПОСЛЕДНИМ ответом ИИ появляется кнопка ↻ «Другой ответ»: ответ запрашивается заново, прежний не пропад |
 | `features/caps/caps.js` | 73 | ВОЗМОЖНОСТИ МОДЕЛЕЙ: что умеет выбранная модель (авто-определение) ===== Источник 1: данные провайдера (OpenRouter сообщает выходные форматы и параметр reasoning), приход |
@@ -214,7 +216,7 @@
 | `features/updater/updater.css` | 4 |  |
 | `features/updater/updater.js` | 64 | ОБНОВЛЕНИЕ ИЗ ПРИЛОЖЕНИЯ ===== Настройки → «Обновление»: проверяет последний релиз репозитория на GitHub (releases/latest), показывает, что нового, и по кнопке скачивает  |
 | `features/websearch/websearch.js` | 49 | ПОИСК В ИНТЕРНЕТЕ: модель сама решает, нужен ли поиск, и составляет запросы ===== Раньше в поисковик уходил сырой текст вопроса: «а в Москве?» искалось дословно и находил |
-| `index.html` | 111 |  |
+| `index.html` | 112 |  |
 
 ### Индекс файлов Kotlin (`app/src/main/java/com/kairema/app`)
 
@@ -222,7 +224,7 @@
 |---|---|---|
 | `MainActivity.kt` | 255 | Оболочка: показывает интерфейс из assets/index.html. * Следующие шаги добавят сюда мост между кнопками интерфейса и нативным кодом. |
 | `attach/Attach.kt` | 329 | Выбор фото и файлов без файлового выбора WebView. |
-| `bridge/Bridge.kt` | 792 | Мост между интерфейсом (JS) и нативным кодом. |
+| `bridge/Bridge.kt` | 825 | Мост между интерфейсом (JS) и нативным кодом. |
 | `bridge/Guard.kt` | 22 | Защита моста. |
 | `bridge/Texts.kt` | 41 | Чистые функции моста без Android и без сети: тексты ошибок и разбор адреса. |
 | `bridge/ToolCalls.kt` | 71 | Сбор вызовов инструментов из потока ответа модели (без Android и без org.json — проверяется юнит-тестами). |
@@ -247,7 +249,7 @@
 ### Мосты (`@JavascriptInterface`): как JS вызывает Kotlin
 
 - `attach/Attach.kt`: `attachPick`, `pdfPages`
-- `bridge/Bridge.kt`: `agentNotify`, `agentKeep`, `haptic`, `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `updCheck`, `updInstall`, `chat`, `image`, `saveImage`, `shareImage`, `search`
+- `bridge/Bridge.kt`: `agentNotify`, `agentKeep`, `haptic`, `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `keysExport`, `keysImport`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `updCheck`, `updInstall`, `chat`, `image`, `saveImage`, `shareImage`, `search`
 - `data/DbBridge.kt`: `loadAll`, `count`, `put`, `remove`, `clear`, `saveFile`, `loadFile`
 - `search/SearchBridge.kt`: `mode`, `sigs`, `put`, `remove`, `clear`, `find`
 - `system/SystemBridge.kt`: `dark`, `bars`

@@ -129,6 +129,39 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         SecureKeys.save(ctx, id, key)
     }
 
+    /** Резервная копия: ключи указанных провайдеров как JSON {id: ключ}. Шифрует и сохраняет их интерфейс, только если владелец это включил. */
+    @JavascriptInterface
+    fun keysExport(t: String, ids: String): String {
+        if (!Guard.ok(t)) return "{}"
+        val out = JSONObject()
+        val a = try { JSONArray(ids) } catch (e: Exception) { return "{}" }
+        for (i in 0 until minOf(a.length(), 200)) {
+            val id = a.optString(i)
+            if (id.isNotEmpty()) SecureKeys.load(ctx, id)?.let { out.put(id, it) }
+        }
+        return out.toString()
+    }
+
+    /** Восстановление копии: кладёт ключи в Keystore, но не перезаписывает уже имеющиеся. Возвращает JSON-массив id, которые добавлены. */
+    @JavascriptInterface
+    fun keysImport(t: String, json: String): String {
+        if (!Guard.ok(t)) return "[]"
+        val added = JSONArray()
+        val o = try { JSONObject(json) } catch (e: Exception) { return "[]" }
+        val ks = o.keys()
+        var n = 0
+        while (ks.hasNext() && n < 200) {
+            val id = ks.next()
+            n++
+            val key = o.optString(id)
+            if (key.isEmpty() || !Regex("[A-Za-z0-9._-]{1,64}").matches(id)) continue
+            if (SecureKeys.load(ctx, id) != null) continue
+            SecureKeys.save(ctx, id, key)
+            added.put(id)
+        }
+        return added.toString()
+    }
+
     @JavascriptInterface
     fun deleteKey(t: String, id: String) {
         if (!Guard.ok(t)) return
