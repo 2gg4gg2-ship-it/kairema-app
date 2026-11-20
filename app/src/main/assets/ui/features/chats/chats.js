@@ -180,9 +180,9 @@ function chatsPage(){
  if(Chx.busy){toast('Дождитесь ответа');return}
  const d=page('chats','Чаты',(b)=>{
   b.innerHTML='';
-  const ls=Chx.sorted();
+  const fq={ls:Chx.sorted()};Hooks.run('chats:list',fq,b);const ls=fq.ls;
   if(!P.pin)P.pin='<path d="M12 17v5M8.5 3h7l-1.2 6.2L18 13v2H6v-2l3.7-3.8z"/>';
-  if(!ls.length)b.innerHTML='<div class="empty"><p>Сохранённых чатов пока нет.</p></div>';
+  if(!ls.length)b.insertAdjacentHTML('beforeend','<div class="empty"><p>'+(fq.ls0&&fq.ls0>0?(LANG==='en'?'No chats with this tag.':'Нет чатов с этим тегом.'):'Сохранённых чатов пока нет.')+'</p></div>');
   else{
    const bar=el(`<div class="chx-bar"><span class="sub"></span><button class="chx-all" type="button">${ic('trash')}<span>Удалить все чаты</span></button></div>`);
    $('.sub',bar).textContent=(LANG==='en'?'Chats: ':'Чатов: ')+ls.length;
@@ -201,10 +201,11 @@ function chatsPage(){
    const n=c.msgs.filter(m=>m.t).length;
    $('small',r).textContent=Chx.when(c.ts)+' · '+(n?n+(LANG==='en'?' msgs':' сообщ.'):(LANG==='en'?'empty':'пусто'));
    r.onclick=()=>{d.close();Chx.open(c);apiView()};
-   $('[data-m]',r).onclick=e=>{e.stopPropagation();menu([
+   $('[data-m]',r).onclick=e=>{e.stopPropagation();const items=[
     {i:'pin',l:c.pinned?'Открепить':'Закрепить',f:()=>Chx.pin(c,()=>d.r())},
     {i:'edit',l:'Переименовать',f:()=>Chx.rename(c,()=>d.r())},
-    {i:'trash',l:'Удалить',d:1,f:()=>Chx.remove(c,()=>{r.classList.add('gone');r.style.setProperty('--o',0);setTimeout(()=>d.r(),340)})}])};
+    {i:'trash',l:'Удалить',d:1,f:()=>Chx.remove(c,()=>{r.classList.add('gone');r.style.setProperty('--o',0);setTimeout(()=>d.r(),340)})}];Hooks.run('chats:menu',items,c,d);menu(items)};
+   Hooks.run('chats:row',r,c);
    b.append(r)})
  },(typeof Srch!=='undefined'?`<button class="ib" data-chs aria-label="Поиск">${ic('search')}</button>`:'')+`<button class="ib" data-chn aria-label="Новый чат">${ic('plus')}</button>`);
  if(typeof Srch!=='undefined')$('[data-chs]',d).onclick=()=>Srch.open();

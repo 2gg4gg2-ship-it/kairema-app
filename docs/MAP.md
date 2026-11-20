@@ -56,6 +56,9 @@
 | Обновление из приложения | `features/updater/updater.js`, `update/Updater.kt`, `Bridge.kt` (`updCheck`, `updInstall`), `docs/UPDATER_SETUP.md` | Репозиторий: `REPO` в updater.js |
 | Ошибка терминала → ИИ | `features/terminal/terminal.js` (`failMsg`, кнопка `[data-fix]`) | |
 | Вибро и звуки | `features/feel/feel.js`, `Bridge.kt` (`haptic`) | Рисунки вибро в `PAT`, ноты в `SND` |
+| Теги, закладки | `features/organize/organize.js` | `Org`, крючки `chats:*` в `chats.js` |
+| Размер текста, TalkBack | `features/a11y/a11y.js` | `A11y` |
+| Команды «/» приложения | `features/cmds/cmds.js` | список `A` |
 | Агент-программист | `features/coder/coder.js`, `bridge/ToolCalls.kt`, `Bridge.kt` (`chat`, `open`, `agentKeep`), `core/messages.js` (вызов `Coder.respond` в `respond`) | Инструменты `TOOLS`, режимы `MODES`, `permit`, `safeCmd` |
 | Шкала контекста | `features/ctxbar/ctxbar.js` | Размер окна: `GUESS`, `api.window()` |
 | Шрифты (локальные), автосжатие истории | `features/fonts/fonts.css`, `features/ctx/ctx.js` (`auto`) | Порог автосжатия: `AUTO` в ctx.js |
@@ -128,6 +131,8 @@
 | `core/onboarding.js` | 58 | core/onboarding.js: ОНБОРДИНГ и FUTURE API. |
 | `core/settings.js` | 131 | core/settings.js: ПРОВАЙДЕРЫ, ПАМЯТЬ, ШАБЛОНЫ, ПРОФИЛЬ, НАСТРОЙКИ, ВКЛАДКИ. |
 | `core/styles.css` | 257 | 01. ТОКЕНЫ: цвета, шрифты, easing |
+| `features/a11y/a11y.css` | 2 |  |
+| `features/a11y/a11y.js` | 39 | ДОСТУПНОСТЬ ===== • Размер текста и интерфейса: Настройки → «Размер текста» (100%, 115%, 130%). |
 | `features/about/about.css` | 32 | Стили модуля about: экран «О приложении». |
 | `features/about/about.js` | 24 | О ПРИЛОЖЕНИИ: логотип, версия, карточки возможностей ===== Модуль подменяет экран 'about' (SCREENS.about) после запуска приложения: core/app.js не правится. |
 | `features/artifacts/artifacts.css` | 29 | Стили модуля artifacts: панель под блоком кода и таблицей, предпросмотр страницы. |
@@ -146,9 +151,10 @@
 | `features/branch/branch.js` | 56 | ВЕТВЛЕНИЕ ОТВЕТОВ: «Другой ответ» и переключатель ‹ 1/2 › ===== Под ПОСЛЕДНИМ ответом ИИ появляется кнопка ↻ «Другой ответ»: ответ запрашивается заново, прежний не пропад |
 | `features/caps/caps.js` | 73 | ВОЗМОЖНОСТИ МОДЕЛЕЙ: что умеет выбранная модель (авто-определение) ===== Источник 1: данные провайдера (OpenRouter сообщает выходные форматы и параметр reasoning), приход |
 | `features/chats/chats.css` | 23 | Стили модуля chats: диалог «Новый чат», кнопка «Удалить все чаты», анимация удаления. |
-| `features/chats/chats.js` | 237 | ИСТОРИЯ ЧАТОВ: список и сохранение ===== В приложении (есть KairemaDb) чаты лежат в SQLite на устройстве, картинки и PDF файлами в filesDir/media, в чате хранится только  |
+| `features/chats/chats.js` | 238 | ИСТОРИЯ ЧАТОВ: список и сохранение ===== В приложении (есть KairemaDb) чаты лежат в SQLite на устройстве, картинки и PDF файлами в filesDir/media, в чате хранится только  |
+| `features/cmds/cmds.js` | 16 | БЫСТРЫЕ КОМАНДЫ «/» ДЛЯ ПРИЛОЖЕНИЯ ===== /new: новый чат · /agent: включить или выключить агента-программиста · /agent-set: настройки агента · /marks: закладки · /backup: |
 | `features/coder/coder.css` | 24 |  |
-| `features/coder/coder.js` | 286 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
+| `features/coder/coder.js` | 287 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
 | `features/cost/cost.css` | 10 |  |
 | `features/cost/cost.js` | 94 | СЧЁТЧИК ТОКЕНОВ И РАСХОДОВ ===== Под каждым ответом ИИ: сколько токенов ушло и примерная цена. |
 | `features/ctx/ctx.css` | 2 |  |
@@ -162,7 +168,7 @@
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 151 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
 | `features/fonts/fonts.css` | 12 | ШРИФТЫ ВНУТРИ ПРИЛОЖЕНИЯ (работают без интернета) ===== Space Grotesk (заголовки), Manrope (текст интерфейса), JetBrains Mono (код), Source Serif 4 (ответы ИИ). |
-| `features/help/help-data.js` | 164 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
+| `features/help/help-data.js` | 170 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
 | `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
 | `features/help/help.js` | 89 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
@@ -175,6 +181,8 @@
 | `features/memory/memory-ui.js` | 115 | ПАМЯТЬ: экран (заменяет старую страницу из core/app.js через SCREENS.memory) ===== Переключатели (память, быстрые правила, умное извлечение), профиль с сохранением, что и |
 | `features/memory/memory.css` | 27 | Стили страницы «Память»: более жирный, читаемый текст; ровный список фактов. |
 | `features/memory/memory.js` | 180 | ПАМЯТЬ (v2): хранилище фактов, профиль, подбор фактов под вопрос, подсказка для модели ===== Модель данных. |
+| `features/organize/organize.css` | 8 |  |
+| `features/organize/organize.js` | 85 | ТЕГИ ЧАТОВ И ЗАКЛАДКИ ===== Теги: у каждого чата можно поставить несколько меток («работа», «код»). |
 | `features/pdf/pdf.js` | 255 | PDF ДЛЯ ЛЮБОЙ МОДЕЛИ: текст из файла без библиотек ===== Раньше PDF понимал только Anthropic (он принимает файл целиком). |
 | `features/presets/presets.css` | 12 | Стили модуля presets: выбор готового сервиса в форме провайдера. |
 | `features/presets/presets.js` | 68 | ГОТОВЫЕ СЕРВИСЫ: выбрал в списке, адрес (API URL) подставился сам ===== В форме нового провайдера (чат или поиск) сверху список сервисов. |
@@ -206,7 +214,7 @@
 | `features/updater/updater.css` | 4 |  |
 | `features/updater/updater.js` | 64 | ОБНОВЛЕНИЕ ИЗ ПРИЛОЖЕНИЯ ===== Настройки → «Обновление»: проверяет последний релиз репозитория на GitHub (releases/latest), показывает, что нового, и по кнопке скачивает  |
 | `features/websearch/websearch.js` | 49 | ПОИСК В ИНТЕРНЕТЕ: модель сама решает, нужен ли поиск, и составляет запросы ===== Раньше в поисковик уходил сырой текст вопроса: «а в Москве?» искалось дословно и находил |
-| `index.html` | 106 |  |
+| `index.html` | 111 |  |
 
 ### Индекс файлов Kotlin (`app/src/main/java/com/kairema/app`)
 
@@ -251,17 +259,20 @@
 | Событие | Слушают (`Hooks.on`) | Запускают (`Hooks.run`) |
 |---|---|---|
 | `account:rendered` | sync-ui.js | auth-ui.js |
-| `app:ready` | about.js, auth-ui.js, backup.js, caps.js, cost.js, filediff.js, help.js, inbox.js, log.js, memory-ui.js, memory.js, roles.js, search.js, sync.js, updater.js | app.js |
+| `app:ready` | a11y.js, about.js, auth-ui.js, backup.js, caps.js, cmds.js, cost.js, filediff.js, help.js, inbox.js, log.js, memory-ui.js, memory.js, organize.js, roles.js, search.js, sync.js, updater.js | app.js |
 | `auth:forgot` | auth-ui.js | auth.js |
-| `chat:answer` | branch.js, cost.js, ctx.js, ctxbar.js, feel.js, memory-ai.js, memory-ui.js, share.js, terminal.js | coder.js, messages.js, tools.js |
+| `chat:answer` | branch.js, cost.js, ctx.js, ctxbar.js, feel.js, memory-ai.js, memory-ui.js, organize.js, share.js, terminal.js | coder.js, messages.js, tools.js |
 | `chat:rendered` | branch.js, coder.js, ctxbar.js, design.js, draft.js, rag.js, roles.js, scroller.js, share.js | messages.js |
+| `chats:list` | organize.js | chats.js |
+| `chats:menu` | organize.js | chats.js |
+| `chats:row` | organize.js | chats.js |
 | `md:code` | artifacts.js, terminal.js | md.js |
 | `md:table` | artifacts.js | md.js |
 | `memory:auto` | — | memory-ai.js |
 | `memory:changed` | memory.js | backup.js, memory-ai.js, memory-ui.js, settings.js |
-| `msg:render` | attview.js, branch.js, coder.js, cost.js, ctx.js, draft.js, share.js, tools.js | messages.js |
+| `msg:render` | attview.js, branch.js, coder.js, cost.js, ctx.js, draft.js, organize.js, share.js, tools.js | messages.js |
 | `settings:grouped` | — | settings.js |
-| `settings:rendered` | auth-ui.js, backup.js, coder.js, cost.js, ctx.js, feel.js, filediff.js, help.js, log.js, quality.js, rag.js, roles.js, updater.js | settings.js |
+| `settings:rendered` | a11y.js, auth-ui.js, backup.js, coder.js, cost.js, ctx.js, feel.js, filediff.js, help.js, log.js, organize.js, quality.js, rag.js, roles.js, updater.js | settings.js |
 | `sync:delete` | search.js, sync.js | chats.js, memory.js, sync.js |
 | `sync:left` | auth-ui.js | sync.js |
 | `sync:register` | chats.js, memory.js, sync.js | sync.js |
@@ -269,7 +280,9 @@
 
 ### Ключи localStorage с префиксом kairema.
 
+- `kairema.a11y.v1`: a11y.js, backup.js
 - `kairema.accounts.v1`: auth.js
+- `kairema.bm.v1`: backup.js, organize.js
 - `kairema.budget.v1`: cost.js
 - `kairema.chats.v1`: chats.js
 - `kairema.coder.seen`: coder.js
@@ -291,6 +304,7 @@
 - `kairema.session.v1`: auth.js
 - `kairema.sync.dirty.v1`: sync.js
 - `kairema.sync.meta.v1`: sync.js
+- `kairema.tags.v1`: backup.js, organize.js
 - `kairema.templates.v1`: backup.js, onboarding.js
 - `kairema.term.backend.v1`: terminal.js
 - `kairema.term.caps.v1`: term-compat.js
@@ -301,5 +315,5 @@
 - `kairema.welcome.v1`: auth-ui.js
 
 ### Экраны (`SCREENS.<имя>`, открываются через `openScreen`)
-`about`, `account`, `api`, `backup`, `cost`, `filediff`, `help`, `log`, `memory`, `onboarding`, `profile`, `providers`, `roles`, `settings`, `templates`, `terminal`
+`about`, `account`, `api`, `backup`, `cost`, `filediff`, `help`, `log`, `marks`, `memory`, `onboarding`, `profile`, `providers`, `roles`, `settings`, `templates`, `terminal`
 <!-- AUTO:END -->
