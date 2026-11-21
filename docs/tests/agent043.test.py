@@ -110,7 +110,7 @@ with sync_playwright() as p:
     open(os.path.join(PROJ, 'KAIREMA.md'), 'w').write('Я' * 30000)
     r = run([{'text': 'ок'}])
     s0 = pg.evaluate("window.__reqs")[0]['prov']['system']
-    check('огромный файл инструкций обрезается до 12000 знаков', 'пропущено' in s0 and s0.count('Я') <= 12100, s0.count('Я'))
+    check('огромный файл инструкций обрезается до 12000 знаков', ('обрезан' in s0 or 'пропущено' in s0) and s0.count('Я') <= 12100, s0.count('Я'))
     os.remove(os.path.join(PROJ, 'KAIREMA.md')); os.remove(os.path.join(PROJ, 'AGENTS.md'))
     r = run([{'text': 'ок'}])
     check('без файла инструкций карточки нет', 'instructions:ok' not in r['ag'] and 'ИНСТРУКЦИИ ПРОЕКТА' not in pg.evaluate("window.__reqs")[0]['prov']['system'])
@@ -226,7 +226,7 @@ with sync_playwright() as p:
     check('лимит шагов подагента: он останавливается и просит отчёт без инструментов', len(sr) <= 14 and 'tools' not in sr[-1]['prov'], len(sr))
 
     # ===== 5. MCP =====
-    check('Mcp: модуль подключён к агенту', pg.evaluate("typeof Mcp!=='undefined'&&Coder.allTools().length===10"))
+    check('Mcp: модуль подключён к агенту', pg.evaluate("typeof Mcp!=='undefined'&&Coder.allTools().length===12"))
     pg.evaluate("Mcp._reset();Mcp.list().length");
     pg.evaluate("localStorage.setItem('kairema.mcp.v1',JSON.stringify([{id:'t1',name:'test',url:'https://mcp.test/mcp',on:1,tok:1}]))")
     pg.evaluate('Mcp._load()')

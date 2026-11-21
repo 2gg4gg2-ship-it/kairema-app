@@ -60,7 +60,7 @@
 | Теги, закладки | `features/organize/organize.js` | `Org`, крючки `chats:*` в `chats.js` |
 | Размер текста, TalkBack | `features/a11y/a11y.js` | `A11y` |
 | Команды «/» приложения | `features/cmds/cmds.js` | список `A` |
-| Агент-программист | `features/coder/coder.js`, `bridge/ToolCalls.kt`, `Bridge.kt` (`chat`, `open`, `agentKeep`), `core/messages.js` (вызов `Coder.respond` в `respond`) | Инструменты `TOOLS`, режимы `MODES`, `permit`, `safeCmd`, подагент `runSub`, расширения `Coder.register` |
+| Агент-программист | `features/coder/coder.js`, `bridge/ToolCalls.kt`, `Bridge.kt` (`chat`, `open`, `agentKeep`), `core/messages.js` (вызов `Coder.respond` в `respond`) | Инструменты `TOOLS`, режимы `MODES`, `permit`, `safeCmd`, подагент `runSub`, хуки `parseHooks`/`hookBefore`, навыки `BUILTIN`/`probeCtx`, `read_image`, расширения `Coder.register` |
 | Веб-инструменты и MCP-клиент агента | `features/coder/webtools.js`, `features/mcp/mcp.js`, `Bridge.kt` (`httpReq`), `bridge/HttpRules.kt`, `core/messages.js` (GUARD) | `Web.page`, `Mcp.provider`, `HttpRules` |
 | Шкала контекста | `features/ctxbar/ctxbar.js` | Размер окна: `GUESS`, `api.window()` |
 | Шрифты (локальные), автосжатие истории | `features/fonts/fonts.css`, `features/ctx/ctx.js` (`auto`) | Порог автосжатия: `AUTO` в ctx.js |
@@ -157,7 +157,7 @@
 | `features/chats/chats.js` | 238 | ИСТОРИЯ ЧАТОВ: список и сохранение ===== В приложении (есть KairemaDb) чаты лежат в SQLite на устройстве, картинки и PDF файлами в filesDir/media, в чате хранится только  |
 | `features/cmds/cmds.js` | 16 | БЫСТРЫЕ КОМАНДЫ «/» ДЛЯ ПРИЛОЖЕНИЯ ===== /new: новый чат · /agent: включить или выключить агента-программиста · /agent-set: настройки агента · /marks: закладки · /backup: |
 | `features/coder/coder.css` | 24 |  |
-| `features/coder/coder.js` | 366 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
+| `features/coder/coder.js` | 460 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
 | `features/coder/webtools.js` | 62 | ВЕБ-ИНСТРУМЕНТЫ АГЕНТА (Web) ===== Web.http(opts) — HTTP-запрос через нативный мост (Kotlin: Bridge.httpReq, правила в HttpRules.kt). |
 | `features/cost/cost.css` | 10 |  |
 | `features/cost/cost.js` | 94 | СЧЁТЧИК ТОКЕНОВ И РАСХОДОВ ===== Под каждым ответом ИИ: сколько токенов ушло и примерная цена. |
@@ -172,7 +172,7 @@
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 151 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
 | `features/fonts/fonts.css` | 12 | ШРИФТЫ ВНУТРИ ПРИЛОЖЕНИЯ (работают без интернета) ===== Space Grotesk (заголовки), Manrope (текст интерфейса), JetBrains Mono (код), Source Serif 4 (ответы ИИ). |
-| `features/help/help-data.js` | 171 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
+| `features/help/help-data.js` | 172 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
 | `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
 | `features/help/help.js` | 89 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
