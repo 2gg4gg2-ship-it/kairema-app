@@ -18,6 +18,8 @@ const Coder=(()=>{
  const KS='kairema.coder.v1',MAXOUT=12000;
  const cfg={on:0,mode:'ask',dir:'kairema-work',steps:40,env:'auto',instr:1};
  const INSTR=['KAIREMA.md','AGENTS.md','CLAUDE.md'];
+ /* Правило языка ставится в самый конец системного запроса (последнее слышнее): слабые модели иначе уходят на китайский. */
+ const langRule=t=>'\n\n[ЯЗЫК ОТВЕТА] Всегда пиши на языке последнего сообщения пользователя'+(/[а-яёіїєґ]/i.test(String(t||''))?' (русский или украинский, как у пользователя)':'')+': и текст между шагами, и итог. Не переходи на китайский или другой язык, даже если файлы, веб-страницы и ответы инструментов на другом языке. Код, команды и имена файлов не переводи.';
  try{Object.assign(cfg,JSON.parse(localStorage.getItem(KS)||'{}'))}catch(e){}
  const save=()=>{try{localStorage.setItem(KS,JSON.stringify(cfg))}catch(e){}};
  const MODES={
@@ -228,16 +230,16 @@ const Coder=(()=>{
    const conv=base.slice();
    let ins='';
    if(cfg.instr!==0){for(const f of INSTR){let t=null;try{t=await readRaw(f)}catch(e){}
-    if(t&&t.trim()){ins='\n\n[ИНСТРУКЦИИ ПРОЕКТА из '+f+'. Их написал владелец проекта: следуй им, пока они не противоречат прямой просьбе пользователя]\n'+trunc(t.trim(),12000)+'\n[конец инструкций проекта]';add({k:'tool',n:'instructions',h:'Инструкции проекта: '+f,st:'ok',d:'',o:t.length+' знаков добавлено в контекст'});break}}}
+    if(t&&t.trim()){ins='\n\n[ИНСТРУКЦИИ ПРОЕКТА из '+f+'. Их написал владелец проекта. ОБЯЗАТЕЛЬНЫ к выполнению в каждом ответе, включая требования к форме итога, пока они не противоречат прямой просьбе пользователя или правилам безопасности]\n'+trunc(t.trim(),12000)+'\n[конец инструкций проекта]';add({k:'tool',n:'instructions',h:'Инструкции проекта: '+f,st:'ok',d:'',o:t.length+' знаков добавлено в контекст'});break}}}
    for(const x of ext){if(x.ready){try{const er=await x.ready();(er||[]).forEach(e=>add({k:'tool',n:'mcp',h:'MCP «'+e.name+'»: недоступен',st:'err',d:'',o:e.msg}))}catch(e){}}}
-   const sys=sysPrompt()+sysAgent()+ins+(typeof sysExtra==='function'?sysExtra(msgs):'');
+   const sys=sysPrompt()+sysAgent()+(typeof sysExtra==='function'?sysExtra(msgs):'')+ins+langRule(last&&(last.q||last.t));
    const turn=async tools=>{bd.textContent='';return llm(p,anth,sys,conv,tools?allTools():null,t=>{bd.textContent=t;scl(box)})};
    /* Подагент: свой контекст, только чтение (list_dir, read_file, search, web_fetch), возвращает отчёт. */
    const SUBT=['list_dir','read_file','search','web_fetch'];
    const runSub=async(a,st)=>{
     if(!a.prompt||typeof a.prompt!=='string')throw new Error('нужен аргумент «prompt»');
     const tl=TOOLS.filter(t=>SUBT.includes(t.name));
-    const ssys='[ПОДАГЕНТ-ИССЛЕДОВАТЕЛЬ]\nТы подагент в приложении Kairema. Главный агент дал тебе одно задание. Ты можешь только читать: list_dir, read_file, search, web_fetch. Ничего не правь и не запускай. Изучи нужное и верни подробный, но сжатый отчёт: факты, пути файлов с номерами строк, короткие цитаты кода только когда они нужны. Не выдумывай: чего не нашёл, о том так и скажи. Отвечай на языке задания.\nСреда: '+(envC?envC.info:'')+'. Папка проекта: '+cfg.dir+'.'+ins;
+    const ssys='[ПОДАГЕНТ-ИССЛЕДОВАТЕЛЬ]\nТы подагент в приложении Kairema. Главный агент дал тебе одно задание. Ты можешь только читать: list_dir, read_file, search, web_fetch. Ничего не правь и не запускай. Изучи нужное и верни подробный, но сжатый отчёт: факты, пути файлов с номерами строк, короткие цитаты кода только когда они нужны. Не выдумывай: чего не нашёл, о том так и скажи. Отвечай на языке задания.\nСреда: '+(envC?envC.info:'')+'. Папка проекта: '+cfg.dir+'.'+ins+langRule(a.prompt);
     const sc=[{role:'user',content:String(a.prompt).slice(0,8000)}];
     const lim=Math.min(20,Math.max(5,Math.round(cfg.steps/3)));let n=0,fin='';
     const log=l=>{st.d=(st.d?st.d+'\n':'')+l;redraw()};

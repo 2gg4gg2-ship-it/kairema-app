@@ -157,7 +157,7 @@
 | `features/chats/chats.js` | 238 | ИСТОРИЯ ЧАТОВ: список и сохранение ===== В приложении (есть KairemaDb) чаты лежат в SQLite на устройстве, картинки и PDF файлами в filesDir/media, в чате хранится только  |
 | `features/cmds/cmds.js` | 16 | БЫСТРЫЕ КОМАНДЫ «/» ДЛЯ ПРИЛОЖЕНИЯ ===== /new: новый чат · /agent: включить или выключить агента-программиста · /agent-set: настройки агента · /marks: закладки · /backup: |
 | `features/coder/coder.css` | 24 |  |
-| `features/coder/coder.js` | 364 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
+| `features/coder/coder.js` | 366 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
 | `features/coder/webtools.js` | 62 | ВЕБ-ИНСТРУМЕНТЫ АГЕНТА (Web) ===== Web.http(opts) — HTTP-запрос через нативный мост (Kotlin: Bridge.httpReq, правила в HttpRules.kt). |
 | `features/cost/cost.css` | 10 |  |
 | `features/cost/cost.js` | 94 | СЧЁТЧИК ТОКЕНОВ И РАСХОДОВ ===== Под каждым ответом ИИ: сколько токенов ушло и примерная цена. |

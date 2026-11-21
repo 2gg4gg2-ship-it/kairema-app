@@ -102,6 +102,8 @@ with sync_playwright() as p:
     r = run([{'text': 'ок'}])
     s0 = pg.evaluate("window.__reqs")[0]['prov']['system']
     check('KAIREMA.md важнее AGENTS.md (берётся только один файл)', 'ZZ-KAIREMA' in s0 and 'ZZ-AGENTS' not in s0)
+    check('правило языка стоит в самом конце системного запроса, после инструкций проекта; для русского запроса оговорено',
+          s0.rstrip().endswith('имена файлов не переводи.') and s0.index('[ЯЗЫК ОТВЕТА]') > s0.index('[ИНСТРУКЦИИ ПРОЕКТА') and 'русский или украинский' in s0 and 'китайский' in s0 and 'ОБЯЗАТЕЛЬНЫ' in s0)
     r = run([{'text': 'ок'}], instr=0)
     s0 = pg.evaluate("window.__reqs")[0]['prov']['system']
     check('опция «Читать инструкции: Нет» отключает чтение', 'ИНСТРУКЦИИ ПРОЕКТА' not in s0 and 'instructions:ok' not in r['ag'])
@@ -196,6 +198,7 @@ with sync_playwright() as p:
     check('подагент получает только инструменты чтения (list_dir, read_file, search, web_fetch)',
           [t['function']['name'] for t in subr[0]['prov']['tools']] == ['list_dir', 'read_file', 'search', 'web_fetch'], [t['function']['name'] for t in subr[0]['prov']['tools']])
     check('подагент: чистый контекст — только задание, история чата и план главного не передаются', len(subr[0]['msgs']) == 1 and subr[0]['msgs'][0]['content'].startswith('Найди секрет'))
+    check('подагент: правило языка по языку задания', 'русский или украинский' in subr[0]['prov']['system'])
     check('подагент: своя системная подсказка без инструментов правки', 'ПОДАГЕНТ' in subr[0]['prov']['system'] and 'РЕЖИМ АГЕНТА' not in subr[0]['prov']['system'])
     tc = [x['content'] for x in mainr[1]['msgs'] if x.get('role') == 'tool'][0]
     check('главный агент получил отчёт подагента', 'Секрет равен 42' in tc and 'отчёт подагента' in tc, tc)
