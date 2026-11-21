@@ -289,6 +289,76 @@ class Bridge(private val ctx: Context, private val web: WebView) {
         }
     }
 
+    /**
+     * Универсальный HTTP-запрос для агента: чтение веб-страниц (web_fetch) и MCP-серверы.
+     * opts: {url, method GET|POST|DELETE, headers{}, body, ctype, keyId "mcp-…" (токен из Keystore уходит заголовком Authorization), max байт}.
+     * Ответ одним куском JSON: {status, ctype, session (Mcp-Session-Id), body, cut}. Ошибки HTTP возвращаются как status, решает интерфейс.
+     */
+    @JavascriptInterface
+    fun httpReq(t: String, reqId: String, opts: String) {
+        if (!Guard.ok(t)) {
+            done(reqId, "отказано: запрос не из приложения")
+            return
+        }
+        track(reqId)
+        pool.execute {
+            try {
+                val o = JSONObject(opts)
+                val url = o.getString("url").trim()
+                if (!HttpRules.allowedUrl(url)) throw IllegalArgumentException("адрес не поддерживается (нужен http или https)")
+                val method = o.optString("method", "GET").uppercase()
+                if (!HttpRules.allowedMethod(method)) throw IllegalArgumentException("метод не поддерживается")
+                val rb = Request.Builder().url(url).header("User-Agent", "Kairema-agent")
+                val hs = o.optJSONObject("headers")
+                if (hs != null) {
+                    val ks = hs.keys()
+                    while (ks.hasNext()) {
+                        val k = ks.next()
+                        if (HttpRules.headerOk(k)) rb.header(k, hs.optString(k))
+                    }
+                }
+                val kid = o.optString("keyId", "")
+                if (kid.isNotEmpty()) {
+                    if (!HttpRules.keyIdOk(kid)) throw IllegalArgumentException("неверный идентификатор токена")
+                    val key = SecureKeys.load(ctx, kid) ?: throw IllegalStateException("токен сервера не найден на устройстве")
+                    rb.header("Authorization", "Bearer $key")
+                }
+                when (method) {
+                    "POST" -> rb.post(o.optString("body", "").toRequestBody(o.optString("ctype", "application/json").toMediaType()))
+                    "DELETE" -> rb.delete()
+                    else -> rb.get()
+                }
+                val max = HttpRules.clampMax(o.optInt("max", 400000))
+                val client = http.newBuilder().readTimeout(60, TimeUnit.SECONDS).build()
+                val call = client.newCall(rb.build())
+                calls[reqId] = call
+                call.execute().use { resp ->
+                    val buf = java.io.ByteArrayOutputStream()
+                    var cut = false
+                    resp.body?.byteStream()?.use { s ->
+                        val chunk = ByteArray(8192)
+                        while (true) {
+                            val n = s.read(chunk)
+                            if (n < 0) break
+                            val take = minOf(n, max - buf.size())
+                            buf.write(chunk, 0, take)
+                            if (buf.size() >= max) { cut = true; break }
+                        }
+                    }
+                    push(
+                        reqId,
+                        JSONObject().put("status", resp.code).put("ctype", resp.header("Content-Type") ?: "")
+                            .put("session", resp.header("Mcp-Session-Id") ?: "")
+                            .put("body", String(buf.toByteArray(), Charsets.UTF_8)).put("cut", cut).toString()
+                    )
+                    done(reqId, null)
+                }
+            } catch (e: Exception) {
+                done(reqId, netError(e))
+            }
+        }
+    }
+
     /** Отправка сообщений провайдеру, ответ приходит в интерфейс кусками. */
     @JavascriptInterface
     fun chat(t: String, reqId: String, provider: String, messages: String) {

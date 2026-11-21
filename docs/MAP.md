@@ -60,7 +60,8 @@
 | Теги, закладки | `features/organize/organize.js` | `Org`, крючки `chats:*` в `chats.js` |
 | Размер текста, TalkBack | `features/a11y/a11y.js` | `A11y` |
 | Команды «/» приложения | `features/cmds/cmds.js` | список `A` |
-| Агент-программист | `features/coder/coder.js`, `bridge/ToolCalls.kt`, `Bridge.kt` (`chat`, `open`, `agentKeep`), `core/messages.js` (вызов `Coder.respond` в `respond`) | Инструменты `TOOLS`, режимы `MODES`, `permit`, `safeCmd` |
+| Агент-программист | `features/coder/coder.js`, `bridge/ToolCalls.kt`, `Bridge.kt` (`chat`, `open`, `agentKeep`), `core/messages.js` (вызов `Coder.respond` в `respond`) | Инструменты `TOOLS`, режимы `MODES`, `permit`, `safeCmd`, подагент `runSub`, расширения `Coder.register` |
+| Веб-инструменты и MCP-клиент агента | `features/coder/webtools.js`, `features/mcp/mcp.js`, `Bridge.kt` (`httpReq`), `bridge/HttpRules.kt`, `core/messages.js` (GUARD) | `Web.page`, `Mcp.provider`, `HttpRules` |
 | Шкала контекста | `features/ctxbar/ctxbar.js` | Размер окна: `GUESS`, `api.window()` |
 | Шрифты (локальные), автосжатие истории | `features/fonts/fonts.css`, `features/ctx/ctx.js` (`auto`) | Порог автосжатия: `AUTO` в ctx.js |
 | Качество ответов, подсказки слабым моделям, фильтр иероглифов | `features/quality/quality.js` (`qualityPrompt` в `sysPrompt`, `Quality.filter` в `core/messages.js`) | Правила таблиц и языка менять только здесь |
@@ -156,7 +157,8 @@
 | `features/chats/chats.js` | 238 | ИСТОРИЯ ЧАТОВ: список и сохранение ===== В приложении (есть KairemaDb) чаты лежат в SQLite на устройстве, картинки и PDF файлами в filesDir/media, в чате хранится только  |
 | `features/cmds/cmds.js` | 16 | БЫСТРЫЕ КОМАНДЫ «/» ДЛЯ ПРИЛОЖЕНИЯ ===== /new: новый чат · /agent: включить или выключить агента-программиста · /agent-set: настройки агента · /marks: закладки · /backup: |
 | `features/coder/coder.css` | 24 |  |
-| `features/coder/coder.js` | 287 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
+| `features/coder/coder.js` | 364 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
+| `features/coder/webtools.js` | 62 | ВЕБ-ИНСТРУМЕНТЫ АГЕНТА (Web) ===== Web.http(opts) — HTTP-запрос через нативный мост (Kotlin: Bridge.httpReq, правила в HttpRules.kt). |
 | `features/cost/cost.css` | 10 |  |
 | `features/cost/cost.js` | 94 | СЧЁТЧИК ТОКЕНОВ И РАСХОДОВ ===== Под каждым ответом ИИ: сколько токенов ушло и примерная цена. |
 | `features/ctx/ctx.css` | 2 |  |
@@ -170,7 +172,7 @@
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 151 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
 | `features/fonts/fonts.css` | 12 | ШРИФТЫ ВНУТРИ ПРИЛОЖЕНИЯ (работают без интернета) ===== Space Grotesk (заголовки), Manrope (текст интерфейса), JetBrains Mono (код), Source Serif 4 (ответы ИИ). |
-| `features/help/help-data.js` | 170 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
+| `features/help/help-data.js` | 171 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
 | `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
 | `features/help/help.js` | 89 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
 | `features/inbox/inbox.js` | 25 | ВХОДЯЩЕЕ «ПОДЕЛИТЬСЯ»: текст, ссылка или текстовый файл из другого приложения → новый чат с этим текстом ===== Kotlin (share/Inbox.kt) принимает ACTION_SEND и ACTION_PROC |
@@ -179,6 +181,8 @@
 | `features/log/log.js` | 48 | ЖУРНАЛ ОШИБОК: что сломалось, можно скопировать и прислать разработчику ===== Ловит ошибки страницы (error, unhandledrejection, console.error) и ошибки ответов ИИ (Log.ad |
 | `features/markdown/md.css` | 65 | Стили разметки ответов ИИ (модуль markdown). |
 | `features/markdown/md.js` | 147 | MARKDOWN → DOM для ответов ИИ ===== Безопасно: всё строится через createElement и textContent, innerHTML не используется. |
+| `features/mcp/mcp.css` | 5 |  |
+| `features/mcp/mcp.js` | 114 | MCP-КЛИЕНТ (Mcp) ===== Подключает внешние MCP-серверы (Model Context Protocol, транспорт Streamable HTTP: JSON-RPC через POST) и отдаёт их инструменты агенту. |
 | `features/memory/memory-ai.js` | 100 | ПАМЯТЬ: извлечение фактов самой моделью ===== После ответа (событие chat:answer) в фоне уходит один короткий запрос тому же провайдеру: «что из сообщения пользователя сто |
 | `features/memory/memory-ui.js` | 115 | ПАМЯТЬ: экран (заменяет старую страницу из core/app.js через SCREENS.memory) ===== Переключатели (память, быстрые правила, умное извлечение), профиль с сохранением, что и |
 | `features/memory/memory.css` | 27 | Стили страницы «Память»: более жирный, читаемый текст; ровный список фактов. |
@@ -216,7 +220,7 @@
 | `features/updater/updater.css` | 4 |  |
 | `features/updater/updater.js` | 64 | ОБНОВЛЕНИЕ ИЗ ПРИЛОЖЕНИЯ ===== Настройки → «Обновление»: проверяет последний релиз репозитория на GitHub (releases/latest), показывает, что нового, и по кнопке скачивает  |
 | `features/websearch/websearch.js` | 49 | ПОИСК В ИНТЕРНЕТЕ: модель сама решает, нужен ли поиск, и составляет запросы ===== Раньше в поисковик уходил сырой текст вопроса: «а в Москве?» искалось дословно и находил |
-| `index.html` | 112 |  |
+| `index.html` | 115 |  |
 
 ### Индекс файлов Kotlin (`app/src/main/java/com/kairema/app`)
 
@@ -224,8 +228,9 @@
 |---|---|---|
 | `MainActivity.kt` | 255 | Оболочка: показывает интерфейс из assets/index.html. * Следующие шаги добавят сюда мост между кнопками интерфейса и нативным кодом. |
 | `attach/Attach.kt` | 329 | Выбор фото и файлов без файлового выбора WebView. |
-| `bridge/Bridge.kt` | 825 | Мост между интерфейсом (JS) и нативным кодом. |
+| `bridge/Bridge.kt` | 895 | Мост между интерфейсом (JS) и нативным кодом. |
 | `bridge/Guard.kt` | 22 | Защита моста. |
+| `bridge/HttpRules.kt` | 32 | Правила универсального сетевого метода httpReq (для инструмента агента web_fetch и MCP-клиента). |
 | `bridge/Texts.kt` | 41 | Чистые функции моста без Android и без сети: тексты ошибок и разбор адреса. |
 | `bridge/ToolCalls.kt` | 71 | Сбор вызовов инструментов из потока ответа модели (без Android и без org.json — проверяется юнит-тестами). |
 | `data/ChatDb.kt` | 79 | Хранилище чатов на устройстве (SQLite, файл kairema.db). |
@@ -249,7 +254,7 @@
 ### Мосты (`@JavascriptInterface`): как JS вызывает Kotlin
 
 - `attach/Attach.kt`: `attachPick`, `pdfPages`
-- `bridge/Bridge.kt`: `agentNotify`, `agentKeep`, `haptic`, `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `keysExport`, `keysImport`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `updCheck`, `updInstall`, `chat`, `image`, `saveImage`, `shareImage`, `search`
+- `bridge/Bridge.kt`: `agentNotify`, `agentKeep`, `haptic`, `setOrientation`, `copyText`, `shareText`, `shareFile`, `saveFile`, `printHtml`, `saveKey`, `keysExport`, `keysImport`, `deleteKey`, `inboxTake`, `hasKey`, `cancel`, `termux`, `termuxRequestPermission`, `termuxStatus`, `shell`, `verify`, `models`, `updCheck`, `updInstall`, `httpReq`, `chat`, `image`, `saveImage`, `shareImage`, `search`
 - `data/DbBridge.kt`: `loadAll`, `count`, `put`, `remove`, `clear`, `saveFile`, `loadFile`
 - `search/SearchBridge.kt`: `mode`, `sigs`, `put`, `remove`, `clear`, `find`
 - `system/SystemBridge.kt`: `dark`, `bars`
@@ -295,6 +300,7 @@
 - `kairema.feel.v1`: feel.js
 - `kairema.log.v1`: log.js
 - `kairema.mcaps.v1`: caps.js
+- `kairema.mcp.v1`: backup.js, mcp.js
 - `kairema.memory.v1`: memory.js
 - `kairema.prices.v1`: backup.js, cost.js
 - `kairema.profile.v1`: backup.js, messages.js

@@ -16,7 +16,7 @@ def reset():
     open(os.path.join(PROJ, 'test_calc.py'), 'w').write('from calc import add\nassert add(2, 3) == 5, "add(2,3) = %s" % add(2, 3)\nprint("ALL OK")\n')
 BIN = tempfile.mkdtemp(prefix='nogit_')
 for t in 'bash sh ls cat awk grep sed base64 tr mkdir dirname python3 wc seq echo touch rm head tail uname date env printf test true false sleep cp mv'.split():
-    pth = shutil.which(t)
+    pth = next((q for q in ('/usr/bin/' + t, '/bin/' + t) if os.path.exists(q)), None) or shutil.which(t)  # настоящий файл, не обёртка из PATH
     if pth and not os.path.exists(os.path.join(BIN, t)): os.symlink(pth, os.path.join(BIN, t))
 NOGIT = [0]
 def host_shell(cmd):
@@ -91,7 +91,7 @@ with sync_playwright() as p:
     check('к модели ушло 6 запросов (5 шагов + итог)', res['reqs'] == 6, res['reqs'])
     check('удержание службы: включено и выключено', res['keep'] == [True, False], res['keep'])
     reqs = pg.evaluate("window.__reqs")
-    check('в запросах есть tools (7 функций), think=0, notify=0', len(reqs[0]['prov']['tools']) == 7 and reqs[0]['prov']['think'] == 0 and reqs[0]['prov']['notify'] == 0)
+    check('в запросах есть tools (10 функций), think=0, notify=0', len(reqs[0]['prov']['tools']) == 10 and reqs[0]['prov']['think'] == 0 and reqs[0]['prov']['notify'] == 0)
     last = reqs[5]['msgs']
     tm = [x for x in last if x.get('role') == 'tool']
     check('модель получила вывод упавшего теста (AssertionError, код 1)', any('AssertionError' in x['content'] and 'код выхода: 1' in x['content'] for x in tm), [x['content'][:80] for x in tm])
