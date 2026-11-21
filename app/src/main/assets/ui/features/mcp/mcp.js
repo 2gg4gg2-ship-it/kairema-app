@@ -10,7 +10,9 @@
    Убрать модуль: удалить папку и строки в index.html (в coder.js вызов защищён typeof). Тест: docs/tests/agent043.test.py */
 const Mcp=(()=>{
  const KS='kairema.mcp.v1',PV='2025-03-26';
- let list=[];try{const v=JSON.parse(localStorage.getItem(KS)||'[]');if(Array.isArray(v))list=v.filter(x=>x&&x.id&&x.url)}catch(e){}
+ let list=[];
+ const load=()=>{list=[];try{const v=JSON.parse(localStorage.getItem(KS)||'[]');if(Array.isArray(v))list=v.filter(x=>x&&x.id&&x.url)}catch(e){}};
+ load();
  const save=()=>{try{localStorage.setItem(KS,JSON.stringify(list))}catch(e){}};
  const sess=new Map(),map=new Map();let rid=0;
  const slug=s=>String(s||'').replace(/[^A-Za-z0-9_-]+/g,'_').replace(/^_+|_+$/g,'')||'x';
@@ -110,4 +112,4 @@ const Mcp=(()=>{
   $('[data-ok]',s).textContent=L('Готово');$('[data-ok]',s).onclick=()=>s.close()}
  i18nAdd({"MCP-серверы":"MCP servers","Внешние инструменты для агента (GitHub, базы данных, браузер и другое). Нужен MCP-сервер с HTTP-адресом (Streamable HTTP). Серверы с запуском командой (stdio) не поддерживаются.":"External tools for the agent (GitHub, databases, a browser and more). Needs an MCP server with an HTTP address (Streamable HTTP). Servers started by a command (stdio) are not supported.","Серверов пока нет":"No servers yet","выключен":"off","инструм.":"tools","не проверен":"not checked","Включить":"Enable","Выключить":"Disable","Проверить":"Check","Удалить":"Delete","Удалить сервер?":"Delete the server?","Добавить сервер":"Add a server","Новый MCP-сервер":"New MCP server","Название (латиницей, например github)":"Name (Latin letters, e.g. github)","Адрес сервера":"Server address","Токен (необязательно, хранится в защищённом хранилище)":"Token (optional, kept in secure storage)","Отмена":"Cancel","Добавить":"Add","Адрес без шифрования (http): токен и данные пойдут открытым текстом.":"Unencrypted address (http): the token and data go in clear text.","Название: латиница, цифры, до 24 знаков":"Name: Latin letters and digits, up to 24 characters","Нужен адрес вида https://…":"An address like https://… is needed","Сервер с таким названием уже есть":"A server with this name already exists","Готово":"Done"});
  if(typeof Coder!=='undefined')Coder.register(provider);
- return{panel,provider,count:()=>list.filter(s=>s.on!==0).length,list:()=>list.slice(),ready,connect,parseRpc,_reset(){sess.clear();map.clear();list=[];save()}}})();
+ return{panel,provider,count:()=>list.filter(s=>s.on!==0).length,list:()=>list.slice(),ready,connect,parseRpc,_reset(){sess.clear();map.clear();list=[];save()},_load(){sess.clear();map.clear();load()}}})();

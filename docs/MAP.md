@@ -182,7 +182,7 @@
 | `features/markdown/md.css` | 65 | Стили разметки ответов ИИ (модуль markdown). |
 | `features/markdown/md.js` | 147 | MARKDOWN → DOM для ответов ИИ ===== Безопасно: всё строится через createElement и textContent, innerHTML не используется. |
 | `features/mcp/mcp.css` | 5 |  |
-| `features/mcp/mcp.js` | 114 | MCP-КЛИЕНТ (Mcp) ===== Подключает внешние MCP-серверы (Model Context Protocol, транспорт Streamable HTTP: JSON-RPC через POST) и отдаёт их инструменты агенту. |
+| `features/mcp/mcp.js` | 116 | MCP-КЛИЕНТ (Mcp) ===== Подключает внешние MCP-серверы (Model Context Protocol, транспорт Streamable HTTP: JSON-RPC через POST) и отдаёт их инструменты агенту. |
 | `features/memory/memory-ai.js` | 100 | ПАМЯТЬ: извлечение фактов самой моделью ===== После ответа (событие chat:answer) в фоне уходит один короткий запрос тому же провайдеру: «что из сообщения пользователя сто |
 | `features/memory/memory-ui.js` | 115 | ПАМЯТЬ: экран (заменяет старую страницу из core/app.js через SCREENS.memory) ===== Переключатели (память, быстрые правила, умное извлечение), профиль с сохранением, что и |
 | `features/memory/memory.css` | 27 | Стили страницы «Память»: более жирный, читаемый текст; ровный список фактов. |
@@ -214,7 +214,7 @@
 | `features/system/system.js` | 26 | СИСТЕМА: статус-бар, клавиатура, системная тема ===== Отступы под статус-бар, панель навигации и клавиатуру теперь применяет Kotlin (com.kairema.app.system.SystemBridge): |
 | `features/terminal/term-compat.js` | 110 | ТЕРМИНАЛ: совместимость с любыми моделями (от самых слабых до лучших) ===== Слабые модели не всегда оформляют команды правильно: забывают язык у блока, пишут «$ ls» вмест |
 | `features/terminal/terminal.css` | 54 | Стили модуля terminal. |
-| `features/terminal/terminal.js` | 255 | ТЕРМИНАЛ: настоящая оболочка Android и запуск команд из ответов ИИ ===== Команды выполняет Kotlin (Shell.kt, /system/bin/sh). |
+| `features/terminal/terminal.js` | 259 | ТЕРМИНАЛ: настоящая оболочка Android и запуск команд из ответов ИИ ===== Команды выполняет Kotlin (Shell.kt, /system/bin/sh). |
 | `features/tools/tools.css` | 76 | Меню «+», метки режимов в поле ввода, размышления, изображения |
 | `features/tools/tools.js` | 227 | ФУНКЦИИ ЧАТА: меню «+», режимы ответа, создание изображений, глубокое исследование ===== Кнопка «+» в поле ввода открывает список: вложения (галерея, камера, файлы) и фун |
 | `features/updater/updater.css` | 4 |  |
@@ -245,7 +245,7 @@
 | `share/Share.kt` | 166 | Копирование, «Поделиться» (Telegram и другие приложения), сохранение в Загрузки и печать в PDF. |
 | `share/ShareFiles.kt` | 72 | Отдаёт другим приложениям файлы из временной папки cache/share (только чтение). |
 | `system/SystemBridge.kt` | 226 | Системные панели, клавиатура и тема телефона. |
-| `terminal/Shell.kt` | 146 | Настоящая оболочка Android (/system/bin/sh) для терминала. |
+| `terminal/Shell.kt` | 172 | Настоящая оболочка Android (/system/bin/sh) для терминала. |
 | `terminal/TermuxResultReceiver.kt` | 14 | Принимает результат команды от Termux и передаёт его в TermuxRunner. |
 | `terminal/TermuxRunner.kt` | 154 | Запуск команд в Termux (если он установлен). |
 | `update/UpdateRules.kt` | 21 | Правила обновления без Android: какой репозиторий и какой адрес APK разрешены. Проверяются тестами. |

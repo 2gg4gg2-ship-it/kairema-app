@@ -229,8 +229,7 @@ with sync_playwright() as p:
     check('Mcp: модуль подключён к агенту', pg.evaluate("typeof Mcp!=='undefined'&&Coder.allTools().length===10"))
     pg.evaluate("Mcp._reset();Mcp.list().length");
     pg.evaluate("localStorage.setItem('kairema.mcp.v1',JSON.stringify([{id:'t1',name:'test',url:'https://mcp.test/mcp',on:1,tok:1}]))")
-    pg.reload(); pg.wait_for_timeout(5500)
-    pg.evaluate("document.querySelectorAll('[data-screen=onboarding]').forEach(x=>x.remove());S.apiMsgs.length=0;show('api')"); pg.wait_for_timeout(700)
+    pg.evaluate('Mcp._load()')
     errs0 = pg.evaluate("Mcp.ready().then(e=>e)")
     check('Mcp.ready: подключение прошло без ошибок', errs0 == [], errs0)
     names = pg.evaluate("Coder.allTools().map(t=>t.name)")
@@ -263,9 +262,9 @@ with sync_playwright() as p:
     check('провайдер: meta возвращает сервер и признак readOnly', pg.evaluate("[Mcp.provider.meta('mcp__test__lookup'),Mcp.provider.meta('mcp__test__echo')]") == [{'server': 'test', 'ro': True}, {'server': 'test', 'ro': False}])
     # сервер недоступен
     pg.evaluate("Mcp._reset();localStorage.setItem('kairema.mcp.v1','[]')")
-    pg.reload(); pg.wait_for_timeout(5500)
+    pg.evaluate('Mcp._load()')
     pg.evaluate("localStorage.setItem('kairema.mcp.v1',JSON.stringify([{id:'t2',name:'dead',url:'https://mcp.test/x',on:1,tok:0}]));window.__mcpFail=1")
-    pg.reload(); pg.wait_for_timeout(5500)
+    pg.evaluate('Mcp._load()')
     pg.evaluate("document.querySelectorAll('[data-screen=onboarding]').forEach(x=>x.remove());S.apiMsgs.length=0;show('api');window.__mcpFail=1"); pg.wait_for_timeout(700)
     r = run([{'text': 'работаю без MCP'}], mode='auto')
     check('недоступный MCP-сервер не ломает агента: карточка-ошибка и обычный ответ', 'mcp:err' in r['ag'] and r['t'] == 'работаю без MCP' and not r['err'], r)

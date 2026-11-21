@@ -41,8 +41,9 @@ const Term=(()=>{
   if(cur||st!=='on')return;
   hist.push(cmd);saveH();mark='on';
   add('c','› '+(label||cmd));const e=add('o','');
-  cur={};tick();
-  const r=await exec(cmd,{onStart:id=>{cur.id=id},onChunk:t=>{e.t=t.slice(-CAP);upd(e)},timeout:label?30:60});
+  const me=cur={};tick();
+  const r=await exec(cmd,{onStart:id=>{me.id=id},onChunk:t=>{if(!me.gone){e.t=t.slice(-CAP);upd(e)}},timeout:label?30:60});
+  if(me.gone)return; /* запуск уже освобождён принудительно (см. stop) */
   cur=null;e.t=(r.out||'').slice(-CAP);
   fail=(!label&&(r.err||r.code!==0))?{cmd,r}:null;
   if(!e.t){const k=log.indexOf(e);if(k>=0)log.splice(k,1)}
@@ -106,7 +107,10 @@ const Term=(()=>{
   cur=null;
   add(pass===Q.length?'o':'e',(pass===Q.length?'✅ ':'⚠ ')+L2('Пройдено ','Passed ')+pass+L2(' из ',' of ')+Q.length+(pass===Q.length?'':L2('. Пришлите этот вывод ИИ или разработчику.','. Send this output to the AI or the developer.')));
   tick();return{pass,total:Q.length}}
- const stop=()=>{if(cur&&cur.id)Native.cancel(cur.id)};
+ /* Остановка. Если оболочка не ответила на отмену (внучатый процесс держит вывод), через 2,5 с запуск освобождается принудительно,
+    чтобы ввод и кнопка не оставались заблокированными навсегда. */
+ const stop=()=>{const c=cur;if(!c)return;if(c.id)Native.cancel(c.id);
+  setTimeout(()=>{if(cur===c){c.gone=1;cur=null;add('e',T2('[остановлено: команда не ответила, сеанс освобождён]','[stopped: the command did not respond, session released]'));tick()}},2500)};
  /* Сессия: зелёная = работает, красная = выключена, жёлтая = очищена. */
  const activate=quiet=>{const was=st;st='on';mark='on';if(!quiet&&was!=='on')add('o','● сессия запущена');tick();probe()};
  const deactivate=()=>{stop();st='off';mark='off';add('','— сессия остановлена');tick()};

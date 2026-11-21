@@ -22,6 +22,7 @@ class Shell(private val ctx: Context) {
 
     private val pool = Executors.newCachedThreadPool()
     private val procs = ConcurrentHashMap<String, Process>()
+    private val forced = ConcurrentHashMap<String, () -> Unit>()
 
     fun run(
         id: String,
@@ -59,11 +60,26 @@ class Shell(private val ctx: Context) {
                 val p = pb.start()
                 procs[id] = p
                 val timedOut = AtomicBoolean(false)
+                // Завершение ровно один раз: и после обычного конца, и принудительно, если остановленная команда не отпустила вывод.
+                val finished = AtomicBoolean(false)
+                val complete: (Int, String) -> Unit = { code, note ->
+                    if (finished.compareAndSet(false, true)) {
+                        procs.remove(id)
+                        forced.remove(id)
+                        if (note.isNotEmpty()) emit(note)
+                        emit("\n\u0001exit:$code")
+                        finish(null)
+                    }
+                }
+                forced[id] = { complete(-1, "\n[остановлено]") }
                 pool.execute {
                     try {
                         if (!p.waitFor(timeoutSec, TimeUnit.SECONDS)) {
                             timedOut.set(true)
                             kill(p)
+                            // Внучатые процессы (например sleep) могут держать вывод открытым: через 3 секунды завершаем принудительно.
+                            Thread.sleep(3000)
+                            complete(-1, "\n[остановлено: время вышло, $timeoutSec с]")
                         }
                     } catch (e: InterruptedException) {
                         // игнорируем
@@ -79,7 +95,7 @@ class Shell(private val ctx: Context) {
                     } catch (e: java.io.IOException) {
                         -1 // поток закрыт при остановке или по времени
                     }
-                    if (n < 0) break
+                    if (n < 0 || finished.get()) break
                     total += n
                     emit(String(buf, 0, n))
                     if (total > MAX_OUT) {
@@ -88,12 +104,11 @@ class Shell(private val ctx: Context) {
                         break
                     }
                 }
-                val code = p.waitFor()
-                procs.remove(id)
-                if (cut) emit("\n[вывод обрезан: слишком много текста]")
-                if (timedOut.get()) emit("\n[остановлено: время вышло, $timeoutSec с]")
-                emit("\n\u0001exit:$code")
-                finish(null)
+                val code = if (p.waitFor(3, TimeUnit.SECONDS)) p.exitValue() else -1
+                var note = ""
+                if (cut) note += "\n[вывод обрезан: слишком много текста]"
+                if (timedOut.get()) note += "\n[остановлено: время вышло, $timeoutSec с]"
+                complete(code, note)
             } catch (e: Exception) {
                 procs.remove(id)
                 finish(e.message ?: "не удалось запустить команду")
@@ -105,6 +120,17 @@ class Shell(private val ctx: Context) {
 
     fun cancel(id: String) {
         procs.remove(id)?.let { kill(it) }
+        // Если оболочка убита, а её дочерняя программа держит вывод открытым, не ждём вечно: через 1,5 с завершаем запуск принудительно.
+        forced[id]?.let { f ->
+            pool.execute {
+                try {
+                    Thread.sleep(1500)
+                } catch (e: InterruptedException) {
+                    // игнорируем
+                }
+                f()
+            }
+        }
     }
 
     /** Останавливает оболочку и закрывает чтение, чтобы дочерние программы не держали вывод открытым. */
