@@ -13,12 +13,12 @@ const w=dom.window,sleep=ms=>new Promise(r=>setTimeout(r,ms)),ev=c=>w.eval(c),q=
  const sx=q('#v-set .sx');assert(sx,'sx layout built');
  // 1. кто вы: профиль и аккаунт в одной карточке
  const id=q('#v-set .sx-id');assert(id&&id.querySelector('.card.pf')&&id.querySelector('[data-acc]'),'profile and account in one card');
- // 2. ровно три плитки, и у каждой есть живое состояние
- const tiles=qa('#v-set .sx-q .sx-t');assert.equal(tiles.length,3,'three tiles');
- assert.deepEqual(tiles.map(t=>t.querySelector('b').textContent),['Сервисы','Поиск','Тема']);
- assert(tiles[0].querySelector('small').textContent.startsWith('Активно: '),'providers count');
- assert(['Включён','Выключен'].includes(tiles[1].querySelector('small').textContent),'search state');
- assert(tiles[2].querySelector('small').textContent.length>0,'theme value');
+ // 2. провайдеры сверху: первая группа после карточки «кто вы», первая строка «Провайдеры ИИ», плиток больше нет
+ assert.equal(qa('#v-set .sx-q,#v-set .sx-t').length,0,'no tiles');
+ const g1=q('#v-set .sx>.sx-g:not(.sx-id)');assert.equal(g1.querySelector('.sx-r b').textContent,'Провайдеры ИИ','providers first');
+ assert.equal(g1.querySelectorAll('.sx-r')[1].querySelector('b').textContent,'Провайдер поиска');
+ const main=qa('#v-set .sx>.sx-g:not(.sx-id)')[1];assert.deepEqual([...main.querySelectorAll('.sx-r b')].map(b=>b.textContent),['Поиск','Тема']);
+ assert(['Включён','Выключен'].includes(main.querySelector('[data-tg=web] small').textContent),'search state');
  // 3. группы: не больше 5 строк, нет «одинаковых пустышек» (у каждой строки в группе своя иконка)
  const groups=qa('#v-set .sx>.sx-g:not(.sx-id)');assert(groups.length>=4,'groups: '+groups.length);
  groups.forEach(g=>{const n=g.querySelectorAll('.sx-r').length;assert(n>=1&&n<=5,'group size '+n)});
