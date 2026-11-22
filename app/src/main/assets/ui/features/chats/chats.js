@@ -24,9 +24,9 @@ Chx.ser=(m,local)=>{
   else if(local&&(p.k==='image'||p.k==='pdf')){
    if(!p.path&&p.data)p.path=Media.save(p.data,p.k==='pdf'?'pdf':'jpg');
    if(p.path)ps.push({k:p.k,name:p.name,mime:p.mime,path:p.path});
-   else nn.push(p.k==='pdf'?'📄 PDF':(LANG==='en'?'📷 photo':'📷 фото'))}
-  else if(p.k==='image')nn.push(LANG==='en'?'📷 photo':'📷 фото');
-  else if(p.k==='pdf')nn.push('📄 PDF')});
+   else nn.push(p.k==='pdf'?'PDF':(LANG==='en'?'photo':'фото'))}
+  else if(p.k==='image')nn.push(LANG==='en'?'photo':'фото');
+  else if(p.k==='pdf')nn.push('PDF')});
  if(local&&m.img){
   if(!m.img.path&&m.img.b64)m.img.path=Media.save(m.img.b64,(String(m.img.mime||'image/png').split('/')[1]||'png').replace('jpeg','jpg'));
   if(m.img.path)o.img={mime:m.img.mime,path:m.img.path}}

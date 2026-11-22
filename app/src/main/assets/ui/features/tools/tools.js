@@ -205,7 +205,7 @@ const Tools=(()=>{
   if(/anthropic\.com/.test(pv.url)){toast('Anthropic не создаёт изображения. Подключите другого провайдера, например OpenRouter или OpenAI');return}
   if(!canImg()){toast('Эта модель не создаёт изображения. Выберите модель с меткой «Картинки»');return}
   const model=pv.model;
-  const m={r:'a',t:'🖼 '+prompt};ch.msgs.push(m);
+  const m={r:'a',t:prompt};ch.msgs.push(m);
   const d=msgEl(m,1);box.append(d);const bd=$('.bd',d);bd.innerHTML=`<span class="imgload"><i></i>${L('Создаю изображение…')}</span>`;scr(box);
   try{let raw='';await Native.run('image',[JSON.stringify({id:pv.id,url:pv.url,model}),prompt],t=>{raw+=t});
    m.img=JSON.parse(raw);api.paintImg(d,m);Hooks.run('chat:answer',m,bd)}

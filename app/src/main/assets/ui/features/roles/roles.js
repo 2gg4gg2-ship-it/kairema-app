@@ -44,7 +44,7 @@ const Roles=(()=>{
  const chip=(v,cmp)=>{
   $$('.rlc',v).forEach(x=>x.remove());
   const r=cur();if(!r)return;
-  const c=el('<div class="rlc"><span class="rl-i">🎭</span><b></b><button type="button" class="rl-x" aria-label="×">×</button></div>');
+  const c=el('<div class="rlc"><b></b><button type="button" class="rl-x" aria-label="×">×</button></div>');
   $('b',c).textContent=nm(r);
   $('.rl-x',c).onclick=()=>{set(chatId(),null);c.remove();toast(L('Роль для этого чата снята'))};
   const ta=$('textarea',cmp);ta.before(c)};

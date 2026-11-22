@@ -134,7 +134,7 @@
 | `core/settings.js` | 131 | core/settings.js: ПРОВАЙДЕРЫ, ПАМЯТЬ, ШАБЛОНЫ, ПРОФИЛЬ, НАСТРОЙКИ, ВКЛАДКИ. |
 | `core/styles.css` | 257 | 01. ТОКЕНЫ: цвета, шрифты, easing |
 | `features/a11y/a11y.css` | 2 |  |
-| `features/a11y/a11y.js` | 39 | ДОСТУПНОСТЬ ===== • Размер текста и интерфейса: Настройки → «Размер текста» (100%, 115%, 130%). |
+| `features/a11y/a11y.js` | 30 | ДОСТУПНОСТЬ ===== • Размер текста: кнопка из настроек убрана в 0.46.2 (владелец не пользовался). |
 | `features/about/about.css` | 32 | Стили модуля about: экран «О приложении». |
 | `features/about/about.js` | 24 | О ПРИЛОЖЕНИИ: логотип, версия, карточки возможностей ===== Модуль подменяет экран 'about' (SCREENS.about) после запуска приложения: core/app.js не правится. |
 | `features/artifacts/artifacts.css` | 29 | Стили модуля artifacts: панель под блоком кода и таблицей, предпросмотр страницы. |
@@ -156,8 +156,8 @@
 | `features/chats/chats.css` | 23 | Стили модуля chats: диалог «Новый чат», кнопка «Удалить все чаты», анимация удаления. |
 | `features/chats/chats.js` | 238 | ИСТОРИЯ ЧАТОВ: список и сохранение ===== В приложении (есть KairemaDb) чаты лежат в SQLite на устройстве, картинки и PDF файлами в filesDir/media, в чате хранится только  |
 | `features/cmds/cmds.js` | 16 | БЫСТРЫЕ КОМАНДЫ «/» ДЛЯ ПРИЛОЖЕНИЯ ===== /new: новый чат · /agent: включить или выключить агента-программиста · /agent-set: настройки агента · /marks: закладки · /backup: |
-| `features/coder/coder.css` | 24 |  |
-| `features/coder/coder.js` | 473 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
+| `features/coder/coder.css` | 35 |  |
+| `features/coder/coder.js` | 496 | АГЕНТ-ПРОГРАММИСТ (Coder) ===== Модель получает настоящие инструменты (tool calling, как у Codex и Claude Code) и сама ведёт работу циклом: изучить код → править → запуст |
 | `features/coder/webtools.js` | 62 | ВЕБ-ИНСТРУМЕНТЫ АГЕНТА (Web) ===== Web.http(opts) — HTTP-запрос через нативный мост (Kotlin: Bridge.httpReq, правила в HttpRules.kt). |
 | `features/cost/cost.css` | 10 |  |
 | `features/cost/cost.js` | 94 | СЧЁТЧИК ТОКЕНОВ И РАСХОДОВ ===== Под каждым ответом ИИ: сколько токенов ушло и примерная цена. |
@@ -282,7 +282,7 @@
 | `memory:changed` | memory.js | backup.js, memory-ai.js, memory-ui.js, settings.js |
 | `msg:render` | attview.js, branch.js, coder.js, cost.js, ctx.js, draft.js, organize.js, share.js, tools.js | messages.js |
 | `settings:grouped` | — | settings.js |
-| `settings:rendered` | a11y.js, auth-ui.js, backup.js, coder.js, cost.js, ctx.js, feel.js, filediff.js, game.js, help.js, log.js, organize.js, quality.js, rag.js, roles.js, updater.js | settings.js |
+| `settings:rendered` | auth-ui.js, backup.js, coder.js, cost.js, ctx.js, feel.js, filediff.js, game.js, help.js, log.js, organize.js, quality.js, rag.js, roles.js, updater.js | settings.js |
 | `sync:delete` | search.js, sync.js | chats.js, memory.js, sync.js |
 | `sync:left` | auth-ui.js | sync.js |
 | `sync:register` | chats.js, memory.js, sync.js | sync.js |

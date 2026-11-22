@@ -15,7 +15,7 @@ const SetLayout=(()=>{
   {t:'ИИ и подключения',k:['add','adds','mem','tpl','roles']},
   {t:'Основное',k:['web','theme'],live:1},
   {t:'Агент и терминал',k:['coder-s','fd']},
-  {t:'Чат и вид',k:['org-s','ca','a11y-s','feel','feels']},
+  {t:'Чат и вид',k:['org-s','ca','feel','feels']},
   {t:'Данные',k:['cost','backup','log']},
   {t:'Отдых',k:['game-go']}];
  const ADV=['qh','qc','rag'],HELP=['hp','upd','about'],QUICK='prov';

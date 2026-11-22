@@ -224,7 +224,7 @@ const Coder=(()=>{
     const msg=String(e&&e.message||e);
     if(stopped||a>=NET_TRIES||!NETRE.test(msg))throw e;
     const sec=Math.min(60,NET_BASE*Math.pow(2,a));
-    for(let r=sec;r>0&&!stopped;r--){if(netNote)netNote('⚠ Нет связи с моделью ('+msg.slice(0,70)+'). Повтор '+(a+1)+'/'+NET_TRIES+' через '+r+' с… Остановить — кнопка «Стоп».');await nap(1000)}
+    for(let r=sec;r>0&&!stopped;r--){if(netNote)netNote('Нет связи с моделью ('+msg.slice(0,70)+'). Повтор '+(a+1)+'/'+NET_TRIES+' через '+r+' с… Остановить — кнопка «Стоп».');await nap(1000)}
     if(stopped)throw e}}}
  async function llm1(p,anth,sys,conv,tools,onText){
   let text='',calls=[],cut=0;
@@ -260,7 +260,7 @@ const Coder=(()=>{
   else if(kind==='run'&&safeCmd(a.command))need=0;
   else if(allow[kind]&&!dng)need=0;
   if(!need)return{ok:1};
-  const body=kind==='run'?'$ '+a.command+(dng?'\n\n⚠ Команда выглядит опасной.':''):(n==='edit_file'?a.path+'\n\n'+prev(a.old,a.new):n==='apply_patch'?patchPrev(a):a.path+'\n\n'+String(a.content||'').slice(0,1200)+(String(a.content||'').length>1200?'\n…':''));
+  const body=kind==='run'?'$ '+a.command+(dng?'\n\nВНИМАНИЕ: команда выглядит опасной.':''):(n==='edit_file'?a.path+'\n\n'+prev(a.old,a.new):n==='apply_patch'?patchPrev(a):a.path+'\n\n'+String(a.content||'').slice(0,1200)+(String(a.content||'').length>1200?'\n…':''));
   Native.sync('agentNotify','Агент ждёт разрешения',(kind==='run'?'$ '+a.command:a.path)||short(n,a));
   const v=await ASK(kind==='run'?L('Выполнить команду?'):(n==='edit_file'?L('Изменить файл?'):n==='apply_patch'?L('Применить правки?'):L('Записать файл?')),body);
   if(v==='no')return{ok:0,why:'Пользователь отклонил это действие. Не повторяй его, предложи другой путь или спроси, что делать.'};
@@ -268,7 +268,7 @@ const Coder=(()=>{
   return{ok:1}}
  /* ---- Карточки шагов ---- */
  const short=(n,a)=>{const x=a.path||a.command||a.pattern||a.url||a.description||(Array.isArray(a.edits)?a.edits.length+' правок':'');return n+(x?' '+String(x).replace(/\s+/g,' ').slice(0,80):'')};
- const stepEl=s=>{const d=document.createElement('details');d.className='cds '+(s.k==='say'?'say':s.st||'');const u=document.createElement('summary');u.textContent=s.k==='say'?'💬 '+String(s.t).replace(/\s+/g,' ').slice(0,90):({run:'⏳ ',ok:'✓ ',err:'✗ ',no:'⊘ '}[s.st]||'')+s.h;d.append(u);const b=document.createElement('pre');b.textContent=s.k==='say'?s.t:(s.d||'')+(s.o?(s.d?'\n\n':'')+s.o:'');if(b.textContent)d.append(b);return d};
+ const stepEl=s=>{const d=document.createElement('details');d.className='cds '+(s.k==='say'?'say':s.st||'');const u=document.createElement('summary');u.textContent=s.k==='say'?String(s.t).replace(/\s+/g,' ').slice(0,90):({run:'… ',ok:'✓ ',err:'✗ ',no:'⊘ '}[s.st]||'')+s.h;d.append(u);const b=document.createElement('pre');b.textContent=s.k==='say'?s.t:(s.d||'')+(s.o?(s.d?'\n\n':'')+s.o:'');if(b.textContent)d.append(b);return d};
  const cardsFor=(d,m)=>{let c=$('.cdc',d);if(!c){c=document.createElement('div');c.className='cdc';const bd=$('.bd',d);d.insertBefore(c,bd)}c.innerHTML='';if(m.plan&&m.plan.length){const pl=document.createElement('div');pl.className='cdpl';m.plan.forEach(x=>{const r=document.createElement('div');r.className='cdpi '+x.s;r.textContent=({done:'☑ ',doing:'▶ ',pending:'☐ '}[x.s]||'☐ ')+x.t;pl.append(r)});c.append(pl)}(m.ag||[]).forEach(s=>c.append(stepEl(s)));return c};
  const colorDiff=(pre,t)=>{pre.textContent='';String(t).split('\n').forEach(l=>{const r=document.createElement('div');r.textContent=l||' ';if(/^\+(?!\+\+)/.test(l))r.className='dp';else if(/^-(?!--)/.test(l))r.className='dm';else if(/^@@/.test(l))r.className='dh';pre.append(r)})};
  /* Кнопки под ответом агента: «Изменения» и откат (по контрольной точке git или по снимкам файлов этого запуска). */
@@ -411,26 +411,28 @@ const Coder=(()=>{
     if(toolChars(conv)>60000)shrink(conv,6,400);
     if(force||step>=cfg.steps){conv.push({role:'user',content:'Лимит шагов исчерпан или действия зациклились. Без новых вызовов инструментов кратко скажи, что сделано, что проверено и что осталось.'});const f=await turn(0);final=f.text||'';break}
    }
-   if(stopped){m.stopped=1;final=final||'⏹ Остановлено.'}
+   if(stopped){m.stopped=1;final=final||'Остановлено.'}
    m.t=final||'(агент закончил без текста)';
    mdRender(bd,m.t,m);
    if(cpH)m.cp={h:cpH,dir:cfg.dir};
    actions(d,m,snaps.size?new Map(snaps):null);
    if(!m.stopped)Hooks.run('chat:answer',m,bd);
   }catch(e){
-   if(stopped){m.stopped=1;m.t=m.t||'⏹ Остановлено.';mdRender(bd,m.t,m)}
+   if(stopped){m.stopped=1;m.t=m.t||'Остановлено.';mdRender(bd,m.t,m)}
    else fail('Агент остановился: '+e.message+(NETRE.test(String(e.message))?'\n\nКогда появится связь, напишите «продолжай»: агент продолжит с того места, где остановился.':''))
   }finally{netNote=null;run=null;Native.sync('agentNotify','Kairema',m.stopped?'Агент остановлен':(m.err?'Агент остановился с ошибкой':'Агент закончил: '+String(m.t||'').slice(0,120)));Native.sync('agentKeep',false);window.GEN=null;if(Chat.cmp&&Chat.cmp.upd)Chat.cmp.upd()}
  }
  /* ---- Интерфейс: кнопка в композере и окно настроек ---- */
  const fold=()=>(cfg.dir||'kairema-work');
+ let barAnim=0;
  function bar(v){
   const cmp=Chat&&Chat.cmp;if(!cmp)return;
-  const old=$('.cdb',v);if(old)old.remove();
+  const anim=barAnim;barAnim=0;
+  const old=$('.cdb',v);if(old){if(anim&&!cfg.on&&!old.classList.contains('out')){old.classList.add('out');setTimeout(()=>old.remove(),240)}else old.remove()}
   let b=$('[data-coder]',cmp);
-  if(!b){const tb=$('[data-tb]',cmp);if(!tb)return;b=el('<button class="cb cdt" data-coder aria-label="Агент-программист" title="Агент-программист">'+ic('term')+'</button>');tb.before(b);b.onclick=()=>{cfg.on=cfg.on?0:1;save();if(cfg.on&&!localStorage.getItem('kairema.coder.seen')){try{localStorage.setItem('kairema.coder.seen','1')}catch(e){}panel()}bar(v)}}
+  if(!b){const tb=$('[data-tb]',cmp);if(!tb)return;b=el('<button class="cb cdt" data-coder aria-label="Агент-программист" title="Агент-программист">'+ic('term')+'</button>');tb.before(b);b.onclick=()=>{cfg.on=cfg.on?0:1;save();barAnim=1;b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');if(cfg.on&&!localStorage.getItem('kairema.coder.seen')){try{localStorage.setItem('kairema.coder.seen','1')}catch(e){}panel()}bar(v)}}
   b.classList.toggle('on',!!cfg.on);b.setAttribute('aria-pressed',cfg.on?'true':'false');
-  if(cfg.on){const x=el('<button class="cdb"></button>');x.textContent='🤖 '+L('Агент')+' · '+L(MODES[cfg.mode][0])+' · '+fold();x.onclick=panel;cmp.before(x)}}
+  if(cfg.on){const x=el('<button class="cdb"></button>');x.textContent=L('Агент')+' · '+L(MODES[cfg.mode][0])+' · '+fold();if(anim)x.classList.add('in');x.onclick=panel;cmp.before(x)}}
  /* Выбор папки проекта: обзор каталогов в Termux или песочнице. */
  async function pickDir(done){
   const s=sheet('<h2></h2><div class="cdwd" data-w></div><div class="cdls" data-l></div><div class="two" style="margin-top:10px"><button class="btn ghost" data-x></button><button class="btn" data-ok></button></div>');
@@ -444,29 +446,50 @@ const Coder=(()=>{
   $('[data-x]',s).onclick=()=>s.close();$('[data-ok]',s).onclick=()=>{if(cur){cfg.dir=cur;envC=null;save();done&&done(cur)}s.close()};
   go('')}
  function panel(){
-  const s=sheet('<h2></h2><p class="sub" style="margin:6px 0 10px"></p><div class="cdm"></div><label class="cdl"></label><input class="cdi" data-d autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn ghost" data-pd style="width:100%;margin-top:6px"></button><label class="cdl"></label><div class="cdr" data-s></div><label class="cdl"></label><div class="cdr" data-e></div><label class="cdl"></label><div class="cdr" data-n></div><label class="cdl"></label><div class="cdr" data-h></div><div class="cdi2" data-i></div><button class="btn ghost" data-mcp style="width:100%;margin-top:8px"></button><button class="btn ghost" data-ck style="width:100%;margin-top:8px"></button><button class="btn" data-ok style="width:100%;margin-top:8px"></button><button class="btn ghost" data-off style="width:100%;margin-top:8px"></button>');
+  const s=sheet('<h2></h2><p class="sub" style="margin:6px 0 4px;font-size:13px;line-height:1.4"></p><div class="cdbody"></div>');
   $('h2',s).textContent=L('Агент-программист');
-  $('.sub',s).textContent=L('Модель сама читает файлы, правит код, запускает команды и повторяет, пока не заработает. Нужна модель с поддержкой вызова инструментов.');
-  const L1=$$('.cdl',s);L1[0].textContent=L('Папка проекта (внутри Termux или песочницы)');L1[1].textContent=L('Лимит шагов за запрос');L1[2].textContent=L('Где выполнять команды');L1[3].textContent=L('Читать инструкции проекта (KAIREMA.md, AGENTS.md, CLAUDE.md)');L1[4].textContent=L('Хуки проекта (.kairema/hooks.json): запускают команды без вопросов, включайте только для своих проектов');
-  const mm=$('.cdm',s),rm=()=>{mm.innerHTML='';Object.keys(MODES).forEach(k=>{const b=el('<button class="cdo"><b></b><small></small></button>');$('b',b).textContent=L(MODES[k][0]);$('small',b).textContent=L(MODES[k][1]);b.classList.toggle('on',cfg.mode===k);b.onclick=()=>{cfg.mode=k;save();rm()};mm.append(b)})};rm();
-  const di=$('[data-d]',s);di.value=cfg.dir;di.onchange=()=>{const v=di.value.trim();cfg.dir=v&&!/\.\./.test(v)?v:'kairema-work';di.value=cfg.dir;envC=null;save()};
-  const pd=$('[data-pd]',s);pd.textContent=L('Выбрать папку…');pd.onclick=()=>pickDir(v=>{di.value=v});
+  $('.sub',s).textContent=L('Модель сама читает файлы, правит код и запускает команды, пока задача не будет решена. Нужна модель, которая умеет вызывать инструменты.');
+  const body=$('.cdbody',s);
+  const part=(title,hint)=>{const w=el('<div class="cdp2"><label class="cdl"></label><div class="cdhint"></div></div>');$('.cdl',w).textContent=L(title);$('.cdhint',w).textContent=L(hint);body.append(w);return w};
   const seg=(box,opts,get,set)=>{const r=()=>{box.innerHTML='';opts.forEach(([v,t])=>{const b=el('<button class="cdg"></button>');b.textContent=t;b.classList.toggle('on',get()===v);b.onclick=()=>{set(v);save();r()};box.append(b)})};r()};
-  seg($('[data-s]',s),[[20,'20'],[40,'40'],[80,'80'],[150,'150']],()=>cfg.steps,v=>cfg.steps=v);
-  seg($('[data-e]',s),[['auto',L('Авто')],['sandbox',L('Песочница')],['termux','Termux']],()=>cfg.env,v=>{cfg.env=v;envC=null});
-  seg($('[data-n]',s),[[1,L('Да')],[0,L('Нет')]],()=>cfg.instr===0?0:1,v=>cfg.instr=v);
-  const mb=$('[data-mcp]',s);if(typeof Mcp!=='undefined'){mb.textContent=L('MCP-серверы…')+(Mcp.count()?' ('+Mcp.count()+')':'');mb.onclick=()=>Mcp.panel()}else mb.remove();
-  seg($('[data-h]',s),[[0,L('Выкл')],[1,L('Вкл')]],()=>cfg.hooks===1?1:0,v=>cfg.hooks=v);
-  const inf=$('[data-i]',s);inf.textContent=L('Авто: Termux, если он установлен и разрешён, иначе песочница приложения (без git и python).');
-  const ck=$('[data-ck]',s);ck.textContent=L('Проверить окружение');ck.onclick=async()=>{inf.textContent=L('Проверяю…');try{const e=await env(1);inf.textContent=(e.be==='termux'?'Termux':L('Песочница'))+(e.info?': '+e.info:'')}catch(x){inf.textContent=x.message}};
-  const ok=$('[data-ok]',s);ok.textContent=L('Готово');ok.onclick=()=>{cfg.on=1;save();s.close();bar($('#v-api'))};
-  const off=$('[data-off]',s);off.textContent=L('Выключить агента');off.onclick=()=>{cfg.on=0;save();s.close();bar($('#v-api'))}}
+  const mk=(w,html)=>{const x=el(html);w.append(x);return x};
+  /* 1. Режим */
+  const w1=part('Что агенту можно делать сам','Выберите, насколько самостоятельно он работает. В режиме «Полный авто» опасные команды (удаление, sudo) он всё равно подтверждает.');
+  const mm=mk(w1,'<div class="cdm"></div>'),rm=()=>{mm.innerHTML='';Object.keys(MODES).forEach(k=>{const b=el('<button class="cdo"><b></b><small></small></button>');$('b',b).textContent=L(MODES[k][0]);$('small',b).textContent=L(MODES[k][1]);b.classList.toggle('on',cfg.mode===k);b.onclick=()=>{cfg.mode=k;save();rm()};mm.append(b)})};rm();
+  /* 2. Папка */
+  const w2=part('Папка проекта','Рабочая папка агента: в ней он читает и правит файлы. Лежит внутри Termux или песочницы приложения.');
+  const di=mk(w2,'<input class="cdi" data-d autocomplete="off" autocapitalize="off" spellcheck="false">');di.value=cfg.dir;di.onchange=()=>{const v=di.value.trim();cfg.dir=v&&!/\.\./.test(v)?v:'kairema-work';di.value=cfg.dir;envC=null;save()};
+  const pd=mk(w2,'<button class="btn ghost" data-pd style="width:100%;margin-top:6px"></button>');pd.textContent=L('Выбрать папку…');pd.onclick=()=>pickDir(v=>{di.value=v});
+  /* 3. Шаги */
+  const w3=part('Лимит шагов за запрос','Шаг — одно действие агента: прочитать файл, править, запустить команду. Больше шагов — длиннее задача, но дольше и дороже.');
+  seg(mk(w3,'<div class="cdr" data-s></div>'),[[20,'20'],[40,'40'],[80,'80'],[150,'150']],()=>cfg.steps,v=>cfg.steps=v);
+  /* 4. Где команды */
+  const w4=part('Где выполнять команды','Песочница встроена в приложение, но без git и python. Termux — полноценная оболочка, его нужно установить отдельно и разрешить доступ. «Авто» берёт Termux, если он готов, иначе песочницу.');
+  seg(mk(w4,'<div class="cdr" data-e></div>'),[['auto',L('Авто')],['sandbox',L('Песочница')],['termux','Termux']],()=>cfg.env,v=>{cfg.env=v;envC=null});
+  const ck=mk(w4,'<button class="btn ghost" data-ck style="width:100%;margin-top:6px"></button>');ck.textContent=L('Проверить, где работает');
+  const inf=mk(w4,'<div class="cdi2" data-i></div>');inf.textContent=L('Нажмите «Проверить», чтобы увидеть, где сейчас выполняются команды.');
+  ck.onclick=async()=>{inf.textContent=L('Проверяю…');try{const e=await env(1);inf.textContent=(e.be==='termux'?'Termux':L('Песочница'))+(e.info?': '+e.info:'')}catch(x){inf.textContent=x.message}};
+  /* 5. Инструкции */
+  const w5=part('Читать правила проекта','Если в папке есть файл KAIREMA.md, AGENTS.md или CLAUDE.md, агент прочитает его перед работой как правила проекта (стиль, как запускать тесты).');
+  seg(mk(w5,'<div class="cdr" data-n></div>'),[[1,L('Да')],[0,L('Нет')]],()=>cfg.instr===0?0:1,v=>cfg.instr=v);
+  /* 6. Хуки */
+  const w6=part('Автозапуск ваших команд (хуки)','Команды из файла .kairema/hooks.json запускаются сами, например проверка после каждой правки. Они идут без вопросов, поэтому включайте только для своих проектов.');
+  seg(mk(w6,'<div class="cdr" data-h></div>'),[[0,L('Выкл')],[1,L('Вкл')]],()=>cfg.hooks===1?1:0,v=>cfg.hooks=v);
+  /* 7. MCP */
+  const w7=part('Внешние инструменты (MCP)','MCP подключает к агенту сторонние сервисы по ссылке: например, базу знаний, трекер задач или поиск. Нужно только если у вас есть такой сервер; иначе пропустите.');
+  const mb=mk(w7,'<button class="btn ghost" data-mcp style="width:100%"></button>');if(typeof Mcp!=='undefined'){mb.textContent=L('MCP-серверы…')+(Mcp.count()?' ('+Mcp.count()+')':'');mb.onclick=()=>Mcp.panel()}else w7.remove();
+  /* кнопки */
+  const ok=el('<button class="btn" data-ok style="width:100%;margin-top:14px"></button>');ok.textContent=cfg.on?L('Готово'):L('Включить агента');
+  ok.onclick=()=>{const was=cfg.on;cfg.on=1;save();s.close();barAnim=was?0:1;bar($('#v-api'))};
+  const off=el('<button class="btn ghost" data-off style="width:100%;margin-top:8px"></button>');off.textContent=L('Выключить агента');if(!cfg.on)off.style.display='none';
+  off.onclick=()=>{cfg.on=0;save();s.close();barAnim=1;bar($('#v-api'))};
+  body.after(ok);ok.after(off)}
  Hooks.on('chat:rendered',v=>bar(v));
  Hooks.on('settings:rendered',v=>{
   const ab=$('[data-go="about"]',v);if(!ab||$('[data-coder-s]',v))return;
   const r=el('<button class="sr" data-coder-s><span class="si c">'+ic('term')+'</span><span class="m"><b></b><small></small></span>'+ic('chevR')+'</button>');
   $('b',r).textContent=L('Агент-программист');$('small',r).textContent=L('Модель сама правит код и запускает проверки (Termux или песочница)');
   r.onclick=panel;ab.before(r)});
- i18nAdd({"Выкл":"Off","Вкл":"On","Хуки проекта (.kairema/hooks.json): запускают команды без вопросов, включайте только для своих проектов":"Project hooks (.kairema/hooks.json): they run commands without asking, enable only for your own projects","Применить правки?":"Apply the edits?","Открыть сайт?":"Open the site?","Вызвать инструмент MCP?":"Call the MCP tool?","Да":"Yes","Нет":"No","MCP-серверы…":"MCP servers…","Читать инструкции проекта (KAIREMA.md, AGENTS.md, CLAUDE.md)":"Read project instructions (KAIREMA.md, AGENTS.md, CLAUDE.md)","Изменения":"Changes","Изменения агента":"Agent changes","Закрыть":"Close","Загружаю…":"Loading…","Изменений нет":"No changes","Откатить к точке":"Roll back to checkpoint","Откатить к точке?":"Roll back to the checkpoint?","Файлы проекта вернутся к состоянию до этого запуска агента, новые файлы удалятся. Ваши правки после запуска тоже пропадут.":"Project files return to the state before this agent run; new files are deleted. Your own edits made since then are lost too.","Папка проекта":"Project folder","Выбрать папку…":"Choose a folder…","Выбрать эту папку":"Use this folder","Отмена":"Cancel","Папок нет":"No folders","Батарея ниже 15%: долгий прогон агента может не завершиться":"Battery below 15%: a long agent run may not finish","Агент-программист":"Coding agent","Агент":"Agent","Только чтение":"Read only","Спрашивать":"Ask first","Правки сами":"Auto-edit","Полный авто":"Full auto","Читает и ищет, ничего не меняет и не запускает":"Reads and searches only","Читает сам; каждую правку и команду показывает и ждёт разрешения":"Reads on its own; asks before every edit and command","Файлы правит сам; команды (кроме безопасных вроде ls, git status) спрашивает":"Edits files itself; asks before commands (except safe ones like ls, git status)","Правит и запускает всё сам; опасные команды (rm -r, sudo…) всё равно спрашивает":"Edits and runs everything itself; still asks for dangerous commands (rm -r, sudo…)","Отклонить":"Deny","Разрешить":"Allow","Разрешать такое до конца чата":"Allow this kind until the chat ends","Изменить файл?":"Change the file?","Записать файл?":"Write the file?","Откатить правки":"Undo changes","Откатить правки?":"Undo changes?","Откатить":"Undo","Правки откатаны":"Changes undone","Файлы вернутся к состоянию до этого запуска агента.":"Files will return to the state before this agent run.","Готово":"Done","Выключить агента":"Turn the agent off","Проверить окружение":"Check the environment","Проверяю…":"Checking…","Песочница":"Sandbox","Авто":"Auto","Лимит шагов за запрос":"Step limit per request","Где выполнять команды":"Where to run commands","Папка проекта (внутри Termux или песочницы)":"Project folder (inside Termux or the sandbox)","Модель сама читает файлы, правит код, запускает команды и повторяет, пока не заработает. Нужна модель с поддержкой вызова инструментов.":"The model reads files, edits code, runs commands and repeats until it works. Needs a model that supports tool calling.","Авто: Termux, если он установлен и разрешён, иначе песочница приложения (без git и python).":"Auto: Termux if installed and allowed, otherwise the app sandbox (no git or python).","Модель сама правит код и запускает проверки (Termux или песочница)":"The model edits code and runs checks itself (Termux or sandbox)"});
- const toggle=v=>{cfg.on=v===undefined?(cfg.on?0:1):(v?1:0);save();const x=$('#v-api');if(x)bar(x)};
+ i18nAdd({"Что агенту можно делать сам":"What the agent may do on its own","Выберите, насколько самостоятельно он работает. В режиме «Полный авто» опасные команды (удаление, sudo) он всё равно подтверждает.":"Choose how independently it works. In Full auto it still asks before dangerous commands (delete, sudo).","Рабочая папка агента: в ней он читает и правит файлы. Лежит внутри Termux или песочницы приложения.":"The agent's working folder: it reads and edits files here. Lives inside Termux or the app sandbox.","Шаг — одно действие агента: прочитать файл, править, запустить команду. Больше шагов — длиннее задача, но дольше и дороже.":"A step is one action: read a file, edit, run a command. More steps handle longer tasks but cost more time and money.","Песочница встроена в приложение, но без git и python. Termux — полноценная оболочка, его нужно установить отдельно и разрешить доступ. «Авто» берёт Termux, если он готов, иначе песочницу.":"The sandbox is built in but has no git or python. Termux is a full shell: install it separately and allow access. Auto uses Termux if ready, otherwise the sandbox.","Проверить, где работает":"Check where it runs","Нажмите «Проверить», чтобы увидеть, где сейчас выполняются команды.":"Press Check to see where commands run now.","Читать правила проекта":"Read project rules","Если в папке есть файл KAIREMA.md, AGENTS.md или CLAUDE.md, агент прочитает его перед работой как правила проекта (стиль, как запускать тесты).":"If the folder has KAIREMA.md, AGENTS.md or CLAUDE.md, the agent reads it first as project rules (style, how to run tests).","Автозапуск ваших команд (хуки)":"Auto-run your commands (hooks)","Команды из файла .kairema/hooks.json запускаются сами, например проверка после каждой правки. Они идут без вопросов, поэтому включайте только для своих проектов.":"Commands from .kairema/hooks.json run by themselves, e.g. a check after every edit. They run without asking, so enable only for your own projects.","Внешние инструменты (MCP)":"External tools (MCP)","MCP подключает к агенту сторонние сервисы по ссылке: например, базу знаний, трекер задач или поиск. Нужно только если у вас есть такой сервер; иначе пропустите.":"MCP connects third-party services to the agent by link: e.g. a knowledge base, task tracker or search. Only needed if you have such a server; otherwise skip it.","Включить агента":"Turn the agent on","Модель сама читает файлы, правит код и запускает команды, пока задача не будет решена. Нужна модель, которая умеет вызывать инструменты.":"The model reads files, edits code and runs commands until the task is solved. Needs a model that can call tools.","Выкл":"Off","Вкл":"On","Хуки проекта (.kairema/hooks.json): запускают команды без вопросов, включайте только для своих проектов":"Project hooks (.kairema/hooks.json): they run commands without asking, enable only for your own projects","Применить правки?":"Apply the edits?","Открыть сайт?":"Open the site?","Вызвать инструмент MCP?":"Call the MCP tool?","Да":"Yes","Нет":"No","MCP-серверы…":"MCP servers…","Читать инструкции проекта (KAIREMA.md, AGENTS.md, CLAUDE.md)":"Read project instructions (KAIREMA.md, AGENTS.md, CLAUDE.md)","Изменения":"Changes","Изменения агента":"Agent changes","Закрыть":"Close","Загружаю…":"Loading…","Изменений нет":"No changes","Откатить к точке":"Roll back to checkpoint","Откатить к точке?":"Roll back to the checkpoint?","Файлы проекта вернутся к состоянию до этого запуска агента, новые файлы удалятся. Ваши правки после запуска тоже пропадут.":"Project files return to the state before this agent run; new files are deleted. Your own edits made since then are lost too.","Папка проекта":"Project folder","Выбрать папку…":"Choose a folder…","Выбрать эту папку":"Use this folder","Отмена":"Cancel","Папок нет":"No folders","Батарея ниже 15%: долгий прогон агента может не завершиться":"Battery below 15%: a long agent run may not finish","Агент-программист":"Coding agent","Агент":"Agent","Только чтение":"Read only","Спрашивать":"Ask first","Правки сами":"Auto-edit","Полный авто":"Full auto","Читает и ищет, ничего не меняет и не запускает":"Reads and searches only","Читает сам; каждую правку и команду показывает и ждёт разрешения":"Reads on its own; asks before every edit and command","Файлы правит сам; команды (кроме безопасных вроде ls, git status) спрашивает":"Edits files itself; asks before commands (except safe ones like ls, git status)","Правит и запускает всё сам; опасные команды (rm -r, sudo…) всё равно спрашивает":"Edits and runs everything itself; still asks for dangerous commands (rm -r, sudo…)","Отклонить":"Deny","Разрешить":"Allow","Разрешать такое до конца чата":"Allow this kind until the chat ends","Изменить файл?":"Change the file?","Записать файл?":"Write the file?","Откатить правки":"Undo changes","Откатить правки?":"Undo changes?","Откатить":"Undo","Правки откатаны":"Changes undone","Файлы вернутся к состоянию до этого запуска агента.":"Files will return to the state before this agent run.","Готово":"Done","Выключить агента":"Turn the agent off","Проверить окружение":"Check the environment","Проверяю…":"Checking…","Песочница":"Sandbox","Авто":"Auto","Лимит шагов за запрос":"Step limit per request","Где выполнять команды":"Where to run commands","Папка проекта (внутри Termux или песочницы)":"Project folder (inside Termux or the sandbox)","Модель сама читает файлы, правит код, запускает команды и повторяет, пока не заработает. Нужна модель с поддержкой вызова инструментов.":"The model reads files, edits code, runs commands and repeats until it works. Needs a model that supports tool calling.","Авто: Termux, если он установлен и разрешён, иначе песочница приложения (без git и python).":"Auto: Termux if installed and allowed, otherwise the app sandbox (no git or python).","Модель сама правит код и запускает проверки (Termux или песочница)":"The model edits code and runs checks itself (Termux or sandbox)"});
+ const toggle=v=>{cfg.on=v===undefined?(cfg.on?0:1):(v?1:0);save();barAnim=1;const x=$('#v-api');if(x)bar(x)};
  return{on:()=>!!cfg.on,toggle,respond,cfg,tools:TOOLS,allTools,register,defs,toOAI,toAnth,safeCmd,rel,trunc,shrink,panel,env,MODES,get envC(){return envC},_reset(){envC=null},_net(t,b){NET_TRIES=t;NET_BASE=b}}})();

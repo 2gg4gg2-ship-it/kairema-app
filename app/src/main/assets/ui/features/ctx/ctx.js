@@ -54,7 +54,7 @@ const Ctx=(()=>{
   finally{Chx.busy=0}};
  if(typeof Roles!=='undefined'&&Roles.actions)Roles.actions.push({id:'a:compact',cmd:'compact',kind:'action',n:['Сжать контекст','Compress context'],d:['Заменить старую часть чата кратким пересказом для модели','Replace the older part of the chat with a short summary for the model'],run:api.run});
  /* Пометка на экране и подсказка про длинный чат */
- Hooks.on('msg:render',(d,m)=>{if(m&&m.x&&m.x.cx&&!d.querySelector('.cxm')){const n=el('<div class="cxm"></div>');n.textContent='✂ '+L('Контекст сжат');d.append(n)}});
+ Hooks.on('msg:render',(d,m)=>{if(m&&m.x&&m.x.cx&&!d.querySelector('.cxm')){const n=el('<div class="cxm"></div>');n.textContent=L('Контекст сжат');d.append(n)}});
  let hinted=0;
  Hooks.on('chat:answer',()=>{if(!hinted&&api.size(S.apiMsgs)>LIM&&api.cut(S.apiMsgs)>=0){hinted=1;toast(L('Чат длинный. Наберите /compact, чтобы сжать контекст'))}});
 

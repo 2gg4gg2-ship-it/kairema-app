@@ -105,7 +105,7 @@ const Term=(()=>{
    add(good?'o':'e',(good?'✓ ':'✗ ')+c.n+(good?'':'   → '+((r.err||r.out||'').trim().replace(/\s+/g,' ').slice(0,90)||('код '+r.code))))}
   try{await exec('cd .. 2>/dev/null; rm -rf kt_dir kt_t.txt kt_f.txt',{timeout:10})}catch(e){}
   cur=null;
-  add(pass===Q.length?'o':'e',(pass===Q.length?'✅ ':'⚠ ')+L2('Пройдено ','Passed ')+pass+L2(' из ',' of ')+Q.length+(pass===Q.length?'':L2('. Пришлите этот вывод ИИ или разработчику.','. Send this output to the AI or the developer.')));
+  add(pass===Q.length?'o':'e',L2('Пройдено ','Passed ')+pass+L2(' из ',' of ')+Q.length+(pass===Q.length?'':L2('. Пришлите этот вывод ИИ или разработчику.','. Send this output to the AI or the developer.')));
   tick();return{pass,total:Q.length}}
  /* Остановка. Если оболочка не ответила на отмену (внучатый процесс держит вывод), через 2,5 с запуск освобождается принудительно,
     чтобы ввод и кнопка не оставались заблокированными навсегда. */

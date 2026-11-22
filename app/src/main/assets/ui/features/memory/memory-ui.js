@@ -86,7 +86,7 @@ i18nAdd({"ПЕРСОНАЛИЗАЦИЯ":"PERSONALIZATION","Память":"Memory
      $('.n',r).textContent=String(k+1).padStart(2,'0');
      $('p',r).textContent=x[0];
      const sm=document.createElement('small');sm.className='mtag';
-     sm.textContent=(m.p?'📌 ':'')+Mem.label(m.c)+(m.a?' · '+L('авто'):'')+(x[1]?' · '+x[1]:'');
+     sm.textContent=(m.p?L('закреплено')+' · ':'')+Mem.label(m.c)+(m.a?' · '+L('авто'):'')+(x[1]?' · '+x[1]:'');
      $('p',r).after(sm);
      $('[data-p]',r).textContent=L(m.p?'Открепить':'Закрепить');
      $('[data-e]',r).textContent=L('Править');$('[data-d]',r).textContent=L('Удалить');
@@ -104,7 +104,7 @@ i18nAdd({"ПЕРСОНАЛИЗАЦИЯ":"PERSONALIZATION","Память":"Memory
   const ids=(Mem.used||[]).slice();if(!ids.length||!S.mem)return;
   const d=bd&&bd.closest&&bd.closest('.msg');if(!d)return;
   setTimeout(()=>{const row=$('.msg-act',d);if(!row||$('.mem-used',row))return;
-   const b=el('<button class="mem-used"></button>');b.textContent='🧠 '+ids.length;
+   const b=el('<button class="mem-used"></button>');b.textContent=L('Память')+' '+ids.length;
    b.onclick=()=>{
     const s=sheet('<h2 style="margin-bottom:12px"></h2><div class="mn-l"></div><button class="btn" data-c style="width:100%;margin-top:14px"></button>');
     $('h2',s).textContent=L('Что видит модель');

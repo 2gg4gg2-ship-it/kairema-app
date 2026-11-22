@@ -121,7 +121,7 @@ function mdSources(bd,m){
    e.preventDefault();clearTimeout(tm);
    if(d.classList.contains('op')){d.classList.remove('op');tm=setTimeout(()=>{d.open=false},300)}
    else{d.open=true;void l.offsetHeight;d.classList.add('op')}})}
- if(m.serr){const e=mdTag('div','srcs serr');e.textContent='⚠ Поиск не сработал: '+m.serr;bd.append(e)}}
+ if(m.serr){const e=mdTag('div','srcs serr');e.textContent='Поиск не сработал: '+m.serr;bd.append(e)}}
 /* Полная отрисовка ответа в элемент bd. m нужен для источников (необязательно). */
 function mdRender(bd,text,m){
  if(bd._mr){cancelAnimationFrame(bd._mr);bd._mr=0}

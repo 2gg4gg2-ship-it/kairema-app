@@ -3,7 +3,7 @@
    запомнить». Модель возвращает JSON-операции add/update/delete над списком фактов. Запрос идёт только если включено «Умное
    извлечение» и сообщение похоже на рассказ о себе (есть «я/мне/мой/запомни…»), чтобы не тратить токены зря.
    Безопасность: секреты (ключи, пароли, номера карт) отбрасываются; удаление работает только если пользователь сам попросил «забудь…»;
-   за один раз не больше 3 операций; всё найденное помечено «авто», видно в чате маркой «🧠» с кнопкой «Отменить».
+   за один раз не больше 3 операций; всё найденное помечено «авто», видно в чате кнопкой «Память» с числом изменений и кнопкой «Отменить».
    Также: Mem.ai.scan() — разовый разбор старых чатов. Токены этих запросов в «Расходы» не входят. */
 i18nAdd({"Запомнено":"Remembered","Обновлено":"Updated","Забыто":"Forgotten","Отменить":"Undo","Что изменилось в памяти":"What changed in memory","Отменено":"Undone","Нечего разбирать: нет подходящих сообщений":"Nothing to scan: no suitable messages","Нужен подключённый провайдер ИИ":"A connected AI provider is required","Ничего нового не найдено":"Nothing new found","Новых фактов":"New facts","Закрыть":"Close","Подождите, идёт другой разбор":"Wait, another scan is running"});
 Mem.ai=(()=>{
@@ -47,7 +47,7 @@ Mem.ai=(()=>{
   const row=d&&$('.msg-act',d);if(!row||!ch.length)return;
   $('.mem-new',row)?.remove();
   const b=el('<button class="mem-new"></button>');
-  b.textContent='🧠 '+ch.length;b.title=L('Что изменилось в памяти');
+  b.textContent=L('Память')+' '+ch.length;b.title=L('Что изменилось в памяти');
   b.onclick=()=>{
    const s=sheet('<h2 style="margin-bottom:12px"></h2><div class="mn-l"></div><div class="two" style="margin-top:16px"><button class="btn ghost" data-c></button><button class="btn danger" data-u></button></div>');
    $('h2',s).textContent=L('Что изменилось в памяти');

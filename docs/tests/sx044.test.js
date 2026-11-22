@@ -25,7 +25,7 @@ const w=dom.window,sleep=ms=>new Promise(r=>setTimeout(r,ms)),ev=c=>w.eval(c),q=
  const icons=qa('#v-set .sx-g:not(.sx-id) .sx-r .si').map(e=>e.innerHTML);assert(new Set(icons).size>=icons.length-2,'icons are distinct: '+new Set(icons).size+'/'+icons.length);
  // 4. каждая известная строка на месте и ровно один раз
  ['mem','tpl','add','adds'].forEach(k=>assert.equal(qa(`#v-set [data-go=${k}]`).length,1,k));
- ['theme','log','cost','backup','roles','fd','coder-s','org-s','a11y-s','ca','qh','qc','rag','upd','feel','feels'].forEach(k=>assert.equal(qa(`#v-set [data-${k}]`).length,1,k));
+ ['theme','log','cost','backup','roles','fd','coder-s','org-s','ca','qh','qc','rag','upd','feel','feels'].forEach(k=>assert.equal(qa(`#v-set [data-${k}]`).length,1,k));
  // 5. редкое свёрнуто в «Дополнительно» и раскрывается
  const adv=q('#v-set .sx-adv');assert(adv&&!adv.classList.contains('on'),'advanced collapsed');assert.equal(adv.querySelectorAll('.sx-r').length,3);
  assert.equal(adv.querySelector('em').textContent,'3');

@@ -5,7 +5,7 @@ const syncEn=(ru,en)=>LANG==='en'?en:ru;
 function syncText(){
  const s=Sync.status();
  if(s.running)return syncEn('Синхронизация…','Syncing…');
- if(s.err)return '⚠ '+s.err;
+ if(s.err)return s.err;
  const t=s.last?new Date(s.last).toLocaleTimeString(LANG==='en'?'en-US':'ru-RU',{hour:'2-digit',minute:'2-digit'}):'';
  if(!t)return syncEn('Ещё не синхронизировано','Not synced yet');
  return syncEn('Синхронизировано в ','Synced at ')+t+(s.pending?syncEn(', ждут отправки: ',', waiting to upload: ')+s.pending:'')}
