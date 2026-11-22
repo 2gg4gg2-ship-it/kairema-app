@@ -1,14 +1,7 @@
 /* ===== ДИЗАЙН-СЛОЙ 0.34: спокойный вид, один акцентный цвет =====
    Только стили поверх ядра (подключается последним). Цвета только из токенов: фон, текст и один акцент var(--blue) в мелочах.
    Убрать: удалить папку features/design и её строки в index.html: интерфейс вернётся к прежнему виду. */
-/* ---- Настройки ---- */
-#v-set .st>.card.pf{padding:20px 18px;border-radius:26px;gap:16px}
-#v-set .card.pf .ini{width:60px;height:60px;font-size:24px}
-#v-set .card.pf b{font-size:21px}
-/* единственный цветной элемент настроек: справка */
-#v-set .hp-set{margin:10px 0;padding:16px;border-radius:22px;border-color:color-mix(in srgb,var(--blue) 40%,var(--line));background:radial-gradient(130% 170% at 0% 0%,color-mix(in srgb,var(--blue) 22%,transparent),transparent 65%),var(--s1)}
-#v-set .hp-set-i{background:color-mix(in srgb,var(--blue) 18%,var(--s2));color:var(--blue)}
-.st .grp{border-radius:22px}
+/* ---- Настройки: оформление в features/setlayout (sx-) ---- */
 /* ---- Справка: одна широкая карточка в начале, дальше ровная сетка ---- */
 .hp-card{border-radius:20px;background:var(--s1)}
 .hp-card:nth-child(1){grid-column:1/-1;flex-direction:row;align-items:center;gap:14px;min-height:84px}
@@ -33,12 +26,3 @@
 .dz-t span b,.dz-t span small{display:block}
 .dz-t b{font:650 16px/1.2 var(--body)}
 .dz-t small{margin-top:3px;color:var(--tx2);font-size:12.5px;line-height:1.35}
-/* ---- Строки-переходы в Настройках: обычный список в карточке вместо мелких плиток ---- */
-.st .stl{display:block;border:1px solid var(--line);border-radius:22px;background:var(--s1);overflow:hidden}
-.st .stl .sr,.st .stl .sr:last-child:nth-child(odd){position:static;flex-direction:row;align-items:center;gap:12px;min-height:0;padding:13px 14px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none}
-.st .stl .sr:last-child,.st .stl .sr:last-child:nth-child(odd){border-bottom:0}
-.st .stl .sr .si,.st .stl .sr .si.c{width:40px;height:40px;flex:none}
-.st .stl .sr .m,.st .stl .sr:last-child:nth-child(odd) .m{width:auto;flex:1;min-width:0}
-.st .stl .sr b{font-size:16px}
-.st .stl .sr small{display:block;-webkit-line-clamp:unset;font-size:13px}
-.st .stl .sr>svg:last-child,.st .stl .sr:last-child:nth-child(odd)>svg:last-child{position:static;width:18px;height:18px;opacity:.5;flex:none}

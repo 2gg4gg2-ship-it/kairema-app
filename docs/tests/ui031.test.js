@@ -50,9 +50,5 @@ const w=dom.window,sleep=ms=>new Promise(r=>setTimeout(r,ms)),ev=c=>w.eval(c),q=
  const sc=q('.cbw');assert(!sc.classList.contains('big')&&!sc.querySelector('.cbm'),'short code is not collapsed');
  ev("mdRender(window.__bd,'```js\\n"+long.replace(/\n/g,'\\n')+"')");
  const lv=q('.cbw');assert(lv.classList.contains('live')&&lv.classList.contains('big')&&!lv.querySelector('.cbm'),'streaming code is compact without the button');
- // --- настройки: плитки
- ev("show('set')");await sleep(500);
- assert(q('#v-set .st .stl'),'tiles grid');assert(qa('#v-set .stl .sr').length>=4,'tiles: '+qa('#v-set .stl .sr').length);
- assert(q('#v-set [data-go=mem]').closest('.stl'),'memory is a tile');assert(q('#v-set [data-tg=web]').closest('.grp'),'switch row stays a list row');
- q('#v-set [data-go=mem]').click();await sleep(300);assert(q('[data-screen=memory]')||q('.spg'),'tile click works');
+ // --- настройки: раскладка проверяется в sx044.test.js
  console.log('ERRORS:',errs.length?errs:'none');process.exit(0)})().catch(e=>{console.log('FAIL',e.stack.split('\n').slice(0,4).join(' | '),errs);process.exit(1)});
