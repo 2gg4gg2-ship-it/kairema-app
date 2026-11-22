@@ -1,0 +1,2 @@
+/* Стили модуля log: экран «Журнал ошибок». */
+.lg-box{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--s1);color:var(--tx);font:500 12.5px/1.55 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;max-height:60vh;overflow:auto;-webkit-user-select:text;user-select:text}

@@ -1,0 +1,28 @@
+/* Стили модуля artifacts: панель под блоком кода и таблицей, предпросмотр страницы. */
+.art-bar{display:flex;flex-wrap:wrap;gap:8px;margin:-.3em 0 .85em;-webkit-user-select:none;user-select:none;animation:in .35s var(--ease) backwards}
+.art-tb{margin-top:-.4em}
+.art-b{display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:0 13px;border:1px solid var(--line);border-radius:11px;background:var(--s2);color:var(--tx);font:600 13px/1 var(--body);transition:background .2s var(--ease),transform .15s var(--ease)}
+.art-b svg.i{width:16px;height:16px;flex:none}
+.art-b:active{transform:scale(.95);background:var(--s1)}
+@media (hover:hover){.art-b:hover{background:var(--s1)}}
+
+.art-fr{flex:1;min-height:0;margin:4px 14px 0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+.art-fr iframe{display:block;width:100%;height:100%;border:0;background:#fff;touch-action:pan-x pan-y}
+.art-z{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px 0}
+.art-z button{min-width:48px;min-height:44px;padding:0 14px;border-radius:14px;border:1px solid var(--line);background:var(--s1);color:var(--tx);font:600 20px var(--body)}
+.art-z .art-zl{font:600 14px var(--mono);min-width:76px}
+.art-z button:active{transform:scale(.96)}
+.art-bot{display:flex;flex-direction:column}
+.art-ft{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px calc(12px + var(--sab))}
+/* Горизонтальное положение: масштаб слева, действия справа в одном ряду, странице остаётся почти вся высота */
+@media (orientation:landscape) and (max-height:560px){
+ #app{max-width:none}
+ .art-bot{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:6px 14px calc(6px + var(--sab))}
+ .art-bot .art-z{padding:0}.art-bot .art-ft{padding:0;flex-wrap:nowrap;flex:1;justify-content:flex-end}
+ .art-z button{min-height:44px}.art-bot .art-ft{min-width:0}.art-ft .art-b{min-height:44px;flex:1 1 0;min-width:0;padding:0 8px;gap:4px}.art-ft .art-b span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .art-fr{margin-top:2px}}
+.art-ft .art-b{flex:1 1 auto;justify-content:center}
+
+.art-rot{margin-left:auto}
+.art-rot[aria-pressed=true]{background:var(--tx);color:var(--on)}
+@media (orientation:landscape) and (max-height:520px){.art-game .art-bot{display:none}.art-land .art-fr{margin:0;border-radius:0;border-width:0}.art-land .top{padding-top:4px;padding-bottom:4px;min-height:0}.art-land .top h2{display:none}}

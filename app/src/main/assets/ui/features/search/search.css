@@ -1,0 +1,14 @@
+/* ===== ПОИСК ПО ЧАТАМ И КОДУ ===== */
+.srch-in{margin:4px 0 12px}
+.srch-seg{flex-wrap:wrap}
+.srch-g{background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:10px 6px 6px;margin-bottom:10px}
+.srch-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:2px 10px 6px;cursor:pointer}
+.srch-t{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srch-h small{color:var(--tx2);font-size:12.5px;flex:none}
+.srch-hit{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:10px;color:var(--tx2);font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+.srch-hit:active{background:var(--s2)}
+.srch-hit.code .srch-sn{font-family:var(--mono);font-size:12.5px}
+.srch-tag{display:inline-block;margin-right:8px;padding:1px 7px;border-radius:6px;background:var(--s2);color:var(--tx);font:500 11.5px var(--mono)}
+.srch-cnt{margin:0 4px 10px}
+.msg.srch-flash{animation:srchf 2.2s var(--ease)}
+@keyframes srchf{0%,40%{background:color-mix(in srgb,var(--ac) 18%,transparent);box-shadow:0 0 0 6px color-mix(in srgb,var(--ac) 18%,transparent);border-radius:8px}}

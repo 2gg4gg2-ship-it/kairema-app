@@ -1,0 +1,11 @@
+/* Стили модуля presets: выбор готового сервиса в форме провайдера. */
+.pre{margin:0 0 14px}
+.pre-l{display:block;margin:0 2px 8px;color:var(--tx2);font:600 13px var(--body)}
+.pre-c{display:flex;flex-wrap:wrap;gap:8px}
+.pre-b{min-height:40px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--s1);color:var(--tx);font:600 14px var(--body);transition:transform .15s var(--ease),background .15s var(--ease)}
+.pre-b:active{transform:scale(.96)}
+.pre-b.on{background:var(--tx);color:var(--on);border-color:var(--tx)}
+.pre-b.other{border-style:dashed}
+.pre-i{margin:10px 2px 0;color:var(--tx2);font-size:13.5px;line-height:1.5;overflow-wrap:anywhere}
+.pre-i b{color:var(--tx)}
+.fld[hidden]{display:none}

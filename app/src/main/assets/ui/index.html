@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Kairema AI</title>
+<link rel="stylesheet" href="features/fonts/fonts.css">
+<link rel="stylesheet" href="core/styles.css">
+<!-- МОДУЛИ (стили): убрать функцию = удалить её строку здесь и папку features/<имя> -->
+<link rel="stylesheet" href="features/markdown/md.css">
+<link rel="stylesheet" href="features/chats/chats.css">
+<link rel="stylesheet" href="features/providers/providers.css">
+<link rel="stylesheet" href="features/about/about.css">
+<link rel="stylesheet" href="features/share/share.css">
+<link rel="stylesheet" href="features/cost/cost.css">
+<link rel="stylesheet" href="features/artifacts/artifacts.css">
+<link rel="stylesheet" href="features/auth/auth.css">
+<link rel="stylesheet" href="features/terminal/terminal.css">
+<link rel="stylesheet" href="features/memory/memory.css">
+<link rel="stylesheet" href="features/scroller/scroller.css">
+<link rel="stylesheet" href="features/tools/tools.css">
+<link rel="stylesheet" href="features/search/search.css">
+<link rel="stylesheet" href="features/roles/roles.css">
+<link rel="stylesheet" href="features/ctx/ctx.css">
+<link rel="stylesheet" href="features/branch/branch.css">
+<link rel="stylesheet" href="features/filediff/filediff.css">
+<link rel="stylesheet" href="features/system/system.css">
+<link rel="stylesheet" href="features/help/help.css">
+<link rel="stylesheet" href="features/log/log.css">
+<link rel="stylesheet" href="features/quality/quality.css">
+<link rel="stylesheet" href="features/presets/presets.css">
+<link rel="stylesheet" href="features/attview/attview.css">
+<link rel="stylesheet" href="features/setlayout/setlayout.css">
+<link rel="stylesheet" href="features/design/design.css">
+<link rel="stylesheet" href="features/ctxbar/ctxbar.css">
+<link rel="stylesheet" href="features/coder/coder.css">
+<link rel="stylesheet" href="features/mcp/mcp.css">
+<link rel="stylesheet" href="features/organize/organize.css">
+<link rel="stylesheet" href="features/a11y/a11y.css">
+<link rel="stylesheet" href="features/updater/updater.css">
+</head>
+<body>
+<div id="app">
+<section class="view on" id="v-api" data-screen="api"></section>
+<section class="view" id="v-term" data-screen="terminal"></section>
+<section class="view" id="v-set" data-screen="settings"></section>
+<nav id="nav" aria-label="Основная навигация"></nav><div class="toast" id="toast"></div>
+<div class="full" id="splash" data-screen="splash"><video class="intro" muted playsinline autoplay preload="auto" src="core/brand/intro.mp4"></video><img class="brandimg intro-fb" src="core/brand/logo.png" alt="Kairema"></div>
+</div>
+<script src="core/hooks.js"></script>
+<script src="features/log/log.js"></script>
+<script src="features/system/system.js"></script>
+<script src="core/config.js"></script>
+<!-- МОДУЛИ (скрипты): обязательные: markdown, chats, providers; необязательные: auth и будущие map, calls -->
+<script src="features/markdown/md.js"></script>
+<script src="features/chats/chats.js"></script>
+<script src="features/caps/caps.js"></script>
+<script src="features/cost/cost.js"></script>
+<script src="features/providers/providers.js"></script>
+<script src="features/memory/memory.js"></script>
+<script src="features/memory/memory-ai.js"></script>
+<script src="features/memory/memory-ui.js"></script>
+<script src="features/auth/auth.js"></script>
+<script src="features/auth/auth-methods.js"></script>
+<script src="features/auth/method-email.js"></script>
+<script src="features/auth/method-device.js"></script>
+<script src="features/auth/auth-ui.js"></script>
+<script src="features/sync/sync.js"></script>
+<script src="features/sync/sync-ui.js"></script>
+<script src="features/terminal/term-compat.js"></script>
+<script src="features/terminal/terminal.js"></script>
+<script src="features/about/about.js"></script>
+<script src="features/share/share.js"></script>
+<script src="features/artifacts/artifacts.js"></script>
+<script src="features/scroller/scroller.js"></script>
+<script src="features/tools/tools.js"></script>
+<script src="features/search/search.js"></script>
+<script src="features/inbox/inbox.js"></script>
+<script src="features/backup/backup-keys.js"></script>
+<script src="features/backup/backup.js"></script>
+<script src="features/roles/roles.js"></script>
+<script src="features/ctx/ctx.js"></script>
+<script src="features/branch/branch.js"></script>
+<script src="features/filediff/filediff.js"></script>
+<script src="features/brand/brand.js"></script>
+<script src="features/quality/quality.js"></script>
+<script src="features/intent/intent.js"></script>
+<script src="features/websearch/websearch.js"></script>
+<script src="features/attach/attach.js"></script>
+<script src="features/pdf/pdf.js"></script>
+<script src="features/attview/attview.js"></script>
+<script src="features/draft/draft.js"></script>
+<script src="features/setlayout/setlayout.js"></script>
+<script src="features/presets/presets.js"></script>
+<script src="features/design/design.js"></script>
+<script src="features/rag/rag.js"></script>
+<script src="features/updater/updater.js"></script>
+<script src="features/feel/feel.js"></script>
+<script src="features/ctxbar/ctxbar.js"></script>
+<script src="features/coder/webtools.js"></script>
+<script src="features/coder/coder.js"></script>
+<script src="features/mcp/mcp.js"></script>
+<script src="features/organize/organize.js"></script>
+<script src="features/cmds/cmds.js"></script>
+<script src="features/a11y/a11y.js"></script>
+<script src="features/help/help-data.js"></script>
+<script src="features/help/help.js"></script>
+<script src="core/base.js"></script>
+<script src="core/messages.js"></script>
+<script src="core/settings.js"></script>
+<script src="core/onboarding.js"></script>
+<script src="core/app.js"></script>
+</body>
+</html>

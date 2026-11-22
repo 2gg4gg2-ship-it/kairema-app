@@ -1,0 +1,28 @@
+/* ===== ДИЗАЙН-СЛОЙ 0.34: спокойный вид, один акцентный цвет =====
+   Только стили поверх ядра (подключается последним). Цвета только из токенов: фон, текст и один акцент var(--blue) в мелочах.
+   Убрать: удалить папку features/design и её строки в index.html: интерфейс вернётся к прежнему виду. */
+/* ---- Настройки: оформление в features/setlayout (sx-) ---- */
+/* ---- Справка: одна широкая карточка в начале, дальше ровная сетка ---- */
+.hp-card{border-radius:20px;background:var(--s1)}
+.hp-card:nth-child(1){grid-column:1/-1;flex-direction:row;align-items:center;gap:14px;min-height:84px}
+/* ---- Чат ---- */
+#v-api .top h1{font-size:32px;letter-spacing:-.04em}
+.prow{border-radius:999px;min-height:46px}
+.msg.u{border-radius:22px 22px 6px 22px;max-width:84%}
+.cmp{border-radius:28px}
+/* ---- Навигация: активная вкладка в «таблетке» ---- */
+.tab.on::after{content:"";position:absolute;z-index:-1;top:6px;bottom:6px;left:50%;width:76px;margin-left:-38px;border-radius:999px;background:color-mix(in srgb,var(--tx) 9%,transparent)}
+.tab::before{display:none}
+/* ---- Стартовые подсказки в пустом чате ---- */
+.dz-wrap{padding:6px 16px 24px}
+.dz-hello{font:700 26px/1.15 var(--disp);letter-spacing:-.03em;margin:8px 2px 14px}
+.dz-hello small{display:block;margin-top:6px;font:500 15px/1.4 var(--body);letter-spacing:0;color:var(--tx2)}
+.dz-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dz-t{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:100px;padding:14px;text-align:left;border-radius:20px;border:1px solid var(--line);background:var(--s1);color:var(--tx);animation:in .5s var(--ease) backwards;animation-delay:calc(var(--i,0)*60ms + .15s);transition:transform .15s var(--ease)}
+.dz-t:active{transform:scale(.97)}
+.dz-t.w6{grid-column:1/-1;flex-direction:row;align-items:center;min-height:72px;gap:14px}
+.dz-t i{font-style:normal;display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:14px;background:var(--s2);color:var(--tx)}
+.dz-t i svg{width:22px;height:22px}
+.dz-t span b,.dz-t span small{display:block}
+.dz-t b{font:650 16px/1.2 var(--body)}
+.dz-t small{margin-top:3px;color:var(--tx2);font-size:12.5px;line-height:1.35}

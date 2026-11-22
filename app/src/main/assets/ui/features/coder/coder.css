@@ -1,0 +1,23 @@
+.cdb{display:block;margin:0 14px 4px;padding:6px 10px;width:calc(100% - 28px);text-align:left;font-size:11.5px;color:var(--ac);background:var(--s2);border-radius:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cdt.on{color:var(--ac)}
+.cdc{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.cds{background:var(--s2);border-radius:9px;font-size:12px;overflow:hidden}
+.cds summary{padding:6px 9px;cursor:pointer;list-style:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx2)}
+.cds summary::-webkit-details-marker{display:none}
+.cds.ok summary{color:var(--tx)}.cds.err summary{color:var(--err)}.cds.no summary{color:var(--tx2);text-decoration:line-through}
+.cds pre{margin:0;padding:6px 9px 8px;max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-word;font:11px/1.4 ui-monospace,monospace;color:var(--tx2)}
+.cdp{max-height:46vh;overflow:auto;white-space:pre-wrap;word-break:break-word;font:12px/1.45 ui-monospace,monospace;background:var(--s2);border-radius:10px;padding:10px;margin:10px 0 0}
+.cdm{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.cdo{text-align:left;padding:9px 11px;border-radius:11px;background:var(--s2);border:1.5px solid transparent;color:var(--tx)}
+.cdo b{display:block;font-size:13.5px}.cdo small{display:block;color:var(--tx2);font-size:11.5px;margin-top:2px}
+.cdo.on{border-color:var(--ac)}
+.cdl{display:block;font-size:12px;color:var(--tx2);margin:10px 0 4px}
+.cdi{width:100%;box-sizing:border-box;padding:9px 11px;border-radius:10px;border:1px solid var(--s2);background:var(--s2);color:var(--tx);font:13px ui-monospace,monospace}
+.cdr{display:flex;gap:6px}.cdg{flex:1;padding:8px 4px;border-radius:10px;background:var(--s2);border:1.5px solid transparent;color:var(--tx);font-size:13px}.cdg.on{border-color:var(--ac)}
+.cdi2{font-size:11.5px;color:var(--tx2);margin-top:8px;word-break:break-word}
+.cdpl{background:var(--s2);border-radius:9px;padding:6px 9px;font-size:12px;margin-bottom:2px}
+.cdpi{padding:1px 0;color:var(--tx2)}.cdpi.done{color:var(--tx);text-decoration:line-through;opacity:.7}.cdpi.doing{color:var(--ac)}
+.cda{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.cdd .dp{color:#2e9d57}.cdd .dm{color:#d24a4a}.cdd .dh{color:var(--tx2)}
+.cdwd{font:11.5px ui-monospace,monospace;color:var(--tx2);word-break:break-all;margin:6px 0}
+.cdls{max-height:44vh;overflow:auto;display:flex;flex-direction:column;gap:4px}
