@@ -172,6 +172,9 @@
 | `features/filediff/filediff.css` | 11 |  |
 | `features/filediff/filediff.js` | 151 | ДИФФЫ И ОТКАТ ФАЙЛОВ АГЕНТА ===== Когда команда из чата (кнопка «Выполнить» или агент) явно пишет в файлы (> и >>, tee, sed -i, mv, cp, rm, touch, truncate), модуль до за |
 | `features/fonts/fonts.css` | 12 | ШРИФТЫ ВНУТРИ ПРИЛОЖЕНИЯ (работают без интернета) ===== Space Grotesk (заголовки), Manrope (текст интерфейса), JetBrains Mono (код), Source Serif 4 (ответы ИИ). |
+| `features/game/engine.js` | 123 | ИГРА «Байт-прыгун»: движок (чистая логика, без DOM) ===== Тут физика, уровни, генератор участков, баги, бонусы и босс «Ошибка 404». |
+| `features/game/game.css` | 37 | Игра «Байт-прыгун»: меню, уровни, плашка «Нет сети». Цвета только из токенов, поэтому работает в тёмной и светлой теме. |
+| `features/game/game.js` | 228 | ИГРА «Байт-прыгун»: экраны, рисование, звук, сохранение ===== Офлайн-игра внутри приложения: пока нет сети или просто для отдыха. |
 | `features/help/help-data.js` | 172 | СПРАВКА: тексты разделов (только данные, без логики) ===== Каждый раздел: id, e (ключ значка из ICON в help.js), t (название), s (подпись на карточке), lead (что это одно |
 | `features/help/help.css` | 66 | Стили модуля help: экран «Справка». Цвета и шрифты только из токенов core/styles.css. |
 | `features/help/help.js` | 89 | СПРАВКА: «Что такое Kairema» — полная инструкция простыми словами ===== Экран SCREENS.help. |
@@ -204,7 +207,7 @@
 | `features/search/search.css` | 15 | ПОИСК ПО ЧАТАМ И КОДУ |
 | `features/search/search.js` | 140 | УМНЫЙ ПОИСК ПО ЧАТАМ И КОДУ (необязательный модуль) ===== В приложении (есть KairemaSearch) текст чатов копируется в отдельный индекс SQLite FTS5 (Kotlin: search/SearchIn |
 | `features/setlayout/setlayout.css` | 39 | Настройки: раскладка sx- (модуль setlayout). Только цвета из токенов: чёрно-белое с тонкими линиями |
-| `features/setlayout/setlayout.js` | 99 | НАСТРОЙКИ: раскладка как у профессиональных приложений ===== Принципы (Android Settings Guidelines, Material 3, Apple HIG, чёрно-белая система Geist): • сверху «кто вы»:  |
+| `features/setlayout/setlayout.js` | 101 | НАСТРОЙКИ: раскладка как у профессиональных приложений ===== Принципы (Android Settings Guidelines, Material 3, Apple HIG, чёрно-белая система Geist): • сверху «кто вы»:  |
 | `features/share/share.css` | 27 | Стили модуля share: кнопки под сообщением, лист «Поделиться», окно «Выделить текст». |
 | `features/share/share.js` | 164 | ПОДЕЛИТЬСЯ: копирование, выделение текста, отправка в Telegram и другие приложения ===== Под каждым ответом ИИ ряд кнопок «Копировать» и «Поделиться»; ваше сообщение: заж |
 | `features/sync/schema.sql` | 32 |  |
@@ -220,7 +223,7 @@
 | `features/updater/updater.css` | 4 |  |
 | `features/updater/updater.js` | 64 | ОБНОВЛЕНИЕ ИЗ ПРИЛОЖЕНИЯ ===== Настройки → «Обновление»: проверяет последний релиз репозитория на GitHub (releases/latest), показывает, что нового, и по кнопке скачивает  |
 | `features/websearch/websearch.js` | 49 | ПОИСК В ИНТЕРНЕТЕ: модель сама решает, нужен ли поиск, и составляет запросы ===== Раньше в поисковик уходил сырой текст вопроса: «а в Москве?» искалось дословно и находил |
-| `index.html` | 115 |  |
+| `index.html` | 118 |  |
 
 ### Индекс файлов Kotlin (`app/src/main/java/com/kairema/app`)
 
@@ -266,7 +269,7 @@
 | Событие | Слушают (`Hooks.on`) | Запускают (`Hooks.run`) |
 |---|---|---|
 | `account:rendered` | sync-ui.js | auth-ui.js |
-| `app:ready` | a11y.js, about.js, auth-ui.js, backup.js, caps.js, cmds.js, cost.js, filediff.js, help.js, inbox.js, log.js, memory-ui.js, memory.js, organize.js, roles.js, search.js, sync.js, updater.js | app.js |
+| `app:ready` | a11y.js, about.js, auth-ui.js, backup.js, caps.js, cmds.js, cost.js, filediff.js, game.js, help.js, inbox.js, log.js, memory-ui.js, memory.js, organize.js, roles.js, search.js, sync.js, updater.js | app.js |
 | `auth:forgot` | auth-ui.js | auth.js |
 | `chat:answer` | branch.js, cost.js, ctx.js, ctxbar.js, feel.js, memory-ai.js, memory-ui.js, organize.js, share.js, terminal.js | coder.js, messages.js, tools.js |
 | `chat:rendered` | branch.js, coder.js, ctxbar.js, design.js, draft.js, rag.js, roles.js, scroller.js, share.js | messages.js |
@@ -279,7 +282,7 @@
 | `memory:changed` | memory.js | backup.js, memory-ai.js, memory-ui.js, settings.js |
 | `msg:render` | attview.js, branch.js, coder.js, cost.js, ctx.js, draft.js, organize.js, share.js, tools.js | messages.js |
 | `settings:grouped` | — | settings.js |
-| `settings:rendered` | a11y.js, auth-ui.js, backup.js, coder.js, cost.js, ctx.js, feel.js, filediff.js, help.js, log.js, organize.js, quality.js, rag.js, roles.js, updater.js | settings.js |
+| `settings:rendered` | a11y.js, auth-ui.js, backup.js, coder.js, cost.js, ctx.js, feel.js, filediff.js, game.js, help.js, log.js, organize.js, quality.js, rag.js, roles.js, updater.js | settings.js |
 | `sync:delete` | search.js, sync.js | chats.js, memory.js, sync.js |
 | `sync:left` | auth-ui.js | sync.js |
 | `sync:register` | chats.js, memory.js, sync.js | sync.js |
@@ -298,6 +301,7 @@
 - `kairema.draft.v1`: draft.js
 - `kairema.fdiff.v1`: filediff.js
 - `kairema.feel.v1`: feel.js
+- `kairema.game.v1`: game.js
 - `kairema.log.v1`: log.js
 - `kairema.mcaps.v1`: caps.js
 - `kairema.mcp.v1`: backup.js, mcp.js
@@ -324,5 +328,5 @@
 - `kairema.welcome.v1`: auth-ui.js
 
 ### Экраны (`SCREENS.<имя>`, открываются через `openScreen`)
-`about`, `account`, `api`, `backup`, `cost`, `filediff`, `help`, `log`, `marks`, `memory`, `onboarding`, `profile`, `providers`, `roles`, `settings`, `templates`, `terminal`
+`about`, `account`, `api`, `backup`, `cost`, `filediff`, `game`, `help`, `log`, `marks`, `memory`, `onboarding`, `profile`, `providers`, `roles`, `settings`, `templates`, `terminal`
 <!-- AUTO:END -->

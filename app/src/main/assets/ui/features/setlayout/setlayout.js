@@ -16,7 +16,8 @@ const SetLayout=(()=>{
   {t:'Основное',k:['web','theme'],live:1},
   {t:'Агент и терминал',k:['coder-s','fd']},
   {t:'Чат и вид',k:['org-s','ca','a11y-s','feel','feels']},
-  {t:'Данные',k:['cost','backup','log']}];
+  {t:'Данные',k:['cost','backup','log']},
+  {t:'Отдых',k:['game-go']}];
  const ADV=['qh','qc','rag'],HELP=['hp','upd','about'],QUICK='prov';
  const STACK='<svg class="i" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>';
  /* Свои значки (линия 2px, как у остальных): чтобы строки не сливались в одинаковые «плюс в квадрате». */
@@ -31,6 +32,7 @@ const SetLayout=(()=>{
   feels:'<path d="M11 5L6 9H3v6h3l5 4V5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6a8 8 0 0 1 0 12"/>',
   backup:'<path d="M3 4h18v4H3zM5 8v12h14V8M10 12h4"/>',
   qh:'<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>',
+  'game-go':'<rect x="3" y="7" width="18" height="11" rx="4"/><path d="M8 10v5M5.5 12.5h5"/><circle cx="15.5" cy="11" r=".8"/><circle cx="18" cy="14" r=".8"/>',
   rag:'<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5z"/><path d="M14 3v5h5M9 14h6M9 17h4"/>'};
  const key=e=>{
   if(e.matches('.card.pf'))return'prof';
@@ -95,4 +97,4 @@ const SetLayout=(()=>{
   extra.forEach(e=>{if(!e.isConnected)return});
   box.prepend(root)}
  return{apply}})();
-i18nAdd({"ИИ и подключения":"AI and connections","Основное":"Main","Провайдеры ИИ":"AI providers","Провайдер поиска":"Search provider","Название, API URL и ключ":"Name, API URL and key","Подключение поиска в интернете":"Web search connection","Подключено: ":"Connected: ","Агент и терминал":"Agent and terminal","Чат и вид":"Chat and appearance","Данные":"Data","Дополнительно":"Advanced","Помощь":"Help","Прочее":"Other","Сервисы":"Services","Поиск":"Search","Включён":"On","Выключен":"Off","Активно: ":"Active: "});
+i18nAdd({"Отдых":"Break","ИИ и подключения":"AI and connections","Основное":"Main","Провайдеры ИИ":"AI providers","Провайдер поиска":"Search provider","Название, API URL и ключ":"Name, API URL and key","Подключение поиска в интернете":"Web search connection","Подключено: ":"Connected: ","Агент и терминал":"Agent and terminal","Чат и вид":"Chat and appearance","Данные":"Data","Дополнительно":"Advanced","Помощь":"Help","Прочее":"Other","Сервисы":"Services","Поиск":"Search","Включён":"On","Выключен":"Off","Активно: ":"Active: "});

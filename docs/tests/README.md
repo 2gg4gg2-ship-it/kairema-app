@@ -41,3 +41,6 @@ Playwright (Chromium), без jsdom: `python3 -I docs/tests/ui020.test.py` и `p
 Тест 0.33.0: `python3 -I docs/tests/model033.test.py /tmp` (факты о модели в подсказке, просмотр вложений в поле ввода, метка «Поиск», подписи в меню «+»).
 
 Тест 0.45.0: `cd docs/tests && UI_DIR=../../app/src/main/assets/ui/ node sx044.test.js` (раскладка настроек: плитки, группы, «Дополнительно», неизвестные строки).
+
+Тесты 0.47.0: `node docs/tests/game047.test.js` (движок: бот проходит 10 уровней и босса), `python3 -I docs/tests/game047.test.py /tmp` (игра в браузере: меню, уровни, прыжок, пауза, поворот, плашка «Нет сети», босс).
+
