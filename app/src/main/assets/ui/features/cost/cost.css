@@ -1,9 +1,0 @@
-.msg-act .cost{margin-left:auto;padding:0 6px;font-size:12px;color:var(--tx2);white-space:nowrap;font-variant-numeric:tabular-nums}
-.cs-h{font-size:14px;font-weight:600;color:var(--tx2);margin:16px 0 8px;text-transform:none}
-.cs-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.cs{background:var(--s1);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
-.cs small{display:block;color:var(--tx2);font-size:12px;margin-bottom:4px}.cs b{font-size:18px;font-weight:600}
-.cs-l{background:var(--s1);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.cs-r{display:flex;justify-content:space-between;gap:12px;padding:11px 14px;font-size:14px}.cs-r+.cs-r{border-top:1px solid var(--line)}
-.cs-r .mo{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cs-r span:last-child{color:var(--tx2);white-space:nowrap}
-.msg-act .cost{order:10}

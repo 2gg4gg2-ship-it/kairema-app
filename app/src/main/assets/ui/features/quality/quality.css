@@ -1,2 +1,0 @@
-/* Стили модуля quality: значение справа в строке настроек. */
-.sr .qv{flex:none;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--s2);color:var(--tx);font:600 13px var(--body)}

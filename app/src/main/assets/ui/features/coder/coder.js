@@ -32,7 +32,7 @@ const Coder=(()=>{
  const sq=s=>"'"+String(s).replace(/'/g,"'\\''")+"'";
  /* Путь внутри проекта: относительный, без «..»; иначе null. */
  const rel=p=>{p=String(p==null?'.':p).trim().replace(/^\.\//,'');if(!p)p='.';if(p[0]==='/'||p[0]==='~'||/^[A-Za-z]:/.test(p)||p.split('/').some(x=>x==='..'))return null;return p};
- const dirq=dd=>{let d=String(dd||cfg.dir||'kairema-work').trim();if(d.startsWith('~/'))return'"$HOME"/'+sq(d.slice(2));if(d==='~')return'"$HOME"';return sq(d)};
+ const dirq=dd=>{let d=String(dd||cfg.dir||'kairema-work').trim();if(d.startsWith('~/'))return'"$HOME"/'+sq(d.slice(2));if(d==='~')return'"$HOME"';if(d[0]!=='/')return'"$HOME"/'+sq(d.replace(/^\.\//,''));return sq(d)};
  const trunc=(s,n=MAXOUT)=>{s=String(s==null?'':s);if(s.length<=n)return s;const h=Math.round(n*.35),t=n-h;return s.slice(0,h)+'\n…[пропущено '+(s.length-n)+' знаков]…\n'+s.slice(-t)};
  const SAFE1=new Set('ls cat pwd head tail wc grep egrep fgrep echo which whoami date uname df du stat file tree sort uniq cut basename dirname'.split(' '));
  const SAFEGIT=new Set('status diff log show branch rev-parse remote ls-files blame'.split(' '));
@@ -214,7 +214,19 @@ const Coder=(()=>{
  const askNet=(key,title,body)=>{const q=askTail.then(async()=>{if(allowNet.has(key))return{ok:1};if(stopped)return{ok:0,why:'Остановлено пользователем.'};Native.sync('agentNotify','Агент ждёт разрешения',String(body).split('\n')[0]);const v=await ASK(title,body);if(v==='no')return{ok:0,why:'Пользователь отклонил это действие. Не повторяй его, предложи другой путь или спроси, что делать.'};if(v==='always')allowNet.add(key);return{ok:1}});askTail=q.catch(()=>{});return q};
  /* Запросы к модели: общий вызов для главного цикла и подагентов. */
  let stopped=0;const live=new Set();
+ const NETRE=/нет соединения|время ожидания|ошибка сети|ошибка 5\d\d|лимит запросов|timeout|timed out|connection|reset|broken pipe|unexpected end|stream|unreachable/i;
+ let netNote=null,NET_TRIES=7,NET_BASE=3;
+ const nap=async ms=>{const t0=Date.now();while(!stopped&&Date.now()-t0<ms)await new Promise(r=>setTimeout(r,400))};
  async function llm(p,anth,sys,conv,tools,onText){
+  for(let a=0;;a++){
+   try{return await llm1(p,anth,sys,conv,tools,onText)}
+   catch(e){
+    const msg=String(e&&e.message||e);
+    if(stopped||a>=NET_TRIES||!NETRE.test(msg))throw e;
+    const sec=Math.min(60,NET_BASE*Math.pow(2,a));
+    for(let r=sec;r>0&&!stopped;r--){if(netNote)netNote('⚠ Нет связи с моделью ('+msg.slice(0,70)+'). Повтор '+(a+1)+'/'+NET_TRIES+' через '+r+' с… Остановить — кнопка «Стоп».');await nap(1000)}
+    if(stopped)throw e}}}
+ async function llm1(p,anth,sys,conv,tools,onText){
   let text='',calls=[],cut=0;
   const prov={id:p.id,url:p.url,model:p.model,system:sys,think:0,notify:0};if(tools&&tools.length)prov.tools=dmap(tools,anth);
   const out=anth?toAnth(conv):toOAI(conv);
@@ -322,6 +334,7 @@ const Coder=(()=>{
    const hookFinish=async()=>{let t='';for(const h of hk){if(h.event!=='on_finish'||!h.run)continue;const r=await runHook(h,'');
      add({k:'tool',n:'hook',h:'Хук on_finish: '+h.run.slice(0,50),st:r.code===0?'ok':'err',d:'',o:r.out});if(r.code!==0)t+='\n$ '+h.run+' → код '+r.code+'\n'+r.out}return t};
    const sys=sysPrompt()+sysAgent()+(typeof sysExtra==='function'?sysExtra(msgs):'')+'\n\n[НАВЫКИ] Доступны навыки (пользователь вызывает командой /имя, ты можешь загрузить инструментом skill): '+skList.map(x=>x.n+' — '+x.d).join('; ')+'.'+ins+langRule(last&&(last.q||last.t));
+   netNote=t=>{bd.textContent=t;scl(box)};
    const turn=async tools=>{bd.textContent='';return llm(p,anth,sys,conv,tools?allTools():null,t=>{bd.textContent=t;scl(box)})};
    /* Подагент: свой контекст, только чтение (list_dir, read_file, search, web_fetch), возвращает отчёт. */
    const SUBT=['list_dir','read_file','search','web_fetch'];
@@ -406,8 +419,8 @@ const Coder=(()=>{
    if(!m.stopped)Hooks.run('chat:answer',m,bd);
   }catch(e){
    if(stopped){m.stopped=1;m.t=m.t||'⏹ Остановлено.';mdRender(bd,m.t,m)}
-   else fail('Агент остановился: '+e.message)
-  }finally{run=null;Native.sync('agentNotify','Kairema',m.stopped?'Агент остановлен':(m.err?'Агент остановился с ошибкой':'Агент закончил: '+String(m.t||'').slice(0,120)));Native.sync('agentKeep',false);window.GEN=null;if(Chat.cmp&&Chat.cmp.upd)Chat.cmp.upd()}
+   else fail('Агент остановился: '+e.message+(NETRE.test(String(e.message))?'\n\nКогда появится связь, напишите «продолжай»: агент продолжит с того места, где остановился.':''))
+  }finally{netNote=null;run=null;Native.sync('agentNotify','Kairema',m.stopped?'Агент остановлен':(m.err?'Агент остановился с ошибкой':'Агент закончил: '+String(m.t||'').slice(0,120)));Native.sync('agentKeep',false);window.GEN=null;if(Chat.cmp&&Chat.cmp.upd)Chat.cmp.upd()}
  }
  /* ---- Интерфейс: кнопка в композере и окно настроек ---- */
  const fold=()=>(cfg.dir||'kairema-work');
@@ -456,4 +469,4 @@ const Coder=(()=>{
   r.onclick=panel;ab.before(r)});
  i18nAdd({"Выкл":"Off","Вкл":"On","Хуки проекта (.kairema/hooks.json): запускают команды без вопросов, включайте только для своих проектов":"Project hooks (.kairema/hooks.json): they run commands without asking, enable only for your own projects","Применить правки?":"Apply the edits?","Открыть сайт?":"Open the site?","Вызвать инструмент MCP?":"Call the MCP tool?","Да":"Yes","Нет":"No","MCP-серверы…":"MCP servers…","Читать инструкции проекта (KAIREMA.md, AGENTS.md, CLAUDE.md)":"Read project instructions (KAIREMA.md, AGENTS.md, CLAUDE.md)","Изменения":"Changes","Изменения агента":"Agent changes","Закрыть":"Close","Загружаю…":"Loading…","Изменений нет":"No changes","Откатить к точке":"Roll back to checkpoint","Откатить к точке?":"Roll back to the checkpoint?","Файлы проекта вернутся к состоянию до этого запуска агента, новые файлы удалятся. Ваши правки после запуска тоже пропадут.":"Project files return to the state before this agent run; new files are deleted. Your own edits made since then are lost too.","Папка проекта":"Project folder","Выбрать папку…":"Choose a folder…","Выбрать эту папку":"Use this folder","Отмена":"Cancel","Папок нет":"No folders","Батарея ниже 15%: долгий прогон агента может не завершиться":"Battery below 15%: a long agent run may not finish","Агент-программист":"Coding agent","Агент":"Agent","Только чтение":"Read only","Спрашивать":"Ask first","Правки сами":"Auto-edit","Полный авто":"Full auto","Читает и ищет, ничего не меняет и не запускает":"Reads and searches only","Читает сам; каждую правку и команду показывает и ждёт разрешения":"Reads on its own; asks before every edit and command","Файлы правит сам; команды (кроме безопасных вроде ls, git status) спрашивает":"Edits files itself; asks before commands (except safe ones like ls, git status)","Правит и запускает всё сам; опасные команды (rm -r, sudo…) всё равно спрашивает":"Edits and runs everything itself; still asks for dangerous commands (rm -r, sudo…)","Отклонить":"Deny","Разрешить":"Allow","Разрешать такое до конца чата":"Allow this kind until the chat ends","Изменить файл?":"Change the file?","Записать файл?":"Write the file?","Откатить правки":"Undo changes","Откатить правки?":"Undo changes?","Откатить":"Undo","Правки откатаны":"Changes undone","Файлы вернутся к состоянию до этого запуска агента.":"Files will return to the state before this agent run.","Готово":"Done","Выключить агента":"Turn the agent off","Проверить окружение":"Check the environment","Проверяю…":"Checking…","Песочница":"Sandbox","Авто":"Auto","Лимит шагов за запрос":"Step limit per request","Где выполнять команды":"Where to run commands","Папка проекта (внутри Termux или песочницы)":"Project folder (inside Termux or the sandbox)","Модель сама читает файлы, правит код, запускает команды и повторяет, пока не заработает. Нужна модель с поддержкой вызова инструментов.":"The model reads files, edits code, runs commands and repeats until it works. Needs a model that supports tool calling.","Авто: Termux, если он установлен и разрешён, иначе песочница приложения (без git и python).":"Auto: Termux if installed and allowed, otherwise the app sandbox (no git or python).","Модель сама правит код и запускает проверки (Termux или песочница)":"The model edits code and runs checks itself (Termux or sandbox)"});
  const toggle=v=>{cfg.on=v===undefined?(cfg.on?0:1):(v?1:0);save();const x=$('#v-api');if(x)bar(x)};
- return{on:()=>!!cfg.on,toggle,respond,cfg,tools:TOOLS,allTools,register,defs,toOAI,toAnth,safeCmd,rel,trunc,shrink,panel,env,MODES,get envC(){return envC},_reset(){envC=null}}})();
+ return{on:()=>!!cfg.on,toggle,respond,cfg,tools:TOOLS,allTools,register,defs,toOAI,toAnth,safeCmd,rel,trunc,shrink,panel,env,MODES,get envC(){return envC},_reset(){envC=null},_net(t,b){NET_TRIES=t;NET_BASE=b}}})();

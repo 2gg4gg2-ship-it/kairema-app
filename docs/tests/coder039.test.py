@@ -22,6 +22,7 @@ NOGIT = [0]
 def host_shell(cmd):
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
     if NOGIT[0]: env['PATH'] = BIN
+    env['HOME'] = WORK
     r = subprocess.run(['bash', '-c', cmd], cwd=WORK, env=env, capture_output=True, text=True, timeout=60)
     return json.dumps({'out': r.stdout + r.stderr, 'code': r.returncode})
 INIT = r"""
